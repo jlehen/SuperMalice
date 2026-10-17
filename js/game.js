@@ -156,7 +156,7 @@ const Game = {
       } else if (e.key === 'Escape') {
         if (this.state === 'pause') this.resume();
         else {
-          const back = $('.screen.show [data-action="back"]');
+          const back = $('.screen.show [data-action="back"], .screen.show [data-esc]');
           if (back) back.click();
         }
       }
@@ -209,6 +209,14 @@ const Game = {
       case 'restart': this.checkpoint = -1; this.lives = Math.max(this.lives, 1); this.enterIntro(); break;
       case 'menu': this.toTitle(); break;
       case 'retry': this.retry(); break;
+      case 'reset': this.showScreen('scr-reset'); break;
+      case 'reset-no': this.showLevels(); break;
+      case 'reset-yes':
+        // on garde la difficulté et le réglage du son, on efface les niveaux débloqués
+        this.save.unlocked = 1;
+        Save.save(this.save);
+        this.showLevels();
+        break;
       default: break;
     }
   },
@@ -256,6 +264,7 @@ const Game = {
       box.appendChild(b);
     });
     this.drawIcons(box);
+    $('#btn-reset').classList.toggle('hidden', this.save.unlocked <= 1);
     this.showScreen('scr-levels');
     const btns = $$('#level-list button:not([disabled])');
     if (btns.length && !this.isTouch) setTimeout(() => btns[btns.length - 1].focus({ preventScroll: true }), 40);
@@ -391,12 +400,7 @@ const Game = {
     const p = w.player;
     p.won = true;
     p.star = 0;
-    p.holding = (ctx) => {
-      ctx.save();
-      ctx.scale(0.9, 0.9);
-      Art.babyBird(ctx, 15, -22, w.t, { noNest: true, happy: true });
-      ctx.restore();
-    };
+    p.holding = (ctx) => Art.heldBird(ctx, w.t);
     this.score += 5000;
     Sound.sfx.chirp();
     Sound.playMusic('victory');
@@ -651,7 +655,7 @@ const Game = {
     ctx.fill();
     Art.malice(ctx, 165, 476 - hop, {
       pose: 'hold', t, facing: 1, scale: 2.7,
-      holding: (c) => Art.babyBird(c, 15, -22, t, { noNest: true, happy: true, chirp: Math.floor(t * 3) % 2 === 0 }),
+      holding: (c) => Art.heldBird(c, t, { chirp: Math.floor(t * 3) % 2 === 0 }),
     });
     for (let i = 0; i < 6; i++) {
       const a = t * 1.5 + (i * Math.PI) / 3;

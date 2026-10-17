@@ -238,6 +238,17 @@ button {
 .screen .card.picked { border-color: var(--yellow); }
 
 /* Liste des niveaux */
+.row-btns {
+  display: flex;
+  gap: calc(var(--s) * 18px);
+  align-items: center;
+  justify-content: center;
+}
+.screen button.danger {
+  background: linear-gradient(#ffa66b, #f0642e 50%, #c8401a);
+  box-shadow: 0 calc(var(--s) * 5px) 0 #7a2410, 0 calc(var(--s) * 10px) calc(var(--s) * 20px) rgba(0, 0, 0, 0.3);
+}
+#scr-reset .tagline { text-align: center; display: block; line-height: 1.35; }
 #level-list {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

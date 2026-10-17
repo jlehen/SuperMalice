@@ -48,6 +48,9 @@ Une manette de jeu fonctionne aussi.
 Les ennemis sont aussi un peu plus rapides en Classique et en Difficile.
 100 friandises (bonbons, sucettes, balles) donnent une vie en plus.
 
+La progression (niveaux débloqués) est gardée dans le navigateur. Pour tout effacer :
+« Jouer » → écran « Choisis un niveau » → **Recommencer depuis le début** (une confirmation est demandée).
+
 ## Inventer ses propres niveaux
 
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.

@@ -5,8 +5,8 @@ const Art = (() => {
   const TAU = Math.PI * 2;
 
   // ---------------- Malice ----------------
-  // Vue de trois-quarts (comme Mario dans Wonder) : grosse tête ronde, deux grands yeux,
-  // nez rond, grosse moustache noire, casquette rose avec visière.
+  // Corps de profil (Malice regarde vers la droite), tête de trois-quarts comme Mario dans Wonder :
+  // grosse tête ronde, deux grands yeux, nez rond, grosse moustache noire, casquette rose avec visière.
   const MALICE = {
     hat: '#ff4f9a', hatDark: '#d92f7a', hatLight: '#ff9fcd', hatLine: '#9a1a56',
     overall: '#ff74b4', overallDark: '#e2579c', overallLine: '#a52f6a',
@@ -17,17 +17,9 @@ const Art = (() => {
     button: '#ffe14d', iris: '#3b7de2', eye: '#14213d',
   };
 
-  // Pendant l'étoile, Malice change de couleur très vite.
+  // Pendant l'étoile, la moustache de Malice clignote dans toutes les couleurs.
   function maliceRainbow(t) {
-    const h = Math.floor(t * 540) % 360;
-    const c = (dh, s, l) => `hsl(${(h + dh) % 360},${s}%,${l}%)`;
-    return Object.assign({}, MALICE, {
-      hat: c(0, 95, 58), hatDark: c(0, 90, 46), hatLight: c(0, 95, 76), hatLine: c(0, 80, 30),
-      overall: c(130, 95, 60), overallDark: c(130, 90, 48), overallLine: c(130, 80, 30),
-      shirt: c(250, 100, 88), shirtShade: c(250, 70, 76), shirtLine: c(250, 50, 50),
-      shoe: c(60, 85, 45), shoeDark: c(60, 85, 34), shoeLight: c(60, 85, 62), shoeLine: c(60, 80, 22),
-      hair: c(200, 100, 70), hairDark: c(200, 90, 55), hairLine: c(200, 80, 38),
-    });
+    return Object.assign({}, MALICE, { rainbow: t });
   }
 
   function paint(ctx, fill, line, lw) {
@@ -71,42 +63,69 @@ const Art = (() => {
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(a);
-    roundRectPath(ctx, -2.1, 1, 4.2, 9.6, 2.1);
+    roundRectPath(ctx, -2.1, 2, 4.2, 8.8, 2.1);
     paint(ctx, back ? C.skinShade : C.skin, C.skinLine, 0.95);
     circlePath(ctx, 0, 11, 3.1);
     paint(ctx, back ? C.skinShade : C.skin, C.skinLine, 0.95);
-    circlePath(ctx, 0, 0.6, 3.7);
+    // manche courte bouffante
+    ctx.beginPath();
+    ctx.moveTo(-3.7, 0.2);
+    ctx.quadraticCurveTo(0, -3.6, 3.7, 0.2);
+    ctx.lineTo(3.4, 4.6);
+    ctx.quadraticCurveTo(0, 6, -3.4, 4.6);
+    ctx.closePath();
     paint(ctx, back ? C.shirtShade : C.shirt, C.shirtLine, 0.95);
     ctx.restore();
   }
 
+  // Le corps vu de côté : t-shirt, salopette avec la bavette devant et une bretelle sur l'épaule.
   function drawBody(ctx, C) {
-    roundRectPath(ctx, -8.5, -32.5, 17, 13.5, 5.5);
+    ctx.beginPath();
+    ctx.moveTo(-7.2, -33.4);
+    ctx.quadraticCurveTo(0.4, -35.6, 7.2, -33.4);
+    ctx.quadraticCurveTo(9.6, -28.5, 8.8, -21);
+    ctx.lineTo(-8, -21);
+    ctx.quadraticCurveTo(-9.6, -28.5, -7.2, -33.4);
+    ctx.closePath();
     paint(ctx, C.shirt, C.shirtLine, 1.05);
-    // salopette
-    roundRectPath(ctx, -9, -24.5, 18, 11.5, 4.5);
+    // culotte de la salopette, arrondie derrière
+    ctx.beginPath();
+    ctx.moveTo(-8.4, -24.6);
+    ctx.lineTo(8.9, -24.6);
+    ctx.quadraticCurveTo(10.6, -19, 8.2, -13.2);
+    ctx.quadraticCurveTo(0, -11.2, -7, -12.6);
+    ctx.quadraticCurveTo(-11.8, -15, -10.2, -20.2);
+    ctx.quadraticCurveTo(-9.8, -23.2, -8.4, -24.6);
+    ctx.closePath();
     paint(ctx, C.overall, C.overallLine, 1.05);
-    roundRectPath(ctx, -5.6, -30, 11.2, 8.2, 2.2);
+    // bretelle : de la bavette, par-dessus l'épaule, jusque dans le dos
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(4.6, -29.6);
+    ctx.quadraticCurveTo(-1, -35.8, -7, -31.2);
+    ctx.lineTo(-7.8, -24.2);
+    ctx.strokeStyle = C.overallLine;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.strokeStyle = C.overall;
+    ctx.lineWidth = 2.3;
+    ctx.stroke();
+    // bavette sur le ventre
+    roundRectPath(ctx, 2, -30.9, 8.2, 8.6, 2.2);
     paint(ctx, C.overall, C.overallLine, 1);
     ctx.fillStyle = C.overall;
-    ctx.fillRect(-4.9, -24, 9.8, 2.4);
-    ctx.strokeStyle = C.overall;
-    ctx.lineWidth = 2.6;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-4.4, -29.4);
-    ctx.lineTo(-6.6, -32.2);
-    ctx.moveTo(4.4, -29.4);
-    ctx.lineTo(6.2, -32.2);
-    ctx.stroke();
-    roundRectPath(ctx, -2.1, -27.4, 4.6, 3.4, 1);
-    ctx.fillStyle = C.overallDark;
-    ctx.fill();
+    ctx.fillRect(2.6, -25.3, 7, 2.6);
     ctx.fillStyle = C.button;
-    circlePath(ctx, -3.5, -28.1, 1.5);
+    circlePath(ctx, 5.4, -28.1, 1.5);
     ctx.fill();
-    circlePath(ctx, 3.7, -28.1, 1.5);
-    ctx.fill();
+    // poche sur le côté
+    ctx.strokeStyle = C.overallLine;
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(-5.6, -21.6);
+    ctx.quadraticCurveTo(-4.2, -17.2, 0, -17.8);
+    ctx.stroke();
   }
 
   function drawEyes(ctx, C, hx, hy, pose, t) {
@@ -166,8 +185,24 @@ const Art = (() => {
     ctx.bezierCurveTo(mx - 12.6, my + 0.6 - wig, mx - 11.4, my + 1.6, mx - 10.4, my);
     ctx.bezierCurveTo(mx - 8.6, my - 4, mx - 4, my - 5, mx, my - 2.8);
     ctx.closePath();
-    ctx.fillStyle = C.mustache;
-    ctx.fill();
+    if (C.rainbow != null) {
+      // étoile : arc-en-ciel qui défile et petit halo
+      const h = Math.floor(C.rainbow * 720) % 360;
+      const g = ctx.createLinearGradient(mx - 13, 0, mx + 16, 0);
+      for (let i = 0; i <= 4; i++) g.addColorStop(i / 4, `hsl(${(h + i * 70) % 360},95%,58%)`);
+      ctx.save();
+      ctx.shadowColor = `hsl(${(h + 140) % 360},100%,70%)`;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = C.mustache;
+      ctx.fill();
+    }
     ctx.strokeStyle = 'rgba(255,255,255,0.28)';
     ctx.lineWidth = 0.8;
     ctx.beginPath();
@@ -312,9 +347,9 @@ const Art = (() => {
     ctx.translate(x, y);
     const sc = o.scale || 1;
     ctx.scale((o.facing || 1) * sc * (o.sx || 1), sc * (o.sy || 1));
-    let legF = 0;
-    let legB = 0;
-    let armF = -0.1;
+    let legF = 0.1;
+    let legB = -0.1;
+    let armF = -0.12;
     let armB = 0.12;
     let bob = 0;
     let lean = 0;
@@ -323,42 +358,42 @@ const Art = (() => {
     switch (pose) {
       case 'walk': {
         const s = Math.sin(ph);
-        legF = s * 0.6; legB = -s * 0.6;
-        armF = -s * 0.75; armB = s * 0.75;
+        legF = s * 0.62; legB = -s * 0.62;
+        armF = -s * 0.8; armB = s * 0.8;
         bob = -Math.abs(Math.cos(ph)) * 2;
         lean = 0.05;
         break;
       }
-      case 'jump': legF = -1.0; legB = 0.4; armF = -2.3; armB = 0.8; break;
-      case 'fall': legF = 0.35; legB = -0.3; armF = -2.0; armB = 1.9; break;
-      case 'pound': legF = -1.6; legB = -1.3; armF = -2.2; armB = 2.2; bob = 3; break;
-      case 'throw': armF = -1.6; armB = 0.5; legF = 0.25; legB = -0.25; break;
-      case 'win': armF = -2.25 + Math.sin(t * 10) * 0.2; armB = 2.25; legF = 0.15; legB = -0.15; break;
-      case 'hurt': armF = -2.0; armB = 2.0; legF = 0.45; legB = -0.45; lean = -0.1; break;
-      case 'hold': armF = -1.3; armB = -1.05; break;
-      case 'crouch': crouch = 7; legF = -1.25; legB = -0.85; legLen = 8; armF = -0.55; armB = 0.35; break;
-      case 'hang': armF = 0.4; armB = -0.3; legF = 0.25; legB = -0.2; break;
+      case 'jump': legF = -0.95; legB = 0.45; armF = -1.65; armB = 1.15; break;
+      case 'fall': legF = 0.3; legB = -0.35; armF = -1.3; armB = 1.45; break;
+      case 'pound': legF = -1.6; legB = -1.25; armF = -0.75; armB = 0.6; bob = 3; break;
+      case 'throw': armF = -1.6; armB = 0.6; legF = 0.3; legB = -0.3; break;
+      case 'win': armF = -1.85 + Math.sin(t * 10) * 0.22; armB = 1.3; legF = 0.2; legB = -0.2; break;
+      case 'hurt': armF = -1.25; armB = 1.5; legF = 0.45; legB = -0.45; lean = -0.12; break;
+      case 'hold': armF = -1.0; armB = -0.8; break;
+      case 'crouch': crouch = 7; legF = -1.25; legB = -0.85; legLen = 8; armF = -0.6; armB = 0.3; break;
+      case 'hang': armF = 0.25; armB = -0.25; legF = 0.25; legB = -0.2; break;
       default:
         bob = Math.sin(t * 2.5) * 0.7;
-        armF = -0.1 - Math.sin(t * 2.5) * 0.04;
+        armF = -0.12 - Math.sin(t * 2.5) * 0.04;
     }
     ctx.translate(0, bob);
     ctx.rotate(lean);
     ctx.save();
     ctx.translate(0, crouch);
-    drawArm(ctx, C, -8.6, -29.6, armB, true);
+    drawArm(ctx, C, -2, -28.2, armB, true);
     ctx.restore();
-    drawLeg(ctx, C, -3.8, -15.5 + crouch, legB, true, legLen);
-    drawLeg(ctx, C, 3.8, -15.5 + crouch, legF, false, legLen);
+    drawLeg(ctx, C, -2.2, -15.5 + crouch, legB, true, legLen);
+    drawLeg(ctx, C, 1.4, -15.5 + crouch, legF, false, legLen);
     ctx.save();
     ctx.translate(0, crouch);
     drawBody(ctx, C);
     // le bras avant passe sous la tête (sauf quand Malice tient le bébé oiseau)
-    if (!o.holding) drawArm(ctx, C, 8.6, -29.6, armF, false);
+    if (!o.holding) drawArm(ctx, C, 1.2, -27.8, armF, false);
     drawHead(ctx, C, o);
     if (o.holding) {
       o.holding(ctx);
-      drawArm(ctx, C, 8.6, -29.6, armF, false);
+      drawArm(ctx, C, 1.2, -27.8, armF, false);
     }
     ctx.restore();
     ctx.restore();
@@ -1433,6 +1468,15 @@ const Art = (() => {
   }
 
   // ---------------- Bébé oiseau ----------------
+  // Le bébé oiseau dans les bras de Malice (coordonnées de Malice, les pieds en 0,0).
+  function heldBird(ctx, t, o) {
+    ctx.save();
+    ctx.translate(20, -7);
+    ctx.scale(0.78, 0.78);
+    babyBird(ctx, 0, 0, t, Object.assign({ noNest: true, happy: true }, o));
+    ctx.restore();
+  }
+
   function babyBird(ctx, x, y, t, o) {
     o = o || {};
     ctx.save();
@@ -1826,7 +1870,7 @@ const Art = (() => {
   }
 
   return {
-    MALICE, CUBE_COLORS, maliceRainbow, malice, maliceHead,
+    MALICE, CUBE_COLORS, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,
     eclair, sparks, babyBird, lutinFace, flag, mustacheRope, anchorRing, badge,

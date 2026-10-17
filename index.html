@@ -66,7 +66,20 @@
         <section class="screen" id="scr-levels">
           <h2>Choisis un niveau</h2>
           <div id="level-list"></div>
-          <button class="small" data-action="back">← Retour</button>
+          <div class="row-btns">
+            <button class="small" data-action="back">← Retour</button>
+            <button class="small danger" data-action="reset" id="btn-reset">Recommencer depuis le début</button>
+          </div>
+        </section>
+
+        <!-- Effacer la progression -->
+        <section class="screen dim" id="scr-reset">
+          <h2>Tout recommencer&nbsp;?</h2>
+          <p class="tagline">Tous les niveaux débloqués seront effacés&nbsp;:<br>tu repartiras du niveau 1.</p>
+          <div class="row-btns">
+            <button data-action="reset-no" data-esc>Non, je garde tout</button>
+            <button class="danger" data-action="reset-yes">Oui, tout effacer</button>
+          </div>
         </section>
 
         <!-- Aide -->
