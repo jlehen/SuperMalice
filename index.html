@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#2a1450">
+  <meta name="description" content="Super Malice : aide Malice à sauver le bébé oiseau perdu dans le volcan !">
+  <title>Super Malice</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='36' r='22' fill='%23ffd9bd'/%3E%3Cpath d='M8 30 C8 6 56 4 58 28 Z' fill='%23ff4f9a'/%3E%3Ccircle cx='32' cy='18' r='7' fill='white'/%3E%3Cpath d='M14 46 C20 38 28 42 32 44 C36 42 44 38 50 46 C44 50 36 50 32 47 C28 50 20 50 14 46 Z' fill='%231c1717'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="stage">
+    <div id="frame">
+      <canvas id="game" width="960" height="540"></canvas>
+
+      <div id="hudbtns">
+        <button id="btn-pause" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg></button>
+        <button id="btn-sound" aria-label="Son"></button>
+        <button id="btn-fs" aria-label="Plein écran"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+
+      <div id="screens">
+        <!-- Écran titre -->
+        <section class="screen" id="scr-title">
+          <h1 class="logo"><span class="l1">Super</span><span class="l2">Malice</span></h1>
+          <p class="tagline">Sauve le bébé oiseau perdu dans le volcan&nbsp;!</p>
+          <div class="menu">
+            <button class="big" data-action="play">▶ Jouer</button>
+            <button data-action="help">Comment jouer&nbsp;?</button>
+          </div>
+          <p class="credits">Un jeu imaginé par Alice</p>
+        </section>
+
+        <!-- Difficulté -->
+        <section class="screen" id="scr-diff">
+          <h2>Choisis la difficulté</h2>
+          <div class="cards">
+            <button class="card gentil" data-action="diff" data-diff="gentil">
+              <canvas class="emo" data-icon="heart" width="56"></canvas>
+              <b>Gentil</b>
+              <small>Vies illimitées.<br>On repart du dernier drapeau.</small>
+            </button>
+            <button class="card classique" data-action="diff" data-diff="classique">
+              <canvas class="emo" data-icon="star" width="56"></canvas>
+              <b>Classique</b>
+              <small>3 vies.<br>Plus de vies&nbsp;? On recommence le niveau.</small>
+            </button>
+            <button class="card difficile" data-action="diff" data-diff="difficile">
+              <canvas class="emo" data-icon="fire" width="56"></canvas>
+              <b>Difficile</b>
+              <small>3 vies.<br>Plus de vies&nbsp;? Retour au tout début&nbsp;!</small>
+            </button>
+          </div>
+          <button class="small" data-action="back">← Retour</button>
+        </section>
+
+        <!-- Choix du niveau -->
+        <section class="screen" id="scr-levels">
+          <h2>Choisis un niveau</h2>
+          <div id="level-list"></div>
+          <button class="small" data-action="back">← Retour</button>
+        </section>
+
+        <!-- Aide -->
+        <section class="screen" id="scr-help">
+          <h2>Comment jouer&nbsp;?</h2>
+          <div class="help">
+            <div class="col">
+              <h3>Commandes</h3>
+              <table class="keys">
+                <tr><td><kbd>←</kbd><kbd>→</kbd> ou <kbd>Q</kbd><kbd>D</kbd></td><td>Marcher</td></tr>
+                <tr><td><kbd>Espace</kbd> ou <kbd>↑</kbd> ou <kbd>Z</kbd></td><td>Sauter (garde appuyé pour sauter plus haut)</td></tr>
+                <tr><td><kbd>↓</kbd> ou <kbd>S</kbd> en l'air</td><td>Écraser vers le bas</td></tr>
+                <tr><td><kbd>X</kbd></td><td>Lancer du caramel</td></tr>
+                <tr><td><kbd>C</kbd></td><td>Lancer des chips</td></tr>
+                <tr><td><kbd>Échap</kbd> ou <kbd>P</kbd></td><td>Pause</td></tr>
+                <tr><td><kbd>M</kbd></td><td>Couper le son</td></tr>
+              </table>
+              <p class="note">Sur tablette, utilise les gros boutons sur les côtés de l'écran. Une manette marche aussi&nbsp;!</p>
+              <h3>Les blocs lutin</h3>
+              <p class="row"><canvas data-icon="lutin" width="44"></canvas><span>Casse-les en tapant dessous avec la tête, ou saute dessus et appuie vers le bas pour les écraser. Ils cachent des surprises&nbsp;!</span></p>
+            </div>
+            <div class="col">
+              <h3>Les bonus</h3>
+              <p class="row"><canvas data-icon="fruit" width="40"></canvas><span><b>Fruit de la passion</b>&nbsp;: redonne de l'énergie.</span></p>
+              <p class="row"><canvas data-icon="caramel" width="40"></canvas><span><b>Caramel fondant</b>&nbsp;: 3 caramels collants qui immobilisent les ennemis.</span></p>
+              <p class="row"><canvas data-icon="chips" width="40"></canvas><span><b>Chips au vinaigre</b>&nbsp;: 3 chips qui rendent les ennemis gros, lents et tout essoufflés.</span></p>
+              <p class="row"><canvas data-icon="star" width="40"></canvas><span><b>Étoile</b>&nbsp;: invincible pendant 15 secondes&nbsp;!</span></p>
+              <p class="row"><canvas data-icon="candy" width="34"></canvas><canvas data-icon="lollipop" width="34"></canvas><canvas data-icon="ball" width="34"></canvas><span>Ramasse les friandises&nbsp;: 100 = une vie en plus.</span></p>
+              <h3>Attention&nbsp;!</h3>
+              <p class="row"><canvas data-icon="eye" width="40"></canvas><canvas data-icon="rubik" width="40"></canvas><canvas data-icon="ladybug" width="40"></canvas><span>Saute sur la tête des ennemis pour les battre.</span></p>
+              <p class="row"><canvas data-icon="lava" width="40"></canvas><canvas data-icon="thorn" width="40"></canvas><canvas data-icon="eclair" width="40"></canvas><span>Lave, ronces et éclairs au chocolat&nbsp;: ça fait mal&nbsp;!</span></p>
+            </div>
+          </div>
+          <button class="small" data-action="back">← Retour</button>
+        </section>
+
+        <!-- Pause -->
+        <section class="screen dim" id="scr-pause">
+          <h2>Pause</h2>
+          <div class="menu">
+            <button class="big" data-action="resume">▶ Reprendre</button>
+            <button data-action="restart">Recommencer le niveau</button>
+            <button data-action="menu">Menu principal</button>
+          </div>
+        </section>
+
+        <!-- Plus de vies -->
+        <section class="screen dim" id="scr-over">
+          <h2>Oh non&nbsp;!</h2>
+          <p id="over-msg" class="tagline"></p>
+          <div class="menu">
+            <button class="big" data-action="retry">Réessayer</button>
+            <button data-action="menu">Menu principal</button>
+          </div>
+        </section>
+
+        <!-- Victoire -->
+        <section class="screen" id="scr-victory">
+          <h1 class="logo win"><span class="l2">Bravo&nbsp;!</span></h1>
+          <p class="tagline">Malice a sauvé le bébé oiseau&nbsp;!</p>
+          <p id="vic-stats" class="stats"></p>
+          <div class="menu">
+            <button class="big" data-action="menu">Menu principal</button>
+          </div>
+          <p class="credits">Un jeu imaginé par Alice</p>
+        </section>
+      </div>
+    </div>
+
+    <!-- Boutons tactiles -->
+    <div id="touch">
+      <div class="pad left">
+        <div class="tb" data-btn="left">◀</div>
+        <div class="tb" data-btn="right">▶</div>
+      </div>
+      <div class="pad right">
+        <div class="tb small item empty" id="t-caramel" data-btn="caramel"><canvas data-icon="caramel" width="30"></canvas><span class="count">0</span></div>
+        <div class="tb small item empty" id="t-chips" data-btn="chips"><canvas data-icon="chips" width="30"></canvas><span class="count">0</span></div>
+        <div class="tb down" data-btn="down">▼</div>
+        <div class="tb jump" data-btn="jump">⤒</div>
+      </div>
+    </div>
+
+    <div id="rotate">Tourne ta tablette ou ton téléphone pour jouer&nbsp;! ↻</div>
+  </div>
+
+  <script src="js/util.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/scenery.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
