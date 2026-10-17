@@ -66,6 +66,20 @@ Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraî
 
 - Pure page web (HTML + JavaScript), sans aucune dépendance ni étape de compilation.
 - Tous les dessins sont faits en code (canvas), tous les sons et musiques sont synthétisés (Web Audio).
+- Les musiques sont des variations sur le thème de *Super Mario Bros.* (partition « Overworld »),
+  transcrites dans [`js/music.js`](js/music.js) puis réarrangées pour chaque monde :
+
+  | Monde | Variation |
+  |---|---|
+  | Écran titre | la version d'origine, façon console 8 bits |
+  | La Prairie Fleurie | calypso au steel drum, basse 3+3+2 |
+  | La Forêt des Épines | do mineur en 12/8, flûte et harpe, entrées en canon |
+  | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
+  | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
+  | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |
+  | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
+  | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |
+  | Victoire | marche triomphale en ré majeur, avec la vraie fin du morceau |
 - Polices : Fredoka et Luckiest Guy (Google Fonts).
 - Le site est publié automatiquement sur GitHub Pages à chaque `git push` sur `main`
   (voir [`.github/workflows/pages.yml`](.github/workflows/pages.yml)).
@@ -82,7 +96,8 @@ Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraî
 | `js/entities.js` | Malice, ennemis, bonus, dangers |
 | `js/art.js` | Dessins des personnages et objets |
 | `js/scenery.js` | Dessins des décors des 5 mondes |
-| `js/audio.js` | Sons et musiques |
+| `js/audio.js` | Sons, instruments et lecteur de musique |
+| `js/music.js` | La partition du thème et ses variations |
 | `js/input.js` | Clavier, écran tactile, manette |
 | `js/levels.js` | Les cartes des niveaux |
 | `js/version.js` | Numéro de version (rempli automatiquement à la publication) |

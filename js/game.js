@@ -25,6 +25,9 @@ const BADGE_INFO = {
   grappin: { name: 'Moustache-Grappin', desc: 'Accroche ta moustache aux anneaux dorés !' },
 };
 
+// La musique d'un niveau (voir music.js) : une par monde, une par stage d'entraînement.
+const levelSong = (lv) => (lv.badge ? 'badge-' + lv.badge : lv.theme);
+
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
@@ -303,7 +306,7 @@ const Game = {
     this.state = 'play';
     this.stateT = 0;
     this.bannerT = this.checkpoint < 0 ? 3.2 : 0;
-    Sound.playMusic(lv.theme);
+    Sound.playMusic(levelSong(lv));
     Input.setCapture(true);
     this.updateTouchUI();
   },
@@ -407,7 +410,7 @@ const Game = {
   },
 
   onStarEnd() {
-    if (this.state === 'play') Sound.playMusic(LEVELS[this.levelIndex].theme);
+    if (this.state === 'play') Sound.playMusic(levelSong(LEVELS[this.levelIndex]));
   },
 
   setCheckpoint(i) {
