@@ -185,24 +185,7 @@ const Art = (() => {
     ctx.bezierCurveTo(mx - 12.6, my + 0.6 - wig, mx - 11.4, my + 1.6, mx - 10.4, my);
     ctx.bezierCurveTo(mx - 8.6, my - 4, mx - 4, my - 5, mx, my - 2.8);
     ctx.closePath();
-    if (C.rainbow != null) {
-      // étoile : arc-en-ciel qui défile et petit halo
-      const h = Math.floor(C.rainbow * 720) % 360;
-      const g = ctx.createLinearGradient(mx - 13, 0, mx + 16, 0);
-      for (let i = 0; i <= 4; i++) g.addColorStop(i / 4, `hsl(${(h + i * 70) % 360},95%,58%)`);
-      ctx.save();
-      ctx.shadowColor = `hsl(${(h + 140) % 360},100%,70%)`;
-      ctx.shadowBlur = 10;
-      ctx.fillStyle = g;
-      ctx.fill();
-      ctx.restore();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 0.9;
-      ctx.stroke();
-    } else {
-      ctx.fillStyle = C.mustache;
-      ctx.fill();
-    }
+    fillMustache(ctx, C, mx - 13, mx + 16);
     ctx.strokeStyle = 'rgba(255,255,255,0.28)';
     ctx.lineWidth = 0.8;
     ctx.beginPath();
@@ -213,33 +196,14 @@ const Art = (() => {
     ctx.stroke();
   }
 
-  function drawHead(ctx, C, o) {
+  // ---- Tête de trois-quarts (pendant que Malice se tourne, et dans le HUD) ----
+  function drawHead3q(ctx, C, o) {
     const pose = o.pose || 'idle';
     const t = o.t || 0;
     const hx = 1;
     const hy = -43;
     const R = 14;
-    const sway = Math.sin((o.ph || 0) + t * 2) * (pose === 'walk' ? 0.22 : 0.07);
-    const flying = pose === 'jump' || pose === 'fall' || pose === 'hang' || pose === 'pound';
-    // queue de cheval
-    ctx.save();
-    ctx.translate(hx - 12, hy - 3);
-    ctx.rotate(0.35 + sway + (flying ? -0.55 : 0));
-    ctx.beginPath();
-    ctx.moveTo(-3, 0);
-    ctx.bezierCurveTo(-10, 6, -7, 17, -2, 22);
-    ctx.bezierCurveTo(0, 17, 6, 9, 4, 0);
-    ctx.closePath();
-    paint(ctx, C.hair, C.hairLine, 1);
-    ctx.strokeStyle = C.hairDark;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(-0.5, 5);
-    ctx.quadraticCurveTo(-3.5, 12, -1.8, 18);
-    ctx.stroke();
-    circlePath(ctx, 0.5, 0, 3.2);
-    paint(ctx, C.hat, C.hatLine, 0.9);
-    ctx.restore();
+    drawPonytail(ctx, C, hx - 12, hy - 3, 0.35 + headSway(o) + (isFlying(pose) ? -0.55 : 0));
     // cheveux derrière la tête
     ellipsePath(ctx, hx - 2.4, hy + 1.2, R + 0.4, R - 0.4);
     paint(ctx, C.hair, C.hairLine, 1.05);
@@ -313,19 +277,7 @@ const Art = (() => {
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ellipsePath(ctx, hx - 5.5, hy - 16.5, 4.6, 2.1, -0.5);
     ctx.fill();
-    circlePath(ctx, hx + 3, hy - 14.2, 5.3);
-    paint(ctx, '#ffffff', C.hatLine, 0.9);
-    ctx.strokeStyle = C.hatDark;
-    ctx.lineWidth = 1.6;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(hx + 0.4, hy - 11.9);
-    ctx.lineTo(hx + 0.4, hy - 16.4);
-    ctx.lineTo(hx + 3, hy - 13.6);
-    ctx.lineTo(hx + 5.6, hy - 16.4);
-    ctx.lineTo(hx + 5.6, hy - 11.9);
-    ctx.stroke();
+    drawCapEmblem(ctx, C, hx + 3, hy - 14.2, 1);
     // visière
     ctx.beginPath();
     ctx.moveTo(hx + 1, hy - 8.6);
@@ -333,6 +285,614 @@ const Art = (() => {
     ctx.quadraticCurveTo(hx + 17, hy - 3.2, hx + 2, hy - 5);
     ctx.closePath();
     paint(ctx, C.hatDark, C.hatLine, 1.05);
+  }
+
+  // Remplissage de la moustache (arc-en-ciel qui défile pendant l'étoile).
+  function fillMustache(ctx, C, x0, x1) {
+    if (C.rainbow != null) {
+      const h = Math.floor(C.rainbow * 720) % 360;
+      const g = ctx.createLinearGradient(x0, 0, x1, 0);
+      for (let i = 0; i <= 4; i++) g.addColorStop(i / 4, `hsl(${(h + i * 70) % 360},95%,58%)`);
+      ctx.save();
+      ctx.shadowColor = `hsl(${(h + 140) % 360},100%,70%)`;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = C.mustache;
+      ctx.fill();
+    }
+  }
+
+  function drawPonytail(ctx, C, x, y, rot) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.beginPath();
+    ctx.moveTo(-3, 0);
+    ctx.bezierCurveTo(-10, 6, -7, 17, -2, 22);
+    ctx.bezierCurveTo(0, 17, 6, 9, 4, 0);
+    ctx.closePath();
+    paint(ctx, C.hair, C.hairLine, 1);
+    ctx.strokeStyle = C.hairDark;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-0.5, 5);
+    ctx.quadraticCurveTo(-3.5, 12, -1.8, 18);
+    ctx.stroke();
+    circlePath(ctx, 0.5, 0, 3.2);
+    paint(ctx, C.hat, C.hatLine, 0.9);
+    ctx.restore();
+  }
+
+  function drawCapEmblem(ctx, C, x, y, sx) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sx, 1);
+    circlePath(ctx, 0, 0, 5.3);
+    paint(ctx, '#ffffff', C.hatLine, 0.9 / sx);
+    ctx.strokeStyle = C.hatDark;
+    ctx.lineWidth = 1.6;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-2.6, 2.3);
+    ctx.lineTo(-2.6, -2.2);
+    ctx.lineTo(0, 0.6);
+    ctx.lineTo(2.6, -2.2);
+    ctx.lineTo(2.6, 2.3);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function headSway(o) {
+    const pose = o.pose || 'idle';
+    return Math.sin((o.ph || 0) + (o.t || 0) * 2) * (pose === 'walk' ? 0.22 : 0.07);
+  }
+
+  function isFlying(pose) {
+    return pose === 'jump' || pose === 'fall' || pose === 'hang' || pose === 'pound';
+  }
+
+  // ---- Tête de profil (Malice regarde vers la droite) ----
+  function drawHeadProfile(ctx, C, o) {
+    const pose = o.pose || 'idle';
+    const t = o.t || 0;
+    const hx = 1;
+    const hy = -43;
+    const R = 14;
+    drawPonytail(ctx, C, hx - 11, hy - 4, 0.45 + headSway(o) + (isFlying(pose) ? -0.55 : 0));
+    // cheveux à l'arrière du crâne
+    ellipsePath(ctx, hx - 1.8, hy + 0.8, R + 0.4, R - 0.2);
+    paint(ctx, C.hair, C.hairLine, 1.05);
+    // visage
+    circlePath(ctx, hx, hy, R);
+    paint(ctx, C.skin, C.skinLine, 1.05);
+    // cheveux sur le côté de la tête (derrière l'oreille)
+    ctx.save();
+    circlePath(ctx, hx, hy, R);
+    ctx.clip();
+    ctx.beginPath();
+    ctx.moveTo(hx + 4, hy - 15);
+    ctx.quadraticCurveTo(hx + 0.6, hy - 7, hx + 1.4, hy - 1.2);
+    ctx.quadraticCurveTo(hx + 1.8, hy + 4, hx - 1, hy + 7.4);
+    ctx.quadraticCurveTo(hx - 4.6, hy + 11, hx - 6.4, hy + 16);
+    ctx.lineTo(hx - 20, hy + 16);
+    ctx.lineTo(hx - 20, hy - 16);
+    ctx.closePath();
+    paint(ctx, C.hair, C.hairLine, 1);
+    ctx.strokeStyle = C.hairDark;
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(hx - 4, hy - 8);
+    ctx.quadraticCurveTo(hx - 7.5, hy, hx - 8, hy + 8);
+    ctx.moveTo(hx - 9, hy - 9);
+    ctx.quadraticCurveTo(hx - 12, hy - 2, hx - 12.4, hy + 4);
+    ctx.stroke();
+    ctx.restore();
+    circlePath(ctx, hx, hy, R);
+    ctx.strokeStyle = C.hairLine;
+    ctx.lineWidth = 1.05;
+    ctx.stroke();
+    // oreille
+    ellipsePath(ctx, hx - 0.6, hy + 3, 2.6, 3.4);
+    paint(ctx, C.skin, C.skinLine, 0.9);
+    ctx.strokeStyle = C.skinLine;
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.arc(hx - 0.3, hy + 3, 1.3, -1.2, 1.6);
+    ctx.stroke();
+    // oeil (un seul, vu de côté)
+    const ex = hx + 8.4;
+    const ey = hy - 0.6;
+    const blink = (t % 3.7) < 0.12 && pose !== 'hurt';
+    ctx.strokeStyle = C.eye;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (pose === 'hurt') {
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(ex + 2.4, ey - 3);
+      ctx.lineTo(ex - 1.8, ey);
+      ctx.lineTo(ex + 2.4, ey + 3);
+      ctx.stroke();
+    } else if (blink) {
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(ex - 2.4, ey + 0.4);
+      ctx.quadraticCurveTo(ex, ey + 2, ex + 2.4, ey + 0.4);
+      ctx.stroke();
+    } else {
+      ellipsePath(ctx, ex, ey, 2.6, 4.5);
+      paint(ctx, '#ffffff', C.eye, 0.9);
+      ellipsePath(ctx, ex + 0.8, ey + 0.5, 1.9, 3.3);
+      ctx.fillStyle = C.iris;
+      ctx.fill();
+      ellipsePath(ctx, ex + 1.1, ey + 0.7, 1.1, 1.9);
+      ctx.fillStyle = C.eye;
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      circlePath(ctx, ex + 1.3, ey - 1.4, 0.85);
+      ctx.fill();
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(ex - 1.6, ey - 3.6);
+      ctx.lineTo(ex - 3.6, ey - 5);
+      ctx.moveTo(ex - 2.3, ey - 2);
+      ctx.lineTo(ex - 4.4, ey - 2.8);
+      ctx.stroke();
+    }
+    // joue rose
+    ctx.save();
+    ctx.globalAlpha *= 0.5;
+    ctx.fillStyle = C.cheek;
+    ellipsePath(ctx, hx + 6.6, hy + 5.8, 2.8, 1.8);
+    ctx.fill();
+    ctx.restore();
+    // bouche ouverte (contente ou surprise)
+    const mx = hx + 12.4;
+    const my = hy + 8.4;
+    if (pose === 'win' || pose === 'hurt' || pose === 'jump' || pose === 'hold') {
+      ellipsePath(ctx, mx + 3.4, my + 5.6, pose === 'hurt' ? 2 : 2.8, pose === 'hurt' ? 2 : 2.6);
+      paint(ctx, '#a3263b', '#6e1424', 0.8);
+      if (pose !== 'hurt') {
+        ctx.fillStyle = '#ff7f95';
+        ellipsePath(ctx, mx + 3.4, my + 6.8, 1.6, 0.9);
+        ctx.fill();
+      }
+    }
+    // moustache vue de côté : touffue devant, pointe relevée vers la joue
+    const wig = pose === 'walk' ? Math.sin((o.ph || 0) * 2) * 0.7 : 0;
+    ctx.beginPath();
+    ctx.moveTo(mx + 5.4, my - 2.8);
+    ctx.bezierCurveTo(mx + 9.8, my - 1.2, mx + 9.4, my + 4.4, mx + 5.2, my + 4.6);
+    ctx.bezierCurveTo(mx + 2.2, my + 4.8, mx - 0.8, my + 3.6, mx - 3, my + 4.3);
+    ctx.bezierCurveTo(mx - 6.6, my + 5.4, mx - 10.2, my + 3.8, mx - 11.4, my + 0.4 + wig);
+    ctx.bezierCurveTo(mx - 12.8, my - 2.8 - wig, mx - 11, my - 5.8 - wig, mx - 8.4, my - 4.8 - wig);
+    ctx.bezierCurveTo(mx - 9.8, my - 2.8, mx - 8.6, my - 0.8, mx - 6.6, my - 1.2);
+    ctx.bezierCurveTo(mx - 3.6, my - 4, mx + 1, my - 4.4, mx + 5.4, my - 2.8);
+    ctx.closePath();
+    fillMustache(ctx, C, mx - 12, mx + 10);
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(mx - 7, my + 0.4);
+    ctx.quadraticCurveTo(mx - 2, my - 2, mx + 4, my - 0.8);
+    ctx.stroke();
+    // nez rond qui dépasse
+    circlePath(ctx, hx + 14.2, hy + 3.6, 4.3);
+    paint(ctx, C.skin, C.skinLine, 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    circlePath(ctx, hx + 13.4, hy + 2.2, 1.3);
+    ctx.fill();
+    // frange sur le front
+    ctx.beginPath();
+    ctx.moveTo(hx + 1.6, hy - 8);
+    ctx.lineTo(hx + 13.8, hy - 8.2);
+    ctx.quadraticCurveTo(hx + 14.6, hy - 5, hx + 12.8, hy - 4.2);
+    const fr = [[11.2, -6], [9.6, -3.8], [7.6, -6], [5.6, -4.2], [3.4, -6.4]];
+    let px = hx + 12.8;
+    let py = hy - 4.2;
+    fr.forEach(([dx, dy]) => {
+      ctx.quadraticCurveTo((px + hx + dx) / 2, Math.max(py, hy + dy) + 0.8, hx + dx, hy + dy);
+      px = hx + dx;
+      py = hy + dy;
+    });
+    ctx.closePath();
+    paint(ctx, C.hair, C.hairLine, 0.9);
+    // casquette vue de côté
+    ctx.beginPath();
+    ctx.moveTo(hx - 14.8, hy - 2.8);
+    ctx.bezierCurveTo(hx - 16.4, hy - 21.5, hx + 10.6, hy - 25.6, hx + 14.8, hy - 8.4);
+    ctx.quadraticCurveTo(hx + 0.4, hy - 9, hx - 14.8, hy - 2.8);
+    ctx.closePath();
+    const cg = ctx.createLinearGradient(0, hy - 24, 0, hy - 5);
+    cg.addColorStop(0, C.hatLight);
+    cg.addColorStop(0.45, C.hat);
+    cg.addColorStop(1, C.hat);
+    paint(ctx, cg, C.hatLine, 1.15);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ellipsePath(ctx, hx - 5, hy - 17, 4.6, 2.1, -0.45);
+    ctx.fill();
+    drawCapEmblem(ctx, C, hx + 6.2, hy - 13.6, 0.72);
+    // visière vers l'avant
+    ctx.beginPath();
+    ctx.moveTo(hx + 7, hy - 9.8);
+    ctx.quadraticCurveTo(hx + 19, hy - 12.4, hx + 26.2, hy - 6.8);
+    ctx.quadraticCurveTo(hx + 18, hy - 4.6, hx + 7, hy - 6.8);
+    ctx.closePath();
+    paint(ctx, C.hatDark, C.hatLine, 1.05);
+  }
+
+  // ---- Tête de face (quand Malice regarde le joueur) ----
+  const bump = (x, a, d) => (x > a && x < a + d ? Math.sin((Math.PI * (x - a)) / d) : 0);
+
+  function eyeFront(ctx, C, x, y, side, e) {
+    const rx = 3.1;
+    const ry = 4.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = C.eye;
+    if (e.wink) {
+      // oeil plissé très fort, en pointe vers le nez
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(x + side * 3.6, y - 3);
+      ctx.quadraticCurveTo(x, y - 1.2, x - side * 2.8, y + 0.2);
+      ctx.quadraticCurveTo(x, y + 0.8, x + side * 3.4, y + 2.8);
+      ctx.stroke();
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(x + side * 3.6, y - 3);
+      ctx.lineTo(x + side * 5.4, y - 4.2);
+      ctx.moveTo(x + side * 3.8, y - 1.4);
+      ctx.lineTo(x + side * 5.8, y - 1.6);
+      ctx.stroke();
+      return;
+    }
+    if (e.blink) {
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(x - rx, y);
+      ctx.quadraticCurveTo(x, y + 2, x + rx, y);
+      ctx.stroke();
+      return;
+    }
+    const s = e.big || 1;
+    ellipsePath(ctx, x, y, rx * s, ry * s);
+    paint(ctx, '#ffffff', C.eye, 0.9);
+    ctx.save();
+    ellipsePath(ctx, x, y, rx * s, ry * s);
+    ctx.clip();
+    const lx = x + (e.lookX || 0) * 1.2;
+    const ly = y + 0.5 + (e.lookY || 0);
+    ellipsePath(ctx, lx, ly, rx * 0.74, ry * 0.74);
+    ctx.fillStyle = C.iris;
+    ctx.fill();
+    ellipsePath(ctx, lx, ly + 0.2, rx * 0.42, ry * 0.46);
+    ctx.fillStyle = C.eye;
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    circlePath(ctx, lx + 0.9, ly - 1.8, rx * 0.33);
+    ctx.fill();
+    // paupière du haut (yeux mi-clos)
+    if (e.lid) {
+      const ly2 = y - ry * s + ry * s * 2 * e.lid;
+      ctx.fillStyle = C.skinShade;
+      ctx.fillRect(x - rx * 2, y - ry * 2, rx * 4, ly2 - (y - ry * 2));
+      ctx.strokeStyle = C.eye;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x - rx * s, ly2);
+      ctx.quadraticCurveTo(x, ly2 + 0.8, x + rx * s, ly2);
+      ctx.stroke();
+    }
+    // paupière du bas relevée par un grand sourire
+    if (e.smile) {
+      ctx.fillStyle = C.skin;
+      ellipsePath(ctx, x, y + ry * s * 1.15, rx * 1.8, ry * 0.9 * e.smile);
+      ctx.fill();
+    }
+    ctx.restore();
+    ellipsePath(ctx, x, y, rx * s, ry * s);
+    ctx.strokeStyle = C.eye;
+    ctx.lineWidth = 0.9;
+    ctx.stroke();
+    if (e.smile) {
+      ctx.strokeStyle = C.skinLine;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(x, y + ry * s * 1.15, rx * 1.8, ry * 0.9 * e.smile, 0, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.stroke();
+    }
+    // cils
+    ctx.strokeStyle = C.eye;
+    ctx.lineWidth = 1.1;
+    const lt = e.lid ? y - ry * s + ry * s * 2 * e.lid : y - ry * s * 0.82;
+    ctx.beginPath();
+    ctx.moveTo(x + side * rx * s * 0.7, lt);
+    ctx.lineTo(x + side * (rx * s + 1.9), lt - 1.3);
+    if (e.lid) {
+      ctx.moveTo(x + side * rx * s * 0.2, lt + 0.4);
+      ctx.lineTo(x + side * (rx * s * 0.4 + 0.6), lt + 2.2);
+      ctx.moveTo(x - side * rx * s * 0.3, lt + 0.5);
+      ctx.lineTo(x - side * rx * s * 0.4, lt + 2.3);
+    }
+    ctx.stroke();
+  }
+
+  function browFront(ctx, C, x, y, side, raise, ang) {
+    ctx.save();
+    ctx.translate(x, y - raise);
+    ctx.rotate(side * ang);
+    ctx.strokeStyle = '#6e4510';
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-3.3, 0.7);
+    ctx.quadraticCurveTo(0, -1.5, 3.3, 0.7);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawMustacheFront(ctx, C, mx, my, lift, tilt) {
+    const L = lift || 0;
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(tilt || 0);
+    ctx.beginPath();
+    ctx.moveTo(0, -2.8);
+    ctx.bezierCurveTo(4, -5, 9.5, -4 - L * 0.4, 11.5, -L * 0.6);
+    ctx.bezierCurveTo(12.5, 2 - L, 14.5, 0.5 - L, 14.5, -2 - L);
+    ctx.bezierCurveTo(16, 3.6 - L, 11.5, 6 - L * 0.5, 6.5, 4.6 - L * 0.3);
+    ctx.bezierCurveTo(3.5, 3.8, 1.5, 4.6, 0, 3.6);
+    ctx.bezierCurveTo(-1.5, 4.6, -3.5, 3.8, -6.5, 4.6 - L * 0.3);
+    ctx.bezierCurveTo(-11.5, 6 - L * 0.5, -16, 3.6 - L, -14.5, -2 - L);
+    ctx.bezierCurveTo(-14.5, 0.5 - L, -12.5, 2 - L, -11.5, -L * 0.6);
+    ctx.bezierCurveTo(-9.5, -4 - L * 0.4, -4, -5, 0, -2.8);
+    ctx.closePath();
+    fillMustache(ctx, C, -15, 15);
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-9, -0.6);
+    ctx.quadraticCurveTo(-5, -2.6, -1.2, -1.2);
+    ctx.moveTo(1.2, -1.2);
+    ctx.quadraticCurveTo(5, -2.6, 9, -0.6);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function sparkle(ctx, x, y, r) {
+    if (r <= 0.05) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = 'rgba(255,240,140,0.55)';
+    circlePath(ctx, 0, 0, r * 0.75);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2;
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      ctx.lineTo(Math.cos(a + Math.PI / 4) * r * 0.25, Math.sin(a + Math.PI / 4) * r * 0.25);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Durée de chaque mimique (secondes, demi-tours de tête compris).
+  const MIMIC_DUR = { grin: 2.3, wink: 2.1, duck: 2.4 };
+  const TURN = 0.2;
+
+  function faceTurn(face) {
+    if (!face) return 0;
+    return clamp(Math.min(face.t, face.dur - face.t) / TURN, 0, 1);
+  }
+
+  function drawHeadFront(ctx, C, o, face) {
+    const t = o.t || 0;
+    const kind = face ? face.kind : '';
+    const et = face ? face.t - TURN : 0;
+    const on = face ? clamp(Math.min(et, face.dur - TURN * 2 - et) / 0.15, 0, 1) : 0;
+    const hx = 1;
+    const hy = -43;
+    const R = 14;
+    ctx.save();
+    const tilt = (kind === 'wink' ? -0.12 : kind === 'duck' ? 0.09 + Math.sin(et * 3) * 0.02 : 0) * on;
+    ctx.translate(hx, hy + 12);
+    ctx.rotate(tilt);
+    ctx.translate(-hx, -(hy + 12));
+    drawPonytail(ctx, C, hx - 11.5, hy - 5, 0.5 + headSway(o));
+    ellipsePath(ctx, hx, hy + 1.6, R + 1.6, R + 0.4);
+    paint(ctx, C.hair, C.hairLine, 1.05);
+    // visage
+    circlePath(ctx, hx, hy, R);
+    paint(ctx, C.skin, C.skinLine, 1.05);
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(hx + side * 13.9, hy - 6);
+      ctx.quadraticCurveTo(hx + side * 13.6, hy + 4, hx + side * 11.6, hy + 9.4);
+      ctx.quadraticCurveTo(hx + side * 11, hy + 2, hx + side * 10.4, hy - 6);
+      ctx.closePath();
+      paint(ctx, C.hair, C.hairLine, 0.9);
+    }
+    // yeux
+    const ey = hy - 0.2;
+    const blink = !kind && (t % 3.7) < 0.12;
+    const eyes = [{}, {}];
+    let brows = [[0, 0], [0, 0]];
+    if (kind === 'grin') {
+      const r = (bump(et, 0.3, 0.32) + bump(et, 0.78, 0.32)) * 4.4;
+      eyes[0] = eyes[1] = { smile: 0.45 * on, big: 1 + 0.08 * r / 4.4 };
+      brows = [[r, -0.1], [r, -0.1]];
+    } else if (kind === 'wink') {
+      const w = on > 0.5 && et > 0.15;
+      eyes[0] = { big: 1 + 0.12 * on, lookX: 0.3 };
+      eyes[1] = w ? { wink: true } : {};
+      brows = [[4.2 * on, -0.3 * on], [-1.2 * on, 0.35 * on]];
+    } else if (kind === 'duck') {
+      eyes[0] = eyes[1] = { lid: 0.56 * on, lookX: 0.6 * Math.sin(et * 1.6) };
+      brows = [[1.4 * on, 0.2 * on], [1.4 * on, 0.2 * on]];
+    }
+    if (blink) eyes[0] = eyes[1] = { blink: true };
+    eyeFront(ctx, C, hx - 5.4, ey, -1, eyes[0]);
+    eyeFront(ctx, C, hx + 5.4, ey, 1, eyes[1]);
+    // joues
+    ctx.save();
+    ctx.globalAlpha *= kind === 'grin' ? 0.5 + 0.25 * on : 0.5;
+    ctx.fillStyle = C.cheek;
+    for (const side of [-1, 1]) {
+      ellipsePath(ctx, hx + side * 8.6, hy + 5.4 - (kind === 'grin' ? on : 0), 2.8, 1.8);
+      ctx.fill();
+    }
+    ctx.restore();
+    let my = hy + 8.4;
+    let lift = 0;
+    let mtilt = 0;
+    if (kind === 'grin') {
+      // grand sourire à pleines dents (la moustache remonte)
+      my -= 2.6 * on;
+      lift = 2.4 * on;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(hx - 9, hy + 8.2);
+      ctx.quadraticCurveTo(hx, hy + 9.6, hx + 9, hy + 8.2);
+      ctx.quadraticCurveTo(hx + 8, hy + 8.2 + 7.2 * on, hx, hy + 8.2 + 7.6 * on);
+      ctx.quadraticCurveTo(hx - 8, hy + 8.2 + 7.2 * on, hx - 9, hy + 8.2);
+      ctx.closePath();
+      paint(ctx, '#7a1830', '#4e0c1c', 0.9);
+      ctx.clip();
+      ctx.fillStyle = '#ff7f95';
+      ellipsePath(ctx, hx, hy + 15.6, 5.4, 2.8);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(hx - 10, hy + 7, 20, 4.6);
+      ctx.fillRect(hx - 10, hy + 14 * on + 0.2, 20, 3);
+      ctx.strokeStyle = '#d9d2e4';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      for (let i = -3; i <= 3; i++) {
+        ctx.moveTo(hx + i * 2.6, hy + 9.6);
+        ctx.lineTo(hx + i * 2.6, hy + 11.6);
+      }
+      ctx.stroke();
+      ctx.restore();
+    } else if (kind === 'wink') {
+      // sourire en coin de faux beau gosse
+      my -= 0.8 * on;
+      mtilt = -0.2 * on;
+      lift = 0.8 * on;
+      ctx.beginPath();
+      ctx.moveTo(hx - 1.4, hy + 12.4);
+      ctx.quadraticCurveTo(hx + 4.6, hy + 15.6, hx + 10, hy + 9.8);
+      ctx.quadraticCurveTo(hx + 4.6, hy + 12.8, hx - 1.4, hy + 12.4);
+      ctx.closePath();
+      paint(ctx, '#ffffff', '#4e0c1c', 0.9);
+    } else if (kind === 'duck') {
+      // bouche en cul de canard
+      my -= 2.6 * on;
+      lift = -0.6 * on;
+      const p = 1 + Math.sin(et * 5) * 0.05;
+      ctx.save();
+      ctx.translate(hx, hy + 12);
+      ctx.scale(1.15 * p * on, 1.15 * p * on);
+      ellipsePath(ctx, 0, -1.4, 4.8, 2.6);
+      paint(ctx, '#ff6f9a', '#a8285a', 0.9);
+      ellipsePath(ctx, 0, 1.6, 4.2, 2.6);
+      paint(ctx, '#ff6f9a', '#a8285a', 0.9);
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ellipsePath(ctx, -1.6, 1.0, 1.4, 0.7);
+      ctx.fill();
+      ctx.strokeStyle = '#a8285a';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(-3.6, 0.2);
+      ctx.quadraticCurveTo(0, 0.8, 3.6, 0.2);
+      ctx.stroke();
+      ctx.restore();
+      // joues aspirées
+      ctx.strokeStyle = C.skinLine;
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      for (const side of [-1, 1]) {
+        ctx.moveTo(hx + side * 9.8, hy + 4.4);
+        ctx.quadraticCurveTo(hx + side * 7.8 * (2 - on), hy + 7.6, hx + side * 9.6, hy + 10.6);
+      }
+      ctx.stroke();
+    }
+    drawMustacheFront(ctx, C, hx, my, lift, mtilt);
+    // nez
+    circlePath(ctx, hx, hy + 4.2, 4.2);
+    paint(ctx, C.skin, C.skinLine, 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    circlePath(ctx, hx - 1.2, hy + 2.8, 1.3);
+    ctx.fill();
+    // frange
+    ctx.beginPath();
+    ctx.moveTo(hx - 13.4, hy - 8.2);
+    ctx.lineTo(hx + 13.4, hy - 8.2);
+    ctx.quadraticCurveTo(hx + 13.9, hy - 4.6, hx + 12, hy - 3.8);
+    const fr = [[9.6, -5.8], [7.2, -3.6], [4.8, -5.8], [2.4, -3.4], [0, -5.8], [-2.4, -3.4], [-4.8, -5.8], [-7.2, -3.6], [-9.6, -5.8], [-12, -3.8]];
+    let px = hx + 12;
+    let py = hy - 3.8;
+    fr.forEach(([dx, dy]) => {
+      ctx.quadraticCurveTo((px + hx + dx) / 2, Math.max(py, hy + dy) + 0.8, hx + dx, hy + dy);
+      px = hx + dx;
+      py = hy + dy;
+    });
+    ctx.quadraticCurveTo(hx - 13.9, hy - 4.6, hx - 13.4, hy - 8.2);
+    ctx.closePath();
+    paint(ctx, C.hair, C.hairLine, 0.9);
+    // casquette vue de face
+    ctx.beginPath();
+    ctx.moveTo(hx - 15, hy - 7.2);
+    ctx.bezierCurveTo(hx - 16.5, hy - 28, hx + 16.5, hy - 28, hx + 15, hy - 7.2);
+    ctx.quadraticCurveTo(hx, hy - 11.6, hx - 15, hy - 7.2);
+    ctx.closePath();
+    const cg = ctx.createLinearGradient(0, hy - 26.5, 0, hy - 7.5);
+    cg.addColorStop(0, C.hatLight);
+    cg.addColorStop(0.45, C.hat);
+    cg.addColorStop(1, C.hat);
+    paint(ctx, cg, C.hatLine, 1.15);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ellipsePath(ctx, hx - 7.5, hy - 19, 4.2, 2, -0.6);
+    ctx.fill();
+    drawCapEmblem(ctx, C, hx, hy - 17.2, 1);
+    // visière (vue de face : une bande arrondie)
+    ctx.beginPath();
+    ctx.moveTo(hx - 16, hy - 7.8);
+    ctx.quadraticCurveTo(hx, hy - 12.2, hx + 16, hy - 7.8);
+    ctx.quadraticCurveTo(hx + 17.4, hy - 5.8, hx + 14.6, hy - 5.4);
+    ctx.quadraticCurveTo(hx, hy - 8.6, hx - 14.6, hy - 5.4);
+    ctx.quadraticCurveTo(hx - 17.4, hy - 5.8, hx - 16, hy - 7.8);
+    ctx.closePath();
+    paint(ctx, C.hatDark, C.hatLine, 1.05);
+    // sourcils (par-dessus la frange, comme dans les dessins animés)
+    if (kind) {
+      browFront(ctx, C, hx - 5.4, hy - 5.6, -1, brows[0][0], brows[0][1]);
+      browFront(ctx, C, hx + 5.4, hy - 5.6, 1, brows[1][0], brows[1][1]);
+    }
+    if (kind === 'wink') {
+      const s = bump(et, 0.35, 0.5) * 4.2;
+      sparkle(ctx, hx + 10.6, hy + 11.2, s);
+      sparkle(ctx, hx + 9.6, hy - 1.6, bump(et, 0.25, 0.35) * 2.6);
+    }
+    ctx.restore();
+  }
+
+  // Tête : de profil, en train de se tourner (trois-quarts) ou de face pour une mimique.
+  function drawHead(ctx, C, o) {
+    const k = faceTurn(o.face);
+    const view = o.view || (k > 0.7 ? 'front' : k > 0.3 ? '3q' : 'profile');
+    if (view === 'front') drawHeadFront(ctx, C, o, o.face);
+    else if (view === '3q') drawHead3q(ctx, C, o);
+    else drawHeadProfile(ctx, C, o);
   }
 
   // Malice debout, les pieds au point (x, y).
@@ -405,7 +965,7 @@ const Art = (() => {
     ctx.translate(x, y);
     ctx.scale(s, s);
     ctx.translate(-3, 45);
-    drawHead(ctx, MALICE, { pose: 'idle', t: 1 });
+    drawHead(ctx, MALICE, { pose: 'idle', t: 1, view: '3q' });
     ctx.restore();
   }
 
@@ -1870,7 +2430,7 @@ const Art = (() => {
   }
 
   return {
-    MALICE, CUBE_COLORS, maliceRainbow, malice, maliceHead, heldBird,
+    MALICE, MIMIC_DUR, CUBE_COLORS, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,
     eclair, sparks, babyBird, lutinFace, flag, mustacheRope, anchorRing, badge,

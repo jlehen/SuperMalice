@@ -37,6 +37,8 @@ doit traverser 5 mondes pour sauver le **bébé oiseau** coincé sur un rocher a
 | M | Couper le son |
 
 Sur tablette ou téléphone (à tenir à l'horizontale), des gros boutons apparaissent sur l'écran.
+
+Astuce : si on ne touche à rien pendant quelques secondes, Malice se tourne vers toi et fait une grimace.
 Une manette de jeu fonctionne aussi.
 
 ## Difficulté (choisie au début)

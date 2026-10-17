@@ -654,7 +654,7 @@ const Game = {
     ellipsePath(ctx, 165, 478, 50 - hop, 10);
     ctx.fill();
     Art.malice(ctx, 165, 476 - hop, {
-      pose: 'hold', t, facing: 1, scale: 2.7,
+      pose: 'hold', t, facing: 1, scale: 2.7, view: '3q',
       holding: (c) => Art.heldBird(c, t, { chirp: Math.floor(t * 3) % 2 === 0 }),
     });
     for (let i = 0; i < 6; i++) {

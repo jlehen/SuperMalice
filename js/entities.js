@@ -66,6 +66,11 @@ class Player {
     this.grap = null;
     this.target = null;
     this.boostT = 0;
+    // immobile un moment : Malice se tourne vers le joueur et fait une mimique
+    this.idleT = 0;
+    this.nextMimic = rand(2, 8);
+    this.mimic = null;
+    this.lastMimic = '';
   }
 
   get cx() { return this.x + this.w / 2; }
@@ -260,14 +265,41 @@ class Player {
     if (this.x < 0) { this.x = 0; this.vx = 0; }
     if (this.x + this.w > w.width) { this.x = w.width - this.w; this.vx = 0; }
     if (this.grap) this.updateMustacheTip(dt);
+    this.updateMimic(dt, dir);
 
     if (w.inLava(this)) this.die('lava');
     else if (this.y > w.height + 60) this.die('fall');
   }
 
+  updateMimic(dt, dir) {
+    const I = Input.held;
+    const still = this.onGround && !dir && !this.crouch && !this.pound && !this.grap && this.hurtT <= 0
+      && this.throwAnim <= 0 && Math.abs(this.vx) < 10 && !I.jump && !I.down;
+    if (!still) {
+      this.idleT = 0;
+      this.mimic = null;
+    } else if (this.mimic) {
+      this.mimic.t += dt;
+      if (this.mimic.t >= this.mimic.dur) {
+        this.mimic = null;
+        this.idleT = 0;
+        this.nextMimic = rand(2, 8);
+      }
+    } else {
+      this.idleT += dt;
+      if (this.idleT >= this.nextMimic) {
+        // jamais deux fois la même à la suite
+        const kinds = ['grin', 'wink', 'duck'].filter((k) => k !== this.lastMimic);
+        const kind = kinds[randInt(0, kinds.length - 1)];
+        this.lastMimic = kind;
+        this.mimic = { kind, t: 0, dur: Art.MIMIC_DUR[kind] };
+      }
+    }
+  }
+
   // ---------- Moustache-grappin ----------
   mustachePoint() {
-    return { x: this.cx + this.facing * 6, y: this.y + 23 };
+    return { x: this.cx + this.facing * 13, y: this.y + 22 };
   }
 
   findAnchor(exclude) {
@@ -571,6 +603,7 @@ class Player {
       sy,
       palette: this.star > 0 ? Art.maliceRainbow(this.t) : (this.dead && this.cause === 'lava' ? LAVA_PALETTE : null),
       holding: this.holding,
+      face: pose === 'idle' ? this.mimic : null,
     });
     ctx.restore();
   }
