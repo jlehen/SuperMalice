@@ -102,7 +102,7 @@ const Music = (() => {
   }
 
   // modes (à partir de do majeur) : quelles notes changent
-  const HARM = { 4: 3, 9: 8 }; // do mineur harmonique : mi → mi♭, la → la♭
+  const MINOR = { 4: 3, 9: 8, 11: 10 }; // do mineur : mi → mi♭, la → la♭, si → si♭
   const LYD = { 5: 6 }; // lydien : fa → fa♯
 
   // ---------- Déformer le rythme ----------
@@ -175,10 +175,15 @@ const Music = (() => {
       });
     }
 
-    pitch(m) {
+    // Change de mode une note de la mélodie. Une note chromatique qui mène d'un demi-ton vers une note
+    // abaissée est abaissée elle aussi (ré♯→mi devient ré→mi♭), pour garder le dessin de la mélodie.
+    pitch(m, next) {
       const M = this.S.mode;
       const pc = m % 12;
-      return m + (M && M[pc] != null ? M[pc] - pc : 0) + this.S.key;
+      let shift = 0;
+      if (M && M[pc] != null) shift = M[pc] - pc;
+      else if (M && next != null && Math.abs(next - m) === 1 && M[next % 12] != null && M[next % 12] < next % 12) shift = -1;
+      return m + shift + this.S.key;
     }
 
     add(name, inst, v, t, d, m) {
@@ -191,14 +196,15 @@ const Music = (() => {
     // o.delay : décalage en temps pour un canon, o.from/o.to : mesures de la partie)
     melody(name, inst, v, o = {}) {
       const w = this.S.warp;
-      this.mel.forEach((e) => {
+      this.mel.forEach((e, i) => {
+        const next = this.mel[i + 1] ? Math.max(...this.mel[i + 1].p) : null;
         if (o.from != null && e.bar < o.from) return;
         if (o.to != null && e.bar > o.to) return;
         const s = w(e.t) + (o.delay || 0);
         if (s >= this.f1 - 1e-6) return;
         const d = (w(e.t + e.d) - w(e.t)) * (o.gate || 0.92);
         const ps = o.top ? [Math.max(...e.p)] : e.p;
-        ps.forEach((m) => this.add(name, inst, v, s, d, this.pitch(m) + 12 * (o.oct || 0)));
+        ps.forEach((m) => this.add(name, inst, v, s, d, this.pitch(m, next) + 12 * (o.oct || 0)));
       });
     }
 
@@ -329,7 +335,7 @@ const Music = (() => {
 
   // 2. La Forêt des Épines : do mineur, en 12/8, flûte et harpe, entrées en canon (fugato) à la clarinette.
   function forest() {
-    const S = new Song({ bpm: 88, warp: swing(2 / 3), mode: HARM });
+    const S = new Song({ bpm: 88, warp: swing(2 / 3), mode: MINOR });
     const T = 1 / 3;
     const HARP = [[0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 4, 2].map((x, k) => [k * T, 0.6, 'a' + x])];
     const BASS = [[[0, 0.95, 'R'], [1, 0.95, '5L'], [2, 0.95, 'R'], [3, 0.6, '5L'], [3 + 2 * T, T, 'R', 0.8]]];
@@ -375,7 +381,7 @@ const Music = (() => {
   // 3. La Vallée des Orages : do mineur, rapide, arpèges électriques en doubles croches,
   // basse en pédale… et dans la 2e partie, la mélodie passe à la basse.
   function storm() {
-    const S = new Song({ bpm: 188, mode: HARM });
+    const S = new Song({ bpm: 188, mode: MINOR });
     const ARP = [rep(16, (k) => [k * 0.25, 0.22, 'a' + [0, 1, 2, 3, 2, 1, 2, 3][k % 8]])];
     const PEDAL = [rep(8, (k) => [k * 0.5, 0.45, k % 2 ? 'O' : 'R'])];
     const ROOTS = [[[0, 1.9, 'R'], [2, 1.9, 'R']]];
@@ -444,7 +450,7 @@ const Music = (() => {
 
   // 5. Le Cœur du Volcan : marche épique en mineur, pédale d'orgue, timbales, cuivres et cordes.
   function volcano() {
-    const S = new Song({ bpm: 128, mode: HARM });
+    const S = new Song({ bpm: 128, mode: MINOR });
     const PEDAL = [[[0, 3.95, 'P']]];
     const ROOTS = [[[0, 1.9, 'R'], [2, 1.9, 'R']]];
     const PAD = [[[0, 3.95, 'C']]];
@@ -462,8 +468,8 @@ const Music = (() => {
     });
     S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.24); base(p, PEDAL); p.drums(MARCH, { crash: true }); });
     S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.24); p.melody('low', 'organ', 0.06, { oct: -1, top: true }); base(p, PEDAL); p.drums(MARCH, { fill: ROLL }); });
-    S.part(SECT.C, (p) => { p.melody('lead', 'brass', 0.24); p.melody('low', 'organ', 0.06, { oct: -1, top: true }); base(p, ROOTS); p.drums(MARCH, { crash: true, fill: ROLL }); });
     S.part(SECT.B, (p) => { p.melody('lead', 'brass', 0.24); base(p, ROOTS); p.drums(MARCH, { crash: true, fill: ROLL }); });
+    S.part(SECT.C2, (p) => { p.melody('lead', 'brass', 0.24); p.melody('low', 'organ', 0.06, { oct: -1, top: true }); base(p, ROOTS); p.drums(MARCH, { crash: true, fill: ROLL }); });
     return S.out({ drumV: 0.5 });
   }
 

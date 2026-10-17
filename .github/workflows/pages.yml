@@ -30,6 +30,9 @@ jobs:
           DATE="$(TZ=Europe/Paris git log -1 --format=%cd --date=format-local:%d/%m/%Y)"
           echo "const GAME_VERSION = '$VERSION · $DATE';" > js/version.js
           cat js/version.js
+          # le navigateur recharge les scripts et le style à chaque nouvelle version
+          sed -i -E "s#(src=\"js/[a-z]+\.js)\"#\1?v=$VERSION\"#g; s#(href=\"css/[a-z]+\.css)\"#\1?v=$VERSION\"#g" index.html
+          grep -E 'js/|css/' index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
