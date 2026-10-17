@@ -7,13 +7,21 @@ doit traverser 5 mondes pour sauver le **bébé oiseau** coincé sur un rocher a
 
 👉 **Jouer : https://jlehen.github.io/SuperMalice/**
 
-## Les 5 niveaux
+## Les 5 niveaux et les 2 stages d'entraînement
 
 1. **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
 2. **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
+   - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
 4. **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
-5. **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver !
+   - ⭐ **Stage d'entraînement : le Défi de la Moustache-Grappin** → on gagne le badge *Moustache-Grappin*
+5. **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (il faut utiliser les deux badges)
+
+## Les badges
+
+- **Super Saut** : rester appuyé sur ↓ pour s'accroupir, puis sauter → on saute deux fois plus haut.
+- **Moustache-Grappin** : près d'un anneau doré, appuyer sur **V** : la moustache de Malice s'y accroche.
+  On se balance avec ← →, on saute pour se lancer, et on peut enchaîner les anneaux.
 
 ## Commandes
 
@@ -24,6 +32,7 @@ doit traverser 5 mondes pour sauver le **bébé oiseau** coincé sur un rocher a
 | ↓ ou S en l'air | Écraser vers le bas (casse les blocs lutin) |
 | X | Lancer du caramel |
 | C | Lancer des chips |
+| V | Moustache-grappin (avec le badge) |
 | Échap ou P | Pause |
 | M | Couper le son |
 
@@ -45,7 +54,7 @@ Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) 
 La légende est en haut du fichier (`#` = sol, `~` = lave, `E` = gros œil, `S` = bloc lutin avec une étoile…).
 Il suffit de modifier les lettres et de recharger la page.
 
-Pour tester directement un niveau : `index.html?niveau=3`
+Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraînement : `index.html?stage=1`
 (on peut ajouter `&difficulte=classique` ou `&difficulte=difficile`).
 
 ## Pour les grands : comment c'est fait

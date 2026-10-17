@@ -142,6 +142,13 @@ const Sound = (() => {
     kill() { tone({ type: 'square', f: 300, f2: 900, d: 0.15, v: 0.08 }); },
     chirp() { tone({ type: 'sine', f: 2100, f2: 2900, d: 0.08, v: 0.08 }); tone({ type: 'sine', f: 2300, f2: 3100, d: 0.08, v: 0.08, delay: 0.12 }); },
     oneUp() { arp([659, 784, 1319, 1047, 1175, 1568], { type: 'square', d: 0.1, v: 0.07, gap: 0.08 }); },
+    charge() { tone({ type: 'triangle', f: 880, d: 0.08, v: 0.15 }); tone({ type: 'triangle', f: 1320, d: 0.12, v: 0.15, delay: 0.07 }); },
+    superJump() {
+      tone({ type: 'square', f: 220, f2: 1400, d: 0.38, v: 0.09 });
+      arp([784, 1047, 1319, 1568], { type: 'triangle', d: 0.1, v: 0.12, gap: 0.05 });
+    },
+    grapple() { noise({ filter: 'bandpass', f: 1200, f2: 3500, d: 0.12, v: 0.25, q: 3 }); tone({ type: 'square', f: 300, f2: 900, d: 0.1, v: 0.05 }); },
+    grab() { tone({ type: 'triangle', f: 1500, d: 0.08, v: 0.2 }); tone({ type: 'triangle', f: 2250, d: 0.15, v: 0.15, delay: 0.05 }); },
     select() { tone({ type: 'triangle', f: 660, d: 0.07, v: 0.2 }); },
     confirm() { tone({ type: 'triangle', f: 660, d: 0.07, v: 0.2 }); tone({ type: 'triangle', f: 990, d: 0.12, v: 0.2, delay: 0.07 }); },
   };
@@ -211,6 +218,13 @@ const Sound = (() => {
       tracks: [
         { w: 'square', v: 0.06, n: 'G4 C5 E5 G5 C6 E6 G6 - E6 - . . | Ab4 C5 Eb5 Ab5 C6 Eb6 Ab6 - Eb6 - . . | Bb4 D5 F5 Bb5 D6 F6 Bb6 - - - C7 - - - - -' },
         { w: 'triangle', v: 0.17, n: 'C3 - - - - - - - - - . . | Ab2 - - - - - - - - - . . | Bb2 - - - - - - - - - C3 - - - - -' },
+      ],
+    },
+    badge: {
+      bpm: 150, once: true,
+      tracks: [
+        { w: 'square', v: 0.06, n: 'C5 E5 G5 C6 - - E5 G5 C6 E6 - - G5 C6 E6 G6 - - - - - - . .' },
+        { w: 'triangle', v: 0.17, n: 'C3 - - - - - A2 - - - - - F2 - - G2 - - C3 - - - - -' },
       ],
     },
     gameover: {

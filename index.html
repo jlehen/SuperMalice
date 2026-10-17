@@ -76,16 +76,17 @@
               <h3>Commandes</h3>
               <table class="keys">
                 <tr><td><kbd>←</kbd><kbd>→</kbd> ou <kbd>Q</kbd><kbd>D</kbd></td><td>Marcher</td></tr>
-                <tr><td><kbd>Espace</kbd> ou <kbd>↑</kbd> ou <kbd>Z</kbd></td><td>Sauter (garde appuyé pour sauter plus haut)</td></tr>
+                <tr><td><kbd>Espace</kbd> ou <kbd>↑</kbd> ou <kbd>Z</kbd></td><td>Sauter (garder appuyé = plus haut)</td></tr>
                 <tr><td><kbd>↓</kbd> ou <kbd>S</kbd> en l'air</td><td>Écraser vers le bas</td></tr>
                 <tr><td><kbd>X</kbd></td><td>Lancer du caramel</td></tr>
                 <tr><td><kbd>C</kbd></td><td>Lancer des chips</td></tr>
+                <tr><td><kbd>V</kbd></td><td>Moustache-grappin (badge)</td></tr>
                 <tr><td><kbd>Échap</kbd> ou <kbd>P</kbd></td><td>Pause</td></tr>
                 <tr><td><kbd>M</kbd></td><td>Couper le son</td></tr>
               </table>
-              <p class="note">Sur tablette, utilise les gros boutons sur les côtés de l'écran. Une manette marche aussi&nbsp;!</p>
+              <p class="note">Sur tablette, utilise les gros boutons sur les côtés. Une manette marche aussi&nbsp;!</p>
               <h3>Les blocs lutin</h3>
-              <p class="row"><canvas data-icon="lutin" width="44"></canvas><span>Casse-les en tapant dessous avec la tête, ou saute dessus et appuie vers le bas pour les écraser. Ils cachent des surprises&nbsp;!</span></p>
+              <p class="row"><canvas data-icon="lutin" width="40"></canvas><span>Casse-les en tapant dessous avec la tête, ou saute dessus et appuie vers le bas. Ils cachent des surprises&nbsp;!</span></p>
             </div>
             <div class="col">
               <h3>Les bonus</h3>
@@ -97,6 +98,9 @@
               <h3>Attention&nbsp;!</h3>
               <p class="row"><canvas data-icon="eye" width="40"></canvas><canvas data-icon="rubik" width="40"></canvas><canvas data-icon="ladybug" width="40"></canvas><span>Saute sur la tête des ennemis pour les battre.</span></p>
               <p class="row"><canvas data-icon="lava" width="40"></canvas><canvas data-icon="thorn" width="40"></canvas><canvas data-icon="eclair" width="40"></canvas><span>Lave, ronces et éclairs au chocolat&nbsp;: ça fait mal&nbsp;!</span></p>
+              <h3>Les badges</h3>
+              <p class="row"><canvas data-icon="badge-saut" width="36"></canvas><span><b>Super Saut</b>&nbsp;: accroupis-toi (↓) puis saute, beaucoup plus haut.</span></p>
+              <p class="row"><canvas data-icon="badge-grappin" width="36"></canvas><span><b>Moustache-Grappin</b>&nbsp;: près d'un anneau doré, appuie sur V, balance-toi puis saute&nbsp;!</span></p>
             </div>
           </div>
           <button class="small" data-action="back">← Retour</button>
@@ -139,12 +143,13 @@
     <div id="touch">
       <div class="pad left">
         <div class="tb" data-btn="left">◀</div>
+        <div class="tb down" data-btn="down">▼</div>
         <div class="tb" data-btn="right">▶</div>
       </div>
       <div class="pad right">
         <div class="tb small item empty" id="t-caramel" data-btn="caramel"><canvas data-icon="caramel" width="30"></canvas><span class="count">0</span></div>
         <div class="tb small item empty" id="t-chips" data-btn="chips"><canvas data-icon="chips" width="30"></canvas><span class="count">0</span></div>
-        <div class="tb down" data-btn="down">▼</div>
+        <div class="tb grapple hidden" id="t-grapple" data-btn="grapple"><canvas data-icon="mustache" width="34"></canvas></div>
         <div class="tb jump" data-btn="jump">⤒</div>
       </div>
     </div>

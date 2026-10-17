@@ -15,6 +15,16 @@ const DIFFS = {
   },
 };
 
+// Les vrais niveaux (1 à 5) et les stages d'entraînement aux badges.
+const NORMAL_LEVELS = LEVELS.map((l, i) => (l.badge ? -1 : i)).filter((i) => i >= 0);
+const TRAINING_LEVELS = LEVELS.map((l, i) => (l.badge ? i : -1)).filter((i) => i >= 0);
+const BADGE_AT = {};
+LEVELS.forEach((l, i) => { if (l.badge) BADGE_AT[l.badge] = i; });
+const BADGE_INFO = {
+  saut: { name: 'Super Saut', desc: 'Accroupis-toi, puis saute deux fois plus haut !' },
+  grappin: { name: 'Moustache-Grappin', desc: 'Accroche ta moustache aux anneaux dorés !' },
+};
+
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
@@ -39,6 +49,13 @@ const Game = {
     this.canvas = $('#game');
     this.ctx = this.canvas.getContext('2d');
     this.save = Save.load();
+    if (!this.save.v) {
+      // anciennes sauvegardes : il n'y avait pas encore de stages d'entraînement
+      const n = Math.min(this.save.unlocked || 1, NORMAL_LEVELS.length);
+      this.save.unlocked = NORMAL_LEVELS[n - 1] + 1;
+      this.save.v = 2;
+      Save.save(this.save);
+    }
     this.diffKey = DIFFS[this.save.difficulty] ? this.save.difficulty : 'gentil';
     this.diff = DIFFS[this.diffKey];
     Sound.setMuted(this.save.muted);
@@ -65,13 +82,17 @@ const Game = {
     });
     this.drawIcons();
 
-    // Raccourcis pour tester : ?niveau=3 lance directement le niveau 3.
+    // Raccourcis pour tester : ?niveau=3 lance le niveau 3, ?stage=1 le 1er stage d'entraînement.
     const params = new URLSearchParams(location.search);
     const lv = parseInt(params.get('niveau') || params.get('level'), 10);
-    if (lv >= 1 && lv <= LEVELS.length) {
+    const st = parseInt(params.get('stage'), 10);
+    let start = -1;
+    if (lv >= 1 && lv <= NORMAL_LEVELS.length) start = NORMAL_LEVELS[lv - 1];
+    if (st >= 1 && st <= TRAINING_LEVELS.length) start = TRAINING_LEVELS[st - 1];
+    if (start >= 0) {
       const d = params.get('difficulte');
       if (DIFFS[d]) { this.diffKey = d; this.diff = DIFFS[d]; }
-      this.newGame(lv - 1);
+      this.newGame(start);
     } else {
       this.toTitle();
     }
@@ -227,9 +248,13 @@ const Game = {
       b.disabled = locked;
       b.dataset.action = 'level';
       b.dataset.level = String(i);
-      b.innerHTML = `<span class="num">${locked ? '🔒' : i + 1}</span><span class="nm">${lv.name}</span>`;
+      const num = lv.badge ? `<canvas data-icon="badge-${lv.badge}" width="54"></canvas>` : NORMAL_LEVELS.indexOf(i) + 1;
+      const label = lv.badge ? `Stage ${BADGE_INFO[lv.badge].name}` : lv.name;
+      b.innerHTML = `<span class="num">${locked ? '<canvas data-icon="lock" width="44"></canvas>' : num}</span><span class="nm">${label}</span>`;
+      if (lv.badge) b.classList.add('training');
       box.appendChild(b);
     });
+    this.drawIcons(box);
     this.showScreen('scr-levels');
     const btns = $$('#level-list button:not([disabled])');
     if (btns.length && !this.isTouch) setTimeout(() => btns[btns.length - 1].focus({ preventScroll: true }), 40);
@@ -338,7 +363,9 @@ const Game = {
     this.stateT = 0;
     w.player.won = true;
     w.player.star = 0;
-    Sound.playMusic('clear');
+    w.player.grap = null;
+    this.badgeWon = LEVELS[this.levelIndex].badge || null;
+    Sound.playMusic(this.badgeWon ? 'badge' : 'clear');
     this.score += 1000;
     this.unlock(this.levelIndex + 2);
     for (let i = 0; i < 50; i++) {
@@ -451,7 +478,7 @@ const Game = {
           w.player.vy = -520;
           w.player.onGround = false;
         }
-        if (this.stateT > 4.6 || (this.stateT > 1.5 && Input.pressed.jump)) {
+        if (this.stateT > (this.badgeWon ? 5.8 : 4.6) || (this.stateT > 1.5 && Input.pressed.jump)) {
           if (this.levelIndex + 1 < LEVELS.length) this.startLevel(this.levelIndex + 1);
           else this.toTitle();
         }
@@ -573,11 +600,16 @@ const Game = {
     const k = Math.min(1, this.stateT / 0.35);
     ctx.save();
     ctx.globalAlpha = k;
-    drawOutlinedText(ctx, `Niveau ${this.levelIndex + 1}`, VIEW_W / 2, 150, 34, '#ffd84a');
-    drawOutlinedText(ctx, lv.name, VIEW_W / 2, 205, 50, '#ffffff');
-    Art.maliceHead(ctx, VIEW_W / 2 - 40, 300, 1.6);
-    drawOutlinedText(ctx, '× ' + (this.lives === Infinity ? '∞' : this.lives), VIEW_W / 2 + 30, 302, 34, '#ffffff');
-    drawOutlinedText(ctx, lv.intro || '', VIEW_W / 2, 400, 22, '#ffe2f4');
+    drawOutlinedText(ctx, this.levelLabel(this.levelIndex), VIEW_W / 2, 150, 34, lv.badge ? '#7ff0ff' : '#ffd84a');
+    drawOutlinedText(ctx, lv.name, VIEW_W / 2, 205, lv.badge ? 42 : 50, '#ffffff');
+    if (lv.badge) {
+      Art.badge(ctx, VIEW_W / 2, 305, 42, lv.badge, this.t);
+      drawOutlinedText(ctx, `Gagne le badge « ${BADGE_INFO[lv.badge].name} » !`, VIEW_W / 2, 400, 24, '#ffe2f4');
+    } else {
+      Art.maliceHead(ctx, VIEW_W / 2 - 40, 300, 1.6);
+      drawOutlinedText(ctx, '× ' + (this.lives === Infinity ? '∞' : this.lives), VIEW_W / 2 + 30, 302, 34, '#ffffff');
+      drawOutlinedText(ctx, lv.intro || '', VIEW_W / 2, 400, 22, '#ffe2f4');
+    }
     if (this.levelIndex === LEVELS.length - 1) {
       Art.babyBird(ctx, VIEW_W / 2, 470, this.t, { chirp: Math.floor(this.t * 3) % 2 === 0 });
     }
@@ -628,6 +660,10 @@ const Game = {
   },
 
   drawClear(ctx) {
+    if (this.badgeWon) {
+      this.drawBadgeWon(ctx);
+      return;
+    }
     const k = Math.min(1, this.stateT / 0.4);
     ctx.save();
     ctx.globalAlpha = k;
@@ -645,6 +681,40 @@ const Game = {
     Art.candy(ctx, VIEW_W / 2 - 60, 254, 0.9, this.t, 0);
     drawOutlinedText(ctx, `${this.candies}`, VIEW_W / 2 - 38, 255, 20, '#fff3a0', 'left');
     drawOutlinedText(ctx, `Score ${this.score}`, VIEW_W / 2 + 60, 255, 20, '#ffffff');
+    ctx.restore();
+  },
+
+  drawBadgeWon(ctx) {
+    const info = BADGE_INFO[this.badgeWon];
+    const k = Math.min(1, this.stateT / 0.5);
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.fillStyle = 'rgba(20,8,60,0.6)';
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    ctx.save();
+    ctx.translate(VIEW_W / 2, 250);
+    ctx.rotate(this.t * 0.4);
+    ctx.fillStyle = 'rgba(255,240,160,0.16)';
+    for (let i = 0; i < 12; i++) {
+      ctx.rotate(Math.PI / 6);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-22, 330);
+      ctx.lineTo(22, 330);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    const pop = Math.min(1, this.stateT / 0.6);
+    const sc = pop < 1 ? 0.3 + 0.9 * Math.sin(pop * Math.PI * 0.6) : 1 + Math.sin(this.t * 3) * 0.03;
+    ctx.save();
+    ctx.translate(VIEW_W / 2, 250);
+    ctx.scale(sc, sc);
+    Art.badge(ctx, 0, 0, 70, this.badgeWon, this.t);
+    ctx.restore();
+    drawOutlinedText(ctx, 'Badge obtenu !', VIEW_W / 2, 95, 50, '#ffd84a');
+    drawOutlinedText(ctx, info.name, VIEW_W / 2, 400, 36, '#7ff0ff');
+    drawOutlinedText(ctx, info.desc, VIEW_W / 2, 445, 22, '#ffffff');
     ctx.restore();
   },
 
@@ -670,6 +740,13 @@ const Game = {
     drawOutlinedText(ctx, '×' + (this.lives === Infinity ? '∞' : this.lives), 52, 72, 20, '#ffffff', 'left');
     Art.candy(ctx, 112, 71, 0.8, t, 0);
     drawOutlinedText(ctx, String(this.candies), 130, 72, 20, '#fff3a0', 'left');
+    let bx = 30;
+    for (const b of ['saut', 'grappin']) {
+      if (!this.hasBadge(b)) continue;
+      Art.badge(ctx, bx, 114, 14, b, t);
+      if (b === 'grappin' && !this.isTouch) this.keyCap(ctx, bx + 26, 112, 'V');
+      bx += b === 'grappin' && !this.isTouch ? 64 : 38;
+    }
 
     // munitions
     let x = 250;
@@ -722,8 +799,27 @@ const Game = {
     ctx.fillText(label, x, y + 1);
   },
 
+  hasBadge(b) {
+    return BADGE_AT[b] !== undefined && this.levelIndex >= BADGE_AT[b];
+  },
+
+  levelLabel(i) {
+    return LEVELS[i].badge ? 'Stage d\'entraînement' : `Niveau ${NORMAL_LEVELS.indexOf(i) + 1}`;
+  },
+
+  // Les fleurs expliquent les commandes selon l'appareil (clavier ou tactile).
+  textFor(s) {
+    const touch = this.isTouch;
+    return s
+      .replace(/\{BAS\}/g, touch ? 'le bouton ▼' : 'la flèche ↓')
+      .replace(/\{SAUT\}/g, touch ? 'le gros bouton rose' : 'Espace')
+      .replace(/\{GRAPPIN\}/g, touch ? 'le bouton moustache' : 'la touche V')
+      .replace(/\{FLECHES\}/g, touch ? '◀ ▶' : '← →');
+  },
+
   // ---------- Boutons tactiles ----------
   updateTouchUI() {
+    $('#t-grapple').classList.toggle('hidden', !this.hasBadge('grappin'));
     const playing = this.state === 'play' || this.state === 'dying' || this.state === 'clear' || this.state === 'intro';
     $('#touch').classList.toggle('show', this.isTouch && playing);
     $('#hudbtns').classList.toggle('show', playing || this.state === 'pause');
@@ -749,9 +845,10 @@ const Game = {
   },
 
   // Petites icônes dessinées pour l'aide et les boutons tactiles.
-  drawIcons() {
-    $$('canvas[data-icon]').forEach((cv) => {
-      const size = parseInt(cv.getAttribute('width'), 10);
+  drawIcons(root) {
+    (root || document).querySelectorAll('canvas[data-icon]').forEach((cv) => {
+      if (!cv.dataset.size) cv.dataset.size = cv.getAttribute('width');
+      const size = parseInt(cv.dataset.size, 10);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cv.width = size * dpr;
       cv.height = size * dpr;
@@ -779,6 +876,25 @@ const Game = {
         case 'lutin': g.drawImage(Scenery.lutinSprite(), -Scenery.PAD, -Scenery.PAD, 64, 64); break;
         case 'bird': Art.babyBird(g, c, 44, 0, {}); break;
         case 'heart': Art.heart(g, c, c + 2, 3, '#ff3d7f', '#ffffff'); break;
+        case 'badge-saut': Art.badge(g, c, c - 4, 17, 'saut', 0); break;
+        case 'badge-grappin': Art.badge(g, c, c - 4, 17, 'grappin', 0); break;
+        case 'mustache':
+          Art.anchorRing(g, c, 16, 0, {});
+          Art.mustacheRope(g, c, 44, c, 16, 0, true);
+          break;
+        case 'lock':
+          g.strokeStyle = '#fff';
+          g.lineWidth = 5;
+          g.beginPath();
+          g.arc(c, 20, 9, Math.PI, 0);
+          g.stroke();
+          roundRectPath(g, c - 14, 20, 28, 22, 5);
+          g.fillStyle = '#fff';
+          g.fill();
+          g.fillStyle = '#6c4fe0';
+          circlePath(g, c, 30, 3.5);
+          g.fill();
+          break;
         case 'fire': {
           const fg = g.createLinearGradient(0, 6, 0, 44);
           fg.addColorStop(0, '#ffe24a');

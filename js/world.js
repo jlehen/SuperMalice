@@ -23,6 +23,7 @@ class World {
     this.platforms = [];
     this.checkpoints = [];
     this.flowers = [];
+    this.anchors = [];
     this.eclairs = [];
     this.particles = [];
     this.bubbles = [];
@@ -38,7 +39,7 @@ class World {
     this.look = 60;
 
     let start = { x: 3 * TILE, y: 11 * TILE };
-    let talk = 0;
+    const flowerSpots = [];
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const ch = this.tiles[r][c];
@@ -61,12 +62,19 @@ class World {
           case 'N': this.goal = new BirdGoal(this, mx, by); break;
           case 'H': this.platforms.push(new MovingPlatform(this, x, y, 'h')); break;
           case 'I': this.platforms.push(new MovingPlatform(this, x, y, 'v')); break;
-          case 'T': this.flowers.push(new TalkFlower(this, mx, by, (def.talk || [])[talk++] || '')); break;
+          case 'T': flowerSpots.push({ x: mx, y: by }); break;
+          case '@': this.anchors.push(new Anchor(this, mx, y + TILE / 2)); break;
+          case 'Z': this.goal = new BadgeGoal(this, mx, by, def.badge); break;
           default: keep = true;
         }
         if (!keep) this.tiles[r][c] = '.';
       }
     }
+    // les fleurs parlent dans l'ordre, de gauche à droite
+    flowerSpots.sort((a, b) => a.x - b.x);
+    flowerSpots.forEach((f, i) => {
+      this.flowers.push(new TalkFlower(this, f.x, f.y, game.textFor((def.talk || [])[i] || '')));
+    });
     if (checkpointIdx >= 0 && this.checkpoints[checkpointIdx]) {
       const cp = this.checkpoints[checkpointIdx];
       start = { x: cp.x + 20, y: cp.y };
@@ -185,6 +193,17 @@ class World {
         const surface = this.tileAt(c, r - 1) === '~' ? r * TILE : r * TILE + 14;
         if (y > surface) return true;
       }
+    }
+    return false;
+  }
+
+  boxSolid(x, y, w, h) {
+    const c0 = Math.floor(x / TILE);
+    const c1 = Math.floor((x + w - 0.01) / TILE);
+    const r0 = Math.floor(y / TILE);
+    const r1 = Math.floor((y + h - 0.01) / TILE);
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) if (isSolidCh(this.tileAt(c, r))) return true;
     }
     return false;
   }
@@ -368,6 +387,7 @@ class World {
     for (const ec of this.eclairs) ec.update(dt);
     for (const cp of this.checkpoints) cp.update(dt);
     for (const f of this.flowers) f.update(dt);
+    for (const a of this.anchors) a.update(dt);
     if (this.goal) this.goal.update(dt);
     this.updateStorms(dt);
     if (!p.dead && !p.won) this.interactions();
@@ -504,6 +524,7 @@ class World {
     for (const cp of this.checkpoints) cp.draw(ctx);
     if (this.goal) this.goal.draw(ctx);
     for (const pl of this.platforms) pl.draw(ctx);
+    for (const a of this.anchors) a.draw(ctx);
     for (const it of this.items) it.draw(ctx);
     for (const e of this.enemies) {
       if (e.x + e.w > camX - 80 && e.x < camX + VIEW_W + 80) e.draw(ctx);

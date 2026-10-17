@@ -34,6 +34,13 @@ const Scenery = (() => {
       plat: '#a5764a', platDark: '#6a4a2a', platLight: '#d4a26c',
       bramble: '#6a3a6a', brambleDark: '#2a1028', thorn: '#ffffff',
     },
+    badge: {
+      dirt: '#5b4bb8', dirtDark: '#3e318a', dirtLight: '#7a6ad8', stripe: 'rgba(255,255,255,0.08)',
+      top: '#7ff0ff', topDark: '#33b4d6', topLight: '#e8fdff', blades: false,
+      brick: '#a07ce8', brickDark: '#5e43b0', brickLight: '#d6c2ff',
+      plat: '#ff9fd8', platDark: '#d0609e', platLight: '#ffe0f4', platDots: '#ffffff',
+      bramble: '#6a2a8a', brambleDark: '#2a0f3a', thorn: '#ffffff',
+    },
     volcano: {
       dirt: '#43303a', dirtDark: '#2a1c24', dirtLight: '#5d4652', stripe: 'rgba(255,90,20,0.10)',
       top: '#6a4c58', topDark: '#3e2b34', topLight: '#8c6b78', blades: false, crust: true,
@@ -868,6 +875,62 @@ const Scenery = (() => {
       });
     },
 
+    // Monde des badges : nuit violette, étoiles et grandes médailles qui flottent.
+    badge(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#140c42'], [0.55, '#33197a'], [1, '#7a3aa8']]);
+      for (let i = 0; i < 70; i++) {
+        const x = ((hash(i) * 1600 - cx * 0.05) % 1000 + 1000) % 1000 - 20;
+        const y = hash(i + 100) * 420;
+        const a = 0.35 + 0.35 * Math.sin(t * (1 + hash(i + 7) * 2) + i);
+        ctx.fillStyle = `rgba(255,255,255,${a})`;
+        circlePath(ctx, x, y, 0.8 + hash(i + 3) * 1.6);
+        ctx.fill();
+      }
+      forEachItem(cx * 0.12 + t * 4, 420, 61, (x, i, h) => {
+        const y = 110 + h * 170 + Math.sin(t * 0.8 + i) * 10;
+        const r = 50 + h * 40;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.sin(t * 0.3 + i) * 0.2);
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.strokeStyle = h < 0.5 ? 'rgba(127,240,255,0.28)' : 'rgba(255,159,216,0.28)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        for (let k = 0; k <= 24; k++) {
+          const a = (k / 24) * TAU;
+          const rr = r * (k % 2 ? 0.92 : 1);
+          ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.beginPath();
+        for (let k = 0; k < 10; k++) {
+          const a = -Math.PI / 2 + (k * Math.PI) / 5;
+          const rr = k % 2 ? r * 0.25 : r * 0.55;
+          ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      });
+      const off2 = cx * 0.3;
+      hillPath(ctx, off2, 430 - cy * 0.2, 50, 0.008, 3.3);
+      ctx.fillStyle = '#3a2585';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(127,240,255,0.55)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      const off3 = cx * 0.55;
+      hillPath(ctx, off3, 490 - cy * 0.45, 26, 0.015, 1.1);
+      ctx.fillStyle = '#4b3299';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,159,216,0.6)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    },
+
     volcano(ctx, cx, cy, t) {
       sky(ctx, [[0, '#1a0608'], [0.6, '#4a1210'], [1, '#8a2a10']]);
       // cascades de lave au fond
@@ -1026,6 +1089,17 @@ const Scenery = (() => {
         circlePath(ctx, 9, -3, 4);
         ctx.fill();
       }
+    } else if (theme === 'badge') {
+      // petit cristal lumineux
+      const a = 0.65 + 0.35 * Math.sin(t * 3 + v * 20);
+      ctx.fillStyle = v < 0.5 ? `rgba(127,240,255,${a})` : `rgba(255,159,216,${a})`;
+      ctx.beginPath();
+      ctx.moveTo(0, -16 - v * 6);
+      ctx.lineTo(5, -6);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(-5, -6);
+      ctx.closePath();
+      ctx.fill();
     } else if (theme === 'volcano') {
       // cristal qui brille
       const a = 0.6 + 0.4 * Math.sin(t * 3 + v * 20);

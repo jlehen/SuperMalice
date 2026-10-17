@@ -10,14 +10,19 @@ const PHYS = {
   decGround: 2700,
   decAir: 900,
   jump: 950,
-  jumpCut: 380,
+  jumpCut: 520,
   coyote: 0.1,
   buffer: 0.14,
   bounce: 620,
   bounceHeld: 880,
   poundHang: 0.17,
   pound: 1150,
+  superJump: 1250,
+  crouchCharge: 0.12,
 };
+
+// Moustache-grappin : portée, vitesse de la moustache, vitesse de traction, longueur de la corde.
+const GRAPPLE = { range: 340, shoot: 2600, pull: 820, len: 58 };
 
 const STUCK_TIME = 10;
 const STAR_TIME = 15;
@@ -54,6 +59,13 @@ class Player {
     this.prevBottom = y + this.h;
     this.energy = world.game.energyMax;
     this.sparkT = 0;
+    this.crouch = false;
+    this.crouchT = 0;
+    this.superT = 0;
+    this.superSpin = 0;
+    this.grap = null;
+    this.target = null;
+    this.boostT = 0;
   }
 
   get cx() { return this.x + this.w / 2; }
@@ -63,6 +75,7 @@ class Player {
     const w = this.world;
     this.t += dt;
     if (this.dead) {
+      this.grap = null;
       this.deathT += dt;
       if (this.deathT > 0.5) {
         this.vy = Math.min(this.vy + PHYS.gravity * 0.75 * dt, 1200);
@@ -95,16 +108,53 @@ class Player {
       if (this.star <= 0) w.game.onStarEnd();
     }
 
+    if (this.superSpin > 0) this.superSpin -= dt;
+    const I = Input;
+    const game = w.game;
+    const badgeSaut = game.hasBadge('saut');
+    const badgeGrappin = game.hasBadge('grappin');
+
+    // ---- Moustache-grappin : accrochée à un anneau ----
+    this.target = badgeGrappin && (!this.grap || this.grap.phase === 'swing') ? this.findAnchor(this.grap && this.grap.anchor) : null;
+    if (this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing')) {
+      this.updateHanging(dt);
+      if (w.inLava(this)) this.die('lava');
+      return;
+    }
+    if (I.pressed.grapple && badgeGrappin && !this.pound && this.hurtT <= 0.2) this.startGrapple();
+
     if (this.platform) {
       this.x += this.platform.dx;
       this.y = this.platform.y - this.h;
     }
 
-    const I = Input;
     let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0);
     if (this.hurtT > 0.2) dir = 0;
+
+    // ---- S'accroupir (et préparer le super saut) ----
+    const wantCrouch = this.onGround && I.held.down && !this.pound;
+    if (wantCrouch) {
+      this.crouchT += dt;
+      if (badgeSaut && this.crouchT - dt < PHYS.crouchCharge && this.crouchT >= PHYS.crouchCharge) Sound.sfx.charge();
+    } else {
+      if (this.crouch && badgeSaut && this.crouchT >= PHYS.crouchCharge) this.superT = 0.3;
+      this.crouchT = 0;
+    }
+    this.crouch = wantCrouch;
+    if (this.superT > 0) this.superT -= dt;
+    const charged = badgeSaut && ((this.crouch && this.crouchT >= PHYS.crouchCharge) || this.superT > 0);
+    if (charged && Math.random() < dt * 25) {
+      w.spawn({ type: 'spark', x: this.cx + rand(-16, 16), y: this.y + this.h - rand(0, 20), vy: rand(-120, -40), life: 0.4, size: rand(3, 5), color: '#7ff0ff' });
+    }
+    if (this.crouch) dir = 0;
+
     if (this.pound) {
       this.vx = 0;
+    } else if (this.boostT > 0 && Math.abs(this.vx) > PHYS.run && (dir === 0 || dir === Math.sign(this.vx))) {
+      // garde l'élan pris en se balançant au grappin
+      this.boostT -= dt;
+      this.vx = approach(this.vx, Math.sign(this.vx) * PHYS.run, 260 * dt);
+      if (dir) this.facing = dir;
     } else {
       const target = dir * PHYS.run;
       let acc;
@@ -120,13 +170,28 @@ class Player {
     else this.jumpBuf -= dt;
     this.coyote = this.onGround ? PHYS.coyote : this.coyote - dt;
     if (this.jumpBuf > 0 && this.coyote > 0 && !this.pound) {
-      this.vy = -PHYS.jump;
       this.jumpBuf = 0;
       this.coyote = 0;
       this.onGround = false;
       this.platform = null;
-      this.jumping = true;
-      Sound.sfx.jump();
+      if (charged) {
+        // SUPER SAUT !
+        this.vy = -PHYS.superJump;
+        this.jumping = false;
+        this.superT = 0;
+        this.crouch = false;
+        this.crouchT = 0;
+        this.superSpin = 0.55;
+        Sound.sfx.superJump();
+        w.spawn({ type: 'ring', x: this.cx, y: this.y + this.h, life: 0.4, size: 60, color: 'rgba(127,240,255,0.9)' });
+        for (let i = 0; i < 12; i++) {
+          w.spawn({ type: 'spark', x: this.cx + rand(-14, 14), y: this.y + this.h, vx: rand(-150, 150), vy: rand(-260, -60), life: 0.6, size: rand(4, 7), color: i % 2 ? '#7ff0ff' : '#ffffff' });
+        }
+      } else {
+        this.vy = -PHYS.jump;
+        this.jumping = true;
+        Sound.sfx.jump();
+      }
       for (let i = 0; i < 5; i++) {
         w.spawn({ type: 'dust', x: this.cx + rand(-10, 10), y: this.y + this.h, vx: rand(-60, 60), vy: rand(-40, -10), life: 0.4, size: rand(4, 7) });
       }
@@ -194,9 +259,159 @@ class Player {
 
     if (this.x < 0) { this.x = 0; this.vx = 0; }
     if (this.x + this.w > w.width) { this.x = w.width - this.w; this.vx = 0; }
+    if (this.grap) this.updateMustacheTip(dt);
 
     if (w.inLava(this)) this.die('lava');
     else if (this.y > w.height + 60) this.die('fall');
+  }
+
+  // ---------- Moustache-grappin ----------
+  mustachePoint() {
+    return { x: this.cx + this.facing * 6, y: this.y + 23 };
+  }
+
+  findAnchor(exclude) {
+    const hx = this.cx;
+    const hy = this.y + 14;
+    let best = null;
+    let bestS = Infinity;
+    for (const a of this.world.anchors) {
+      if (a === exclude) continue;
+      const dx = a.x - hx;
+      const dy = a.y - hy;
+      const d = Math.hypot(dx, dy);
+      if (d > GRAPPLE.range || d < 24 || dy > 30) continue;
+      let sc = d;
+      if (Math.sign(dx) !== this.facing && Math.abs(dx) > 40) sc += 200;
+      if (sc < bestS) {
+        bestS = sc;
+        best = a;
+      }
+    }
+    return best;
+  }
+
+  startGrapple() {
+    const prev = this.grap && this.grap.anchor;
+    const a = this.findAnchor(prev);
+    const m = this.mustachePoint();
+    Sound.sfx.grapple();
+    if (!a) {
+      this.grap = { phase: 'miss', t: 0, tipX: m.x, tipY: m.y };
+      return;
+    }
+    this.grap = { phase: 'shoot', anchor: a, t: 0, tipX: m.x, tipY: m.y, ang: 0, angV: 0, len: GRAPPLE.len, stuckT: 0 };
+    this.pound = 0;
+  }
+
+  // La moustache part vers l'anneau (ou dans le vide) pendant que Malice bouge normalement.
+  updateMustacheTip(dt) {
+    const g = this.grap;
+    const m = this.mustachePoint();
+    g.t += dt;
+    if (g.phase === 'miss') {
+      const k = g.t < 0.16 ? g.t / 0.16 : Math.max(0, 1 - (g.t - 0.16) / 0.16);
+      g.tipX = m.x + this.facing * 150 * k;
+      g.tipY = m.y - 110 * k;
+      if (g.t > 0.32) this.grap = null;
+      return;
+    }
+    if (g.phase === 'shoot') {
+      const a = g.anchor;
+      const dx = a.x - g.tipX;
+      const dy = a.y - g.tipY;
+      const d = Math.hypot(dx, dy);
+      const step = GRAPPLE.shoot * dt;
+      if (d <= step) {
+        g.tipX = a.x;
+        g.tipY = a.y;
+        g.phase = 'pull';
+        g.t = 0;
+        a.flash = 0.35;
+        this.platform = null;
+        Sound.sfx.grab();
+      } else {
+        g.tipX += (dx / d) * step;
+        g.tipY += (dy / d) * step;
+      }
+      if (g.t > 0.5) this.grap = null;
+    }
+  }
+
+  // Tirée vers l'anneau, puis balancement comme un pendule.
+  updateHanging(dt) {
+    const w = this.world;
+    const g = this.grap;
+    const a = g.anchor;
+    const I = Input;
+    g.t += dt;
+    this.prevBottom = this.y + this.h;
+    this.onGround = false;
+    this.platform = null;
+    this.crouch = false;
+    const hx = this.cx;
+    const hy = this.y + 14;
+    if (g.phase === 'pull') {
+      const dx = a.x - hx;
+      const dy = a.y - hy;
+      const d = Math.hypot(dx, dy);
+      if (d <= g.len + 4) {
+        g.phase = 'swing';
+        g.ang = Math.atan2(hx - a.x, hy - a.y);
+        const tvx = Math.cos(g.ang);
+        const tvy = -Math.sin(g.ang);
+        g.angV = clamp((this.vx * tvx + this.vy * tvy) / g.len, -5, 5);
+      } else {
+        this.vx = (dx / d) * GRAPPLE.pull;
+        this.vy = (dy / d) * GRAPPLE.pull;
+        if (Math.abs(dx) > 4) this.facing = Math.sign(dx);
+        const px = this.x;
+        const py = this.y;
+        w.moveBody(this, dt);
+        if (Math.hypot(this.x - px, this.y - py) < GRAPPLE.pull * dt * 0.3) {
+          g.stuckT += dt;
+          if (g.stuckT > 0.25) this.releaseGrapple(false);
+        }
+        if (I.pressed.jump) this.releaseGrapple(true);
+        return;
+      }
+    }
+    // balancement
+    const dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0);
+    if (dir) this.facing = dir;
+    g.angV += (-(PHYS.gravity / g.len) * 0.9 * Math.sin(g.ang) + dir * 6 * Math.cos(g.ang) - g.angV * 0.35) * dt;
+    const prevAng = g.ang;
+    g.ang = clamp(g.ang + g.angV * dt, -1.35, 1.35);
+    if (Math.abs(g.ang) >= 1.35) g.angV *= -0.2;
+    const nx = a.x + g.len * Math.sin(g.ang) - this.w / 2;
+    const ny = a.y + g.len * Math.cos(g.ang) - 14;
+    if (w.boxSolid(nx, ny, this.w, this.h)) {
+      g.ang = prevAng;
+      g.angV *= -0.3;
+    } else {
+      this.x = nx;
+      this.y = ny;
+    }
+    this.vx = g.len * g.angV * Math.cos(g.ang);
+    this.vy = -g.len * g.angV * Math.sin(g.ang);
+    if (I.pressed.jump) this.releaseGrapple(true);
+    else if (I.pressed.down) this.releaseGrapple(false);
+    else if (I.pressed.grapple) this.startGrapple();
+  }
+
+  releaseGrapple(jump) {
+    this.grap = null;
+    this.onGround = false;
+    this.coyote = 0;
+    this.jumping = false;
+    if (jump) {
+      const dir = (Input.held.right ? 1 : 0) - (Input.held.left ? 1 : 0);
+      this.vy = Math.min(this.vy, 0) * 0.5 - 760;
+      this.vx = clamp(this.vx + dir * 80, -470, 470);
+      Sound.sfx.jump();
+    }
+    this.vy = Math.max(this.vy, -1150);
+    this.boostT = 0.8;
   }
 
   checkPlatforms() {
@@ -251,6 +466,7 @@ class Player {
     }
     this.invuln = 1.6;
     this.hurtT = 0.45;
+    this.grap = null;
     const sx = src ? src.x + (src.w || 0) / 2 : this.cx - this.facing;
     const d = Math.sign(this.cx - sx) || -this.facing;
     this.vx = d * 260;
@@ -281,9 +497,12 @@ class Player {
 
   draw(ctx) {
     let pose = 'idle';
+    const hanging = this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing');
     if (this.dead) pose = 'hurt';
     else if (this.won) pose = this.onGround ? 'win' : 'jump';
+    else if (hanging) pose = 'hang';
     else if (this.pound) pose = 'pound';
+    else if (this.crouch) pose = 'crouch';
     else if (this.hurtT > 0) pose = 'hurt';
     else if (!this.onGround) pose = this.vy < 0 ? 'jump' : 'fall';
     else if (this.throwAnim > 0) pose = 'throw';
@@ -313,6 +532,32 @@ class Player {
       ctx.translate(this.cx, this.y + this.h / 2);
       ctx.rotate(a);
       ctx.translate(-this.cx, -(this.y + this.h / 2));
+    } else if (this.superSpin > 0) {
+      const a = (1 - this.superSpin / 0.55) * Math.PI * 2 * this.facing;
+      ctx.translate(this.cx, this.y + this.h / 2);
+      ctx.rotate(a);
+      ctx.translate(-this.cx, -(this.y + this.h / 2));
+    }
+    // moustache-grappin : la corde part de la moustache jusqu'à l'anneau
+    let rot = 0;
+    if (hanging) {
+      const g = this.grap;
+      rot = g.phase === 'swing' ? -g.ang : -Math.atan2(this.cx - g.anchor.x, this.y + 14 - g.anchor.y);
+    }
+    if (this.grap) {
+      const m = this.mustachePoint();
+      const ox = this.cx;
+      const oy = this.y + 14;
+      const c = Math.cos(rot);
+      const s = Math.sin(rot);
+      const mx = ox + (m.x - ox) * c - (m.y - oy) * s;
+      const my = oy + (m.x - ox) * s + (m.y - oy) * c;
+      Art.mustacheRope(ctx, mx, my, this.grap.tipX, this.grap.tipY, this.t, this.grap.phase !== 'miss' && this.grap.phase !== 'shoot');
+    }
+    if (rot) {
+      ctx.translate(this.cx, this.y + 14);
+      ctx.rotate(rot);
+      ctx.translate(-this.cx, -(this.y + 14));
     }
     if (this.dead && this.cause === 'lava') {
       ctx.globalAlpha = 1;
@@ -586,20 +831,19 @@ class Enemy {
       ctx.translate(0, -this.h / 2);
     }
     if (this.fat) {
-      const pant = this.fatRest ? Math.sin(this.t * 14) * 0.04 : 0;
-      ctx.scale(1.42 + pant, 1.18 - pant);
+      const pant = this.fatRest ? Math.sin(this.t * 14) * 0.035 : Math.sin(this.t * 7) * 0.015;
+      ctx.scale(1 + pant, 1 - pant);
     }
     if (this.stuck > 0 && !this.dying) ctx.translate(Math.sin(this.t * 40) * 1.2, 0);
     this.drawBody(ctx, 0, 0);
     ctx.restore();
     if (this.dying) return;
-    if (this.fat) {
+    if (this.fat && this.fatRest && this.stuck <= 0) {
+      // tout essoufflé : il tire la langue et transpire
       const m = this.mouth();
-      Art.tiredFace(ctx, bx + m.x, by + m.y, this.t, this.fatRest);
-      if (this.fatRest) {
-        Art.sweat(ctx, bx - this.w * 0.55, by - this.h * 1.05 + Math.sin(this.t * 6) * 2, 1.2);
-        Art.sweat(ctx, bx + this.w * 0.6, by - this.h * 0.95 + Math.cos(this.t * 5) * 2, 1);
-      }
+      Art.tiredFace(ctx, bx + m.x, by + m.y, this.t, true);
+      Art.sweat(ctx, bx - this.w * 0.75, by - this.h * 1.0 + Math.sin(this.t * 6) * 2, 1.3);
+      Art.sweat(ctx, bx + this.w * 0.75, by - this.h * 0.85 + Math.cos(this.t * 5) * 2, 1.1);
     }
     if (this.stuck > 0) {
       const fade = Math.min(1, this.stuck / 1.5);
@@ -668,16 +912,16 @@ class EyeMonster extends Enemy {
 
   drawBody(ctx, x, y) {
     let lid = this.lid;
-    if (this.fat && this.fatRest) lid = 0.45;
+    if (this.fat) lid = 0;
     if (this.stuck > 0) lid = 0;
     Art.eyeMonster(ctx, x, y, {
       dir: this.dir, legPhase: this.legPhase, look: this.look,
       chasing: this.chasing && !this.fat && this.stuck <= 0, hue: this.hue, lid,
-      moving: Math.abs(this.vx) > 1,
+      moving: Math.abs(this.vx) > 1, fat: this.fat, rest: this.fatRest && this.stuck <= 0,
     });
   }
 
-  mouth() { return { x: this.dir * 3, y: -18 }; }
+  mouth() { return { x: this.dir * 7, y: -16 }; }
 }
 
 class Rubik extends Enemy {
@@ -773,11 +1017,11 @@ class Rubik extends Enemy {
       colors: this.colors, top: this.top, side: this.side,
       angry: angry ? 1 : 0, shake: angry ? rand(-2, 2) * (1.6 - Math.min(1.5, this.angryT)) : 0,
       look: this.look, turn: angry ? this.turn : 0, turnRow: angry ? this.turnRow : -1, t: this.t,
-      noMouth: this.fat,
+      fat: this.fat, rest: this.fatRest && this.stuck <= 0,
     });
   }
 
-  mouth() { return { x: 0, y: -12 }; }
+  mouth() { return { x: 0, y: -17 }; }
 }
 
 class Ladybug extends Enemy {
@@ -853,10 +1097,11 @@ class Ladybug extends Enemy {
     Art.ladybug(ctx, x, y, {
       dir: this.dir, t: this.t, open: this.open, spots: this.spots,
       fly: this.flying && !this.dying, legPhase: this.legPhase, angry: this.aimT > 0,
+      fat: this.fat, rest: this.fatRest && this.stuck <= 0,
     });
   }
 
-  mouth() { return { x: this.dir * 30, y: -8 }; }
+  mouth() { return { x: this.dir * 31, y: -7 }; }
 }
 
 // ======================= DANGERS =======================
@@ -1389,5 +1634,78 @@ class TalkFlower {
     if (this.show > 0.05 && this.msg) {
       this.world.bubble(this.x, this.y - 64, this.msg, this.show);
     }
+  }
+}
+
+// ======================= BADGES =======================
+// Anneau doré pour la moustache-grappin.
+class Anchor {
+  constructor(world, x, y) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+    this.t = Math.random() * 6;
+    this.flash = 0;
+  }
+
+  update(dt) {
+    this.t += dt;
+    if (this.flash > 0) this.flash -= dt;
+  }
+
+  draw(ctx) {
+    const w = this.world;
+    Art.anchorRing(ctx, this.x, this.y, this.t, {
+      glow: w.game.hasBadge('grappin'),
+      targeted: w.player.target === this && !w.player.dead,
+      flash: Math.max(0, this.flash),
+    });
+  }
+}
+
+// Le trophée au bout d'un stage d'entraînement : on y gagne le badge.
+class BadgeGoal {
+  constructor(world, x, y, kind) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+    this.kind = kind || 'saut';
+    this.t = 0;
+    this.reached = false;
+  }
+
+  update(dt) {
+    const w = this.world;
+    const p = w.player;
+    this.t += dt;
+    if (Math.random() < dt * 10) {
+      w.spawn({ type: 'spark', x: this.x + rand(-34, 34), y: this.y - 70 + rand(-34, 34), vy: -20, life: 0.6, size: rand(3, 6), color: choose(['#fff59a', '#7ff0ff', '#ff9fd8']) });
+    }
+    if (!this.reached && !p.dead && Math.abs(p.cx - this.x) < 36 && p.y < this.y && p.y + p.h > this.y - 120) {
+      this.reached = true;
+      w.game.levelComplete();
+    }
+  }
+
+  draw(ctx) {
+    // socle
+    const g = ctx.createLinearGradient(0, this.y - 30, 0, this.y);
+    g.addColorStop(0, '#ffe680');
+    g.addColorStop(1, '#d08a10');
+    ctx.fillStyle = g;
+    roundRectPath(ctx, this.x - 26, this.y - 22, 52, 22, 6);
+    ctx.fill();
+    ctx.fillStyle = '#fff3c0';
+    roundRectPath(ctx, this.x - 30, this.y - 28, 60, 9, 4);
+    ctx.fill();
+    if (this.reached) return;
+    const bob = Math.sin(this.t * 2.5) * 6;
+    const gl = ctx.createRadialGradient(this.x, this.y - 75 + bob, 5, this.x, this.y - 75 + bob, 70);
+    gl.addColorStop(0, 'rgba(255,250,200,0.7)');
+    gl.addColorStop(1, 'rgba(255,250,200,0)');
+    ctx.fillStyle = gl;
+    circlePath(ctx, this.x, this.y - 75 + bob, 70);
+    ctx.fill();
+    Art.badge(ctx, this.x, this.y - 80 + bob, 30, this.kind, this.t);
   }
 }

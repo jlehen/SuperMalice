@@ -2,7 +2,7 @@
 
 // Regroupe clavier, écran tactile et manette en une seule liste d'actions.
 const Input = (() => {
-  const ACTIONS = ['left', 'right', 'down', 'jump', 'caramel', 'chips', 'pause'];
+  const ACTIONS = ['left', 'right', 'down', 'jump', 'caramel', 'chips', 'grapple', 'pause'];
   const keys = {};
   const touch = {};
   const pad = {};
@@ -21,6 +21,7 @@ const Input = (() => {
     ArrowDown: 'down', KeyS: 'down',
     KeyX: 'caramel', KeyJ: 'caramel',
     KeyC: 'chips', KeyK: 'chips',
+    KeyV: 'grapple', KeyL: 'grapple',
     Escape: 'pause', KeyP: 'pause',
   };
 
@@ -118,6 +119,7 @@ const Input = (() => {
       if (b(0) || b(12)) pad.jump = true;
       if (b(2)) pad.caramel = true;
       if (b(1) || b(3)) pad.chips = true;
+      if (b(4) || b(5) || b(6) || b(7)) pad.grapple = true;
       if (b(9)) pad.pause = true;
     }
   }

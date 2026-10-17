@@ -5,14 +5,16 @@ const Art = (() => {
   const TAU = Math.PI * 2;
 
   // ---------------- Malice ----------------
+  // Vue de trois-quarts (comme Mario dans Wonder) : grosse tête ronde, deux grands yeux,
+  // nez rond, grosse moustache noire, casquette rose avec visière.
   const MALICE = {
-    hat: '#ff4f9a', hatDark: '#cf2c74', hatLight: '#ff9ccb',
-    overall: '#ff74b4', overallDark: '#d84d8f',
-    shirt: '#ffffff', shirtShade: '#dde2ee',
-    skin: '#ffd9bd', skinShade: '#efb592', cheek: '#ff8fa8',
-    hair: '#ffd84a', hairDark: '#e0a91c', hairLight: '#fff2a6',
-    mustache: '#1c1717', shoe: '#7b3f23', shoeDark: '#5a2b16', shoeLight: '#a8613a',
-    button: '#ffe14d', eye: '#1f2a4a',
+    hat: '#ff4f9a', hatDark: '#d92f7a', hatLight: '#ff9fcd', hatLine: '#9a1a56',
+    overall: '#ff74b4', overallDark: '#e2579c', overallLine: '#a52f6a',
+    shirt: '#ffffff', shirtShade: '#e2e6f2', shirtLine: '#a3aac4',
+    skin: '#ffdcc4', skinShade: '#f6c3a6', skinLine: '#c98868', cheek: '#ff8fa8',
+    hair: '#ffd84a', hairDark: '#e5a91a', hairLight: '#fff2a6', hairLine: '#b67c0a',
+    mustache: '#1c1717', shoe: '#7b3f23', shoeDark: '#5c2c15', shoeLight: '#ad6a40', shoeLine: '#36170a',
+    button: '#ffe14d', iris: '#3b7de2', eye: '#14213d',
   };
 
   // Pendant l'étoile, Malice change de couleur très vite.
@@ -20,29 +22,46 @@ const Art = (() => {
     const h = Math.floor(t * 540) % 360;
     const c = (dh, s, l) => `hsl(${(h + dh) % 360},${s}%,${l}%)`;
     return Object.assign({}, MALICE, {
-      hat: c(0, 95, 58), hatDark: c(0, 90, 42), hatLight: c(0, 95, 76),
-      overall: c(130, 95, 60), overallDark: c(130, 90, 44),
-      shirt: c(250, 100, 86), shirtShade: c(250, 70, 72),
-      shoe: c(60, 85, 45), shoeDark: c(60, 85, 32), shoeLight: c(60, 85, 62),
-      hair: c(200, 100, 70), hairDark: c(200, 90, 52),
+      hat: c(0, 95, 58), hatDark: c(0, 90, 46), hatLight: c(0, 95, 76), hatLine: c(0, 80, 30),
+      overall: c(130, 95, 60), overallDark: c(130, 90, 48), overallLine: c(130, 80, 30),
+      shirt: c(250, 100, 88), shirtShade: c(250, 70, 76), shirtLine: c(250, 50, 50),
+      shoe: c(60, 85, 45), shoeDark: c(60, 85, 34), shoeLight: c(60, 85, 62), shoeLine: c(60, 80, 22),
+      hair: c(200, 100, 70), hairDark: c(200, 90, 55), hairLine: c(200, 80, 38),
     });
   }
 
-  function drawLeg(ctx, C, hx, hy, a, back) {
+  function paint(ctx, fill, line, lw) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (line) {
+      ctx.strokeStyle = line;
+      ctx.lineWidth = lw || 1.1;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+  }
+
+  function drawLeg(ctx, C, x, hipY, a, back, len) {
     ctx.save();
-    ctx.translate(hx, hy);
+    ctx.translate(x, hipY);
     ctx.rotate(a);
-    ctx.fillStyle = back ? C.overallDark : C.overall;
-    roundRectPath(ctx, -4.6, -2, 9.2, 17.5, 4);
-    ctx.fill();
-    ctx.translate(0, 15.5);
+    roundRectPath(ctx, -4.3, -2, 8.6, len + 2.5, 3.6);
+    paint(ctx, back ? C.overallDark : C.overall, C.overallLine, 1.05);
+    ctx.translate(0, len + 1.5);
     ctx.rotate(-a);
-    ctx.fillStyle = back ? C.shoeDark : C.shoe;
-    ellipsePath(ctx, 3, 1.5, 7.6, 4.3);
-    ctx.fill();
+    // chaussure au bout arrondi
+    ctx.beginPath();
+    ctx.moveTo(-4.6, 0.6);
+    ctx.quadraticCurveTo(-4.6, -3.8, 0.4, -3.8);
+    ctx.quadraticCurveTo(7.6, -3.6, 8.2, 1);
+    ctx.quadraticCurveTo(8.2, 3.6, 4, 3.6);
+    ctx.lineTo(-2.8, 3.6);
+    ctx.quadraticCurveTo(-4.6, 3.6, -4.6, 0.6);
+    ctx.closePath();
+    paint(ctx, back ? C.shoeDark : C.shoe, C.shoeLine, 1.05);
     if (!back) {
       ctx.fillStyle = C.shoeLight;
-      ellipsePath(ctx, 5, 0, 3, 1.4);
+      ellipsePath(ctx, 3.6, -1.6, 2.5, 1.1, -0.15);
       ctx.fill();
     }
     ctx.restore();
@@ -52,228 +71,233 @@ const Art = (() => {
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(a);
-    ctx.fillStyle = back ? C.skinShade : C.skin;
-    roundRectPath(ctx, -2.7, 3, 5.4, 10.5, 2.7);
-    ctx.fill();
-    circlePath(ctx, 0, 13.6, 3.5);
-    ctx.fill();
-    ctx.fillStyle = back ? C.shirtShade : C.shirt;
-    roundRectPath(ctx, -4.2, -3.5, 8.4, 9, 3.5);
-    ctx.fill();
+    roundRectPath(ctx, -2.1, 1, 4.2, 9.6, 2.1);
+    paint(ctx, back ? C.skinShade : C.skin, C.skinLine, 0.95);
+    circlePath(ctx, 0, 11, 3.1);
+    paint(ctx, back ? C.skinShade : C.skin, C.skinLine, 0.95);
+    circlePath(ctx, 0, 0.6, 3.7);
+    paint(ctx, back ? C.shirtShade : C.shirt, C.shirtLine, 0.95);
     ctx.restore();
   }
 
   function drawBody(ctx, C) {
-    ctx.fillStyle = C.shirt;
-    roundRectPath(ctx, -10, -43, 20, 19, 7);
-    ctx.fill();
-    ctx.fillStyle = C.shirtShade;
-    roundRectPath(ctx, -10, -30, 20, 4, 2);
-    ctx.fill();
+    roundRectPath(ctx, -8.5, -32.5, 17, 13.5, 5.5);
+    paint(ctx, C.shirt, C.shirtLine, 1.05);
     // salopette
+    roundRectPath(ctx, -9, -24.5, 18, 11.5, 4.5);
+    paint(ctx, C.overall, C.overallLine, 1.05);
+    roundRectPath(ctx, -5.6, -30, 11.2, 8.2, 2.2);
+    paint(ctx, C.overall, C.overallLine, 1);
     ctx.fillStyle = C.overall;
-    roundRectPath(ctx, -11, -31, 22, 14.5, 5);
-    ctx.fill();
-    roundRectPath(ctx, -6, -39, 14, 10, 2.5);
-    ctx.fill();
+    ctx.fillRect(-4.9, -24, 9.8, 2.4);
     ctx.strokeStyle = C.overall;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.6;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(-5, -38);
-    ctx.lineTo(-8, -43);
-    ctx.moveTo(7, -38);
-    ctx.lineTo(7, -43);
+    ctx.moveTo(-4.4, -29.4);
+    ctx.lineTo(-6.6, -32.2);
+    ctx.moveTo(4.4, -29.4);
+    ctx.lineTo(6.2, -32.2);
     ctx.stroke();
+    roundRectPath(ctx, -2.1, -27.4, 4.6, 3.4, 1);
     ctx.fillStyle = C.overallDark;
-    roundRectPath(ctx, -1.5, -35, 6, 4.5, 1.2);
     ctx.fill();
     ctx.fillStyle = C.button;
-    circlePath(ctx, -3.6, -36.5, 1.9);
+    circlePath(ctx, -3.5, -28.1, 1.5);
     ctx.fill();
-    circlePath(ctx, 6, -36.5, 1.9);
+    circlePath(ctx, 3.7, -28.1, 1.5);
     ctx.fill();
+  }
+
+  function drawEyes(ctx, C, hx, hy, pose, t) {
+    const ey = hy - 0.6;
+    const eyes = [{ x: hx - 1, rx: 2.9, ry: 4.2, side: -1 }, { x: hx + 8.2, rx: 3.3, ry: 4.6, side: 1 }];
+    const blink = (t % 3.7) < 0.12 && pose !== 'hurt';
+    ctx.lineCap = 'round';
+    eyes.forEach((e) => {
+      ctx.strokeStyle = C.eye;
+      if (pose === 'hurt') {
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(e.x - e.rx * e.side, ey - 3);
+        ctx.lineTo(e.x + e.rx * e.side * 0.8, ey);
+        ctx.lineTo(e.x - e.rx * e.side, ey + 3);
+        ctx.stroke();
+        return;
+      }
+      if (blink) {
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(e.x - e.rx, ey);
+        ctx.quadraticCurveTo(e.x, ey + 2, e.x + e.rx, ey);
+        ctx.stroke();
+        return;
+      }
+      ellipsePath(ctx, e.x, ey, e.rx, e.ry);
+      paint(ctx, '#ffffff', C.eye, 0.9);
+      ellipsePath(ctx, e.x + 0.7, ey + 0.5, e.rx * 0.74, e.ry * 0.74);
+      ctx.fillStyle = C.iris;
+      ctx.fill();
+      ellipsePath(ctx, e.x + 0.9, ey + 0.7, e.rx * 0.42, e.ry * 0.46);
+      ctx.fillStyle = C.eye;
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      circlePath(ctx, e.x + 1.7, ey - 1.5, e.rx * 0.33);
+      ctx.fill();
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(e.x + e.side * e.rx * 0.55, ey - e.ry * 0.82);
+      ctx.lineTo(e.x + e.side * (e.rx + 1.7), ey - e.ry - 0.6);
+      ctx.stroke();
+    });
+  }
+
+  function drawMustache(ctx, C, mx, my, wig) {
+    ctx.beginPath();
+    ctx.moveTo(mx, my - 2.8);
+    // côté proche (vers l'avant), un peu plus grand
+    ctx.bezierCurveTo(mx + 4, my - 5, mx + 10, my - 4, mx + 12, my);
+    ctx.bezierCurveTo(mx + 13, my + 2 + wig, mx + 15, my + 0.5 + wig, mx + 15, my - 2 + wig);
+    ctx.bezierCurveTo(mx + 16.5, my + 3.6 + wig, mx + 12, my + 6, mx + 7, my + 4.6);
+    ctx.bezierCurveTo(mx + 4, my + 3.8, mx + 1.5, my + 4.6, mx, my + 3.6);
+    // côté éloigné
+    ctx.bezierCurveTo(mx - 1.5, my + 4.6, mx - 4, my + 3.8, mx - 6.5, my + 4.4);
+    ctx.bezierCurveTo(mx - 10.5, my + 5.6, mx - 14, my + 3, mx - 12.8, my - 1.6 - wig);
+    ctx.bezierCurveTo(mx - 12.6, my + 0.6 - wig, mx - 11.4, my + 1.6, mx - 10.4, my);
+    ctx.bezierCurveTo(mx - 8.6, my - 4, mx - 4, my - 5, mx, my - 2.8);
+    ctx.closePath();
+    ctx.fillStyle = C.mustache;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(mx - 8, my - 0.6);
+    ctx.quadraticCurveTo(mx - 4, my - 2.4, mx - 1, my - 1.2);
+    ctx.moveTo(mx + 2, my - 1.4);
+    ctx.quadraticCurveTo(mx + 6, my - 2.6, mx + 10, my - 0.2);
+    ctx.stroke();
   }
 
   function drawHead(ctx, C, o) {
     const pose = o.pose || 'idle';
     const t = o.t || 0;
-    const hx = 3;
-    const hy = -52;
-    const sway = Math.sin((o.ph || 0) * 1 + t * 2) * (pose === 'walk' ? 0.22 : 0.07);
-    // cheveux de derrière
-    ctx.fillStyle = C.hair;
-    ctx.beginPath();
-    ctx.moveTo(hx - 2, hy - 12);
-    ctx.bezierCurveTo(hx - 16, hy - 11, hx - 18, hy + 3, hx - 14, hy + 13);
-    ctx.quadraticCurveTo(hx - 9, hy + 17, hx - 4, hy + 11);
-    ctx.lineTo(hx + 2, hy - 2);
-    ctx.closePath();
-    ctx.fill();
+    const hx = 1;
+    const hy = -43;
+    const R = 14;
+    const sway = Math.sin((o.ph || 0) + t * 2) * (pose === 'walk' ? 0.22 : 0.07);
+    const flying = pose === 'jump' || pose === 'fall' || pose === 'hang' || pose === 'pound';
     // queue de cheval
     ctx.save();
-    ctx.translate(hx - 13, hy - 5);
-    ctx.rotate(0.55 + sway + (pose === 'jump' || pose === 'fall' ? -0.5 : 0));
-    ctx.fillStyle = C.hair;
+    ctx.translate(hx - 12, hy - 3);
+    ctx.rotate(0.35 + sway + (flying ? -0.55 : 0));
     ctx.beginPath();
     ctx.moveTo(-3, 0);
-    ctx.bezierCurveTo(-9, 6, -6, 16, -2, 21);
-    ctx.bezierCurveTo(1, 16, 6, 8, 3, 0);
+    ctx.bezierCurveTo(-10, 6, -7, 17, -2, 22);
+    ctx.bezierCurveTo(0, 17, 6, 9, 4, 0);
     ctx.closePath();
-    ctx.fill();
+    paint(ctx, C.hair, C.hairLine, 1);
     ctx.strokeStyle = C.hairDark;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(-1, 4);
-    ctx.quadraticCurveTo(-4, 11, -2, 17);
+    ctx.moveTo(-0.5, 5);
+    ctx.quadraticCurveTo(-3.5, 12, -1.8, 18);
     ctx.stroke();
-    ctx.fillStyle = C.hat;
-    circlePath(ctx, 0, 0, 3.2);
+    circlePath(ctx, 0.5, 0, 3.2);
+    paint(ctx, C.hat, C.hatLine, 0.9);
+    ctx.restore();
+    // cheveux derrière la tête
+    ellipsePath(ctx, hx - 2.4, hy + 1.2, R + 0.4, R - 0.4);
+    paint(ctx, C.hair, C.hairLine, 1.05);
+    // visage
+    circlePath(ctx, hx, hy, R);
+    paint(ctx, C.skin, C.skinLine, 1.05);
+    // mèche devant l'oreille
+    ctx.beginPath();
+    ctx.moveTo(hx - 13.6, hy - 5);
+    ctx.quadraticCurveTo(hx - 12.4, hy + 4, hx - 9.6, hy + 10);
+    ctx.quadraticCurveTo(hx - 8, hy + 2, hx - 7.4, hy - 6);
+    ctx.closePath();
+    paint(ctx, C.hair, C.hairLine, 0.9);
+    drawEyes(ctx, C, hx, hy, pose, t);
+    // joues roses
+    ctx.save();
+    ctx.globalAlpha *= 0.5;
+    ctx.fillStyle = C.cheek;
+    ellipsePath(ctx, hx - 6, hy + 5.2, 2.6, 1.7);
+    ctx.fill();
+    ellipsePath(ctx, hx + 12.2, hy + 5.6, 2.2, 1.7);
     ctx.fill();
     ctx.restore();
-    // visage
-    ctx.fillStyle = C.skin;
-    circlePath(ctx, hx, hy, 12.2);
-    ctx.fill();
-    ctx.fillStyle = C.skinShade;
-    ellipsePath(ctx, hx - 4.5, hy + 2, 2.4, 3.2);
-    ctx.fill();
-    // mèche sur le côté
-    ctx.fillStyle = C.hair;
-    ctx.beginPath();
-    ctx.moveTo(hx - 12, hy - 5);
-    ctx.quadraticCurveTo(hx - 9, hy + 2, hx - 9, hy + 9);
-    ctx.quadraticCurveTo(hx - 6, hy + 2, hx - 6, hy - 6);
-    ctx.closePath();
+    // bouche (on la voit sous la moustache quand Malice est contente ou surprise)
+    if (pose === 'win' || pose === 'hurt' || pose === 'jump' || pose === 'hold') {
+      ellipsePath(ctx, hx + 4.6, hy + 12.4, pose === 'hurt' ? 2.4 : 3.6, pose === 'hurt' ? 2.2 : 2.6);
+      paint(ctx, '#a3263b', '#6e1424', 0.8);
+      if (pose !== 'hurt') {
+        ctx.fillStyle = '#ff7f95';
+        ellipsePath(ctx, hx + 4.6, hy + 13.6, 2, 1);
+        ctx.fill();
+      }
+    }
+    const wig = pose === 'walk' ? Math.sin((o.ph || 0) * 2) * 0.7 : 0;
+    drawMustache(ctx, C, hx + 4.6, hy + 8.4, wig);
+    // nez rond
+    circlePath(ctx, hx + 4.6, hy + 4.2, 4.2);
+    paint(ctx, C.skin, C.skinLine, 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    circlePath(ctx, hx + 3.4, hy + 2.8, 1.3);
     ctx.fill();
     // frange
     ctx.beginPath();
-    ctx.moveTo(hx - 9, hy - 8);
-    ctx.lineTo(hx + 11, hy - 8);
-    ctx.lineTo(hx + 10, hy - 4);
-    ctx.lineTo(hx + 7, hy - 6);
-    ctx.lineTo(hx + 4, hy - 3);
-    ctx.lineTo(hx + 1, hy - 6);
-    ctx.lineTo(hx - 3, hy - 3);
-    ctx.lineTo(hx - 5, hy - 6);
+    ctx.moveTo(hx - 12.8, hy - 6);
+    ctx.lineTo(hx + 13.2, hy - 6.8);
+    ctx.quadraticCurveTo(hx + 13.8, hy - 3.4, hx + 12, hy - 2.8);
+    const fr = [[10, -5], [7.6, -2.3], [4.6, -4.8], [1.6, -2], [-1.4, -4.8], [-4.4, -2.4], [-7.4, -4.8], [-10.4, -2.8]];
+    let px = hx + 12;
+    let py = hy - 2.8;
+    fr.forEach(([dx, dy]) => {
+      const nx = hx + dx;
+      const ny = hy + dy;
+      ctx.quadraticCurveTo((px + nx) / 2, Math.max(py, ny) + 0.8, nx, ny);
+      px = nx;
+      py = ny;
+    });
+    ctx.quadraticCurveTo(hx - 12.6, hy - 3, hx - 12.8, hy - 6);
     ctx.closePath();
-    ctx.fill();
-    // oeil
-    const blink = (t % 3.7) < 0.12 && pose !== 'hurt';
-    if (blink) {
-      ctx.strokeStyle = C.eye;
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(hx + 3.5, hy - 0.5);
-      ctx.quadraticCurveTo(hx + 6.5, hy + 1.2, hx + 9.5, hy - 0.5);
-      ctx.stroke();
-    } else if (pose === 'hurt') {
-      ctx.strokeStyle = C.eye;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(hx + 4, hy - 3);
-      ctx.lineTo(hx + 8.5, hy - 0.5);
-      ctx.lineTo(hx + 4, hy + 2);
-      ctx.stroke();
-    } else {
-      ctx.fillStyle = '#fff';
-      ellipsePath(ctx, hx + 6.5, hy - 0.5, 3.3, 4.3);
-      ctx.fill();
-      ctx.fillStyle = C.eye;
-      ellipsePath(ctx, hx + 7.4, hy - 0.2, 2.2, 3.1);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      circlePath(ctx, hx + 8.1, hy - 1.7, 0.9);
-      ctx.fill();
-      ctx.strokeStyle = C.eye;
-      ctx.lineWidth = 1.1;
-      ctx.beginPath();
-      ctx.moveTo(hx + 8.6, hy - 4.2);
-      ctx.lineTo(hx + 10.4, hy - 5.6);
-      ctx.moveTo(hx + 9.6, hy - 3.2);
-      ctx.lineTo(hx + 11.4, hy - 4.1);
-      ctx.stroke();
-    }
-    // joue
-    ctx.fillStyle = C.cheek;
-    ctx.globalAlpha *= 0.55;
-    ellipsePath(ctx, hx + 3, hy + 5, 3.2, 2.1);
-    ctx.fill();
-    ctx.globalAlpha /= 0.55;
-    // bouche (sous la moustache) quand elle est contente ou surprise
-    if (pose === 'win' || pose === 'hurt' || pose === 'jump') {
-      ctx.fillStyle = '#9b2335';
-      ellipsePath(ctx, hx + 9, hy + 11.5, pose === 'win' ? 3.5 : 2.4, pose === 'win' ? 2.6 : 2.4);
-      ctx.fill();
-    }
-    // nez
-    ctx.fillStyle = C.skin;
-    circlePath(ctx, hx + 12.5, hy + 3, 3.9);
-    ctx.fill();
-    ctx.strokeStyle = C.skinShade;
-    ctx.lineWidth = 0.9;
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    circlePath(ctx, hx + 13, hy + 1.6, 1.1);
-    ctx.fill();
-    // GROSSE moustache noire
-    const mx = hx + 11;
-    const my = hy + 7.5;
-    const wig = pose === 'walk' ? Math.sin((o.ph || 0) * 2) * 0.6 : 0;
-    ctx.fillStyle = C.mustache;
+    paint(ctx, C.hair, C.hairLine, 0.9);
+    // casquette
     ctx.beginPath();
-    ctx.moveTo(mx, my - 2.5);
-    ctx.bezierCurveTo(mx + 4, my - 4.5, mx + 9, my - 3.5, mx + 10.5, my + 0.5);
-    ctx.bezierCurveTo(mx + 11.5, my + 2.5 + wig, mx + 13.5, my + 1 + wig, mx + 13.5, my - 1.5 + wig);
-    ctx.bezierCurveTo(mx + 15.5, my + 4 + wig, mx + 10, my + 6.5, mx + 5.5, my + 4.5);
-    ctx.bezierCurveTo(mx + 3, my + 3.5, mx + 1, my + 4.5, mx, my + 3.5);
-    ctx.bezierCurveTo(mx - 2, my + 5.5, mx - 8.5, my + 6.5, mx - 10.5, my + 2);
-    ctx.bezierCurveTo(mx - 11.5, my - 0.5 - wig, mx - 9.5, my - 1.5 - wig, mx - 8.5, my - 0.5);
-    ctx.bezierCurveTo(mx - 6.5, my - 3.5, mx - 3, my - 3.5, mx, my - 2.5);
+    ctx.moveTo(hx - 14.9, hy - 4.4);
+    ctx.bezierCurveTo(hx - 15.4, hy - 22.5, hx + 13.2, hy - 24.5, hx + 15.3, hy - 7.2);
+    ctx.quadraticCurveTo(hx + 1, hy - 9.8, hx - 14.9, hy - 4.4);
     ctx.closePath();
+    const cg = ctx.createLinearGradient(0, hy - 24, 0, hy - 5);
+    cg.addColorStop(0, C.hatLight);
+    cg.addColorStop(0.45, C.hat);
+    cg.addColorStop(1, C.hat);
+    paint(ctx, cg, C.hatLine, 1.15);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ellipsePath(ctx, hx - 5.5, hy - 16.5, 4.6, 2.1, -0.5);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-    ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(mx - 6, my - 0.5);
-    ctx.quadraticCurveTo(mx - 2, my - 1.8, mx + 1, my - 1);
-    ctx.moveTo(mx + 3, my - 1.2);
-    ctx.quadraticCurveTo(mx + 6, my - 2, mx + 8.5, my);
-    ctx.stroke();
-    // casquette rose
-    ctx.fillStyle = C.hat;
-    ctx.beginPath();
-    ctx.moveTo(hx - 12.5, hy - 5);
-    ctx.bezierCurveTo(hx - 13, hy - 20, hx + 12, hy - 22, hx + 13, hy - 7);
-    ctx.lineTo(hx + 12, hy - 5);
-    ctx.lineTo(hx - 12.5, hy - 4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = C.hatLight;
-    ellipsePath(ctx, hx - 4, hy - 15, 4, 2, -0.4);
-    ctx.fill();
-    // visière
-    ctx.fillStyle = C.hatDark;
-    ctx.beginPath();
-    ctx.moveTo(hx + 3, hy - 8);
-    ctx.quadraticCurveTo(hx + 18, hy - 10.5, hx + 23, hy - 5);
-    ctx.quadraticCurveTo(hx + 14, hy - 3.6, hx + 3, hy - 4.5);
-    ctx.closePath();
-    ctx.fill();
-    // écusson "M"
-    ctx.fillStyle = '#fff';
-    circlePath(ctx, hx + 1.5, hy - 12.5, 4.8);
-    ctx.fill();
+    circlePath(ctx, hx + 3, hy - 14.2, 5.3);
+    paint(ctx, '#ffffff', C.hatLine, 0.9);
     ctx.strokeStyle = C.hatDark;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.6;
     ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(hx - 1.3, hy - 10.4);
-    ctx.lineTo(hx - 1.3, hy - 14.6);
-    ctx.lineTo(hx + 1.5, hy - 11.8);
-    ctx.lineTo(hx + 4.3, hy - 14.6);
-    ctx.lineTo(hx + 4.3, hy - 10.4);
+    ctx.moveTo(hx + 0.4, hy - 11.9);
+    ctx.lineTo(hx + 0.4, hy - 16.4);
+    ctx.lineTo(hx + 3, hy - 13.6);
+    ctx.lineTo(hx + 5.6, hy - 16.4);
+    ctx.lineTo(hx + 5.6, hy - 11.9);
     ctx.stroke();
+    // visière
+    ctx.beginPath();
+    ctx.moveTo(hx + 1, hy - 8.6);
+    ctx.quadraticCurveTo(hx + 16, hy - 12.2, hx + 24, hy - 6);
+    ctx.quadraticCurveTo(hx + 17, hy - 3.2, hx + 2, hy - 5);
+    ctx.closePath();
+    paint(ctx, C.hatDark, C.hatLine, 1.05);
   }
 
   // Malice debout, les pieds au point (x, y).
@@ -290,55 +314,341 @@ const Art = (() => {
     ctx.scale((o.facing || 1) * sc * (o.sx || 1), sc * (o.sy || 1));
     let legF = 0;
     let legB = 0;
-    let armF = 0.12;
-    let armB = -0.12;
+    let armF = -0.1;
+    let armB = 0.12;
     let bob = 0;
     let lean = 0;
+    let crouch = 0;
+    let legLen = 10;
     switch (pose) {
       case 'walk': {
         const s = Math.sin(ph);
-        legF = s * 0.62; legB = -s * 0.62;
-        armF = -s * 0.8; armB = s * 0.8;
-        bob = -Math.abs(Math.cos(ph)) * 2.2;
+        legF = s * 0.6; legB = -s * 0.6;
+        armF = -s * 0.75; armB = s * 0.75;
+        bob = -Math.abs(Math.cos(ph)) * 2;
         lean = 0.05;
         break;
       }
-      case 'jump': legF = -1.0; legB = 0.35; armF = -2.75; armB = 0.8; break;
-      case 'fall': legF = 0.4; legB = -0.3; armF = -2.0; armB = -1.5; break;
-      case 'pound': legF = -1.7; legB = -1.4; armF = -2.6; armB = -2.4; bob = 4; break;
-      case 'throw': armF = -1.55; armB = 0.5; legF = 0.25; legB = -0.25; break;
-      case 'win': armF = -2.8 + Math.sin(t * 10) * 0.2; armB = -2.6; legF = 0.15; legB = -0.15; break;
-      case 'hurt': armF = -2.3; armB = -2.5; legF = 0.5; legB = -0.5; lean = -0.12; break;
-      case 'hold': armF = -1.3; armB = -1.1; break;
+      case 'jump': legF = -1.0; legB = 0.4; armF = -2.3; armB = 0.8; break;
+      case 'fall': legF = 0.35; legB = -0.3; armF = -2.0; armB = 1.9; break;
+      case 'pound': legF = -1.6; legB = -1.3; armF = -2.2; armB = 2.2; bob = 3; break;
+      case 'throw': armF = -1.6; armB = 0.5; legF = 0.25; legB = -0.25; break;
+      case 'win': armF = -2.25 + Math.sin(t * 10) * 0.2; armB = 2.25; legF = 0.15; legB = -0.15; break;
+      case 'hurt': armF = -2.0; armB = 2.0; legF = 0.45; legB = -0.45; lean = -0.1; break;
+      case 'hold': armF = -1.3; armB = -1.05; break;
+      case 'crouch': crouch = 7; legF = -1.25; legB = -0.85; legLen = 8; armF = -0.55; armB = 0.35; break;
+      case 'hang': armF = 0.4; armB = -0.3; legF = 0.25; legB = -0.2; break;
       default:
         bob = Math.sin(t * 2.5) * 0.7;
-        armF = 0.12 + Math.sin(t * 2.5) * 0.05;
+        armF = -0.1 - Math.sin(t * 2.5) * 0.04;
     }
     ctx.translate(0, bob);
     ctx.rotate(lean);
-    drawArm(ctx, C, -4, -38, armB, true);
-    drawLeg(ctx, C, -4, -19.5, legB, true);
-    drawLeg(ctx, C, 4, -19.5, legF, false);
+    ctx.save();
+    ctx.translate(0, crouch);
+    drawArm(ctx, C, -8.6, -29.6, armB, true);
+    ctx.restore();
+    drawLeg(ctx, C, -3.8, -15.5 + crouch, legB, true, legLen);
+    drawLeg(ctx, C, 3.8, -15.5 + crouch, legF, false, legLen);
+    ctx.save();
+    ctx.translate(0, crouch);
     drawBody(ctx, C);
+    // le bras avant passe sous la tête (sauf quand Malice tient le bébé oiseau)
+    if (!o.holding) drawArm(ctx, C, 8.6, -29.6, armF, false);
     drawHead(ctx, C, o);
-    if (o.holding) o.holding(ctx);
-    drawArm(ctx, C, 5, -38, armF, false);
+    if (o.holding) {
+      o.holding(ctx);
+      drawArm(ctx, C, 8.6, -29.6, armF, false);
+    }
+    ctx.restore();
     ctx.restore();
   }
 
+  // Juste la tête (pour les vies dans le HUD).
   function maliceHead(ctx, x, y, s) {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(s, s);
-    ctx.translate(-5, 52);
+    ctx.translate(-3, 45);
     drawHead(ctx, MALICE, { pose: 'idle', t: 1 });
     ctx.restore();
+  }
+
+  // ---------------- Ennemis tout gras (après les chips au vinaigre) ----------------
+  function chubbyCheeks(ctx, x, y, rx, ry, color, line) {
+    for (const side of [-1, 1]) {
+      ellipsePath(ctx, side * x, y, rx, ry, side * 0.25);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = line;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  }
+
+  function fatMouth(ctx, x, y, rest) {
+    if (rest) {
+      ellipsePath(ctx, x, y, 4.2, 3.4);
+      ctx.fillStyle = '#5a1030';
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = '#5a1030';
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = 'round';
+      circlePath(ctx, x, y, 2.2);
+      ctx.stroke();
+    }
+  }
+
+  function eyeMonsterFat(ctx, o) {
+    const dir = o.dir || 1;
+    const lp = o.legPhase || 0;
+    const moving = o.moving !== false;
+    ctx.lineCap = 'round';
+    // petites pattes boudinées
+    for (const side of [-1, 1]) {
+      const p = lp + (side > 0 ? 0 : Math.PI);
+      const sw = moving ? Math.sin(p) * 3 : 0;
+      ctx.strokeStyle = '#6a2e4e';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(side * 10, -11);
+      ctx.lineTo(side * 11 + sw, -5);
+      ctx.stroke();
+      ctx.strokeStyle = '#8d4468';
+      ctx.lineWidth = 7;
+      ctx.stroke();
+      ctx.fillStyle = '#5c2443';
+      ellipsePath(ctx, side * 11 + sw + 3 * dir, -2.8, 9, 4.2);
+      ctx.fill();
+    }
+    const cy = -28;
+    const RX = 27;
+    const RY = 23;
+    const g = ctx.createRadialGradient(-9, cy - 9, 3, 0, cy, RX);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.65, '#f8ecf4');
+    g.addColorStop(1, '#e6c3da');
+    ellipsePath(ctx, 0, cy, RX, RY);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = '#a67fae';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(214,40,64,0.45)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      const a = i * 1.27 + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * RX * 0.95, cy + Math.sin(a) * RY * 0.95);
+      ctx.quadraticCurveTo(Math.cos(a) * RX * 0.78 + 3, cy + Math.sin(a) * RY * 0.78 - 2, Math.cos(a) * RX * 0.6, cy + Math.sin(a) * RY * 0.6);
+      ctx.stroke();
+    }
+    // bourrelets et double menton
+    chubbyCheeks(ctx, 16, cy + 12, 10.5, 7.5, '#f9cfe0', '#c98aa8');
+    ctx.strokeStyle = 'rgba(150,95,140,0.85)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-13, cy + 18);
+    ctx.quadraticCurveTo(0, cy + 24, 13, cy + 18);
+    ctx.stroke();
+    // iris (paraît tout petit dans ce gros oeil)
+    const lx = (o.look ? o.look.x : dir) * 8;
+    const ly = (o.look ? o.look.y : 0) * 4;
+    const hue = o.hue == null ? 140 : o.hue;
+    const ig = ctx.createRadialGradient(lx, cy - 4 + ly, 1, lx, cy - 4 + ly, 8.5);
+    ig.addColorStop(0, `hsl(${hue},80%,70%)`);
+    ig.addColorStop(1, `hsl(${hue},70%,32%)`);
+    ctx.fillStyle = ig;
+    circlePath(ctx, lx, cy - 4 + ly, 8.5);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    circlePath(ctx, lx + dir * 0.5, cy - 4 + ly, 4);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    circlePath(ctx, lx - 2.5, cy - 7 + ly, 2);
+    ctx.fill();
+    // grosse paupière fatiguée
+    const lid = Math.max(o.lid || 0, o.rest ? 0.36 : 0.2);
+    ctx.save();
+    ellipsePath(ctx, 0, cy, RX, RY);
+    ctx.clip();
+    ctx.fillStyle = '#d58fb0';
+    ctx.fillRect(-RX, cy - RY, RX * 2, RY * 2 * lid);
+    ctx.strokeStyle = '#7d3a5c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-RX, cy - RY + RY * 2 * lid + Math.sin(-1) * 2);
+    ctx.quadraticCurveTo(0, cy - RY + RY * 2 * lid + 3, RX, cy - RY + RY * 2 * lid);
+    ctx.stroke();
+    ctx.restore();
+    fatMouth(ctx, dir * 7, cy + 11, o.rest);
+  }
+
+  function rubikFat(ctx, o) {
+    const t = o.t || 0;
+    // petits pieds
+    ctx.fillStyle = '#1a1a1a';
+    ellipsePath(ctx, -12, -3, 8, 4);
+    ctx.fill();
+    ellipsePath(ctx, 12, -3, 8, 4);
+    ctx.fill();
+    // dessus moelleux
+    ctx.fillStyle = '#141414';
+    ellipsePath(ctx, 5, -47, 23, 7.5);
+    ctx.fill();
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = o.top[i];
+      ellipsePath(ctx, -8 + i * 13, -47.5, 5.5, 2.6);
+      ctx.fill();
+    }
+    // gros corps bombé
+    ctx.beginPath();
+    ctx.moveTo(-21, -47);
+    ctx.quadraticCurveTo(0, -51, 21, -47);
+    ctx.quadraticCurveTo(31, -26, 22, -6);
+    ctx.quadraticCurveTo(0, 0, -22, -6);
+    ctx.quadraticCurveTo(-31, -26, -21, -47);
+    ctx.closePath();
+    ctx.fillStyle = '#111';
+    ctx.fill();
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const bulge = r === 1 ? 1.1 : 1;
+        const cx = (c - 1) * 14 * bulge;
+        const cyy = -38 + r * 13 + (c === 1 ? 1 : 0) + (r === 2 ? 1 : 0);
+        ctx.fillStyle = o.colors[r * 3 + c];
+        roundRectPath(ctx, cx - 6.4, cyy - 5.8, 12.8, 11.6, 4.5);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ellipsePath(ctx, cx - 2.5, cyy - 3, 3, 1.4);
+        ctx.fill();
+      }
+    }
+    // bourrelet du bas
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-20, -12);
+    ctx.quadraticCurveTo(0, -6, 20, -12);
+    ctx.stroke();
+    // visage fatigué
+    for (const sx of [-8, 8]) {
+      ellipsePath(ctx, sx, -31, 5.6, 6);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#111';
+      circlePath(ctx, sx + (o.look ? o.look.x * 2 : 0), -29.5, 2.6);
+      ctx.fill();
+      ctx.save();
+      ellipsePath(ctx, sx, -31, 5.6, 6);
+      ctx.clip();
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(sx - 6, -38, 12, o.rest ? 7.5 : 5);
+      ctx.restore();
+    }
+    ctx.fillStyle = 'rgba(255,120,150,0.75)';
+    ellipsePath(ctx, -15, -22, 4, 2.6);
+    ctx.fill();
+    ellipsePath(ctx, 15, -22, 4, 2.6);
+    ctx.fill();
+    fatMouth(ctx, 0, -18 + Math.sin(t * 3) * 0.3, o.rest);
+  }
+
+  function ladybugFat(ctx, o) {
+    const t = o.t || 0;
+    const lp = o.legPhase || 0;
+    // pattes boudinées
+    ctx.strokeStyle = '#151515';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const sw = Math.sin(lp + i * 2.1) * 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-14 + i * 13, -6);
+      ctx.lineTo(-14 + i * 13 + sw, -1);
+      ctx.stroke();
+    }
+    // tête
+    ctx.fillStyle = '#1b1b22';
+    circlePath(ctx, 26, -15, 12.5);
+    ctx.fill();
+    ctx.strokeStyle = '#1b1b22';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(28, -26);
+    ctx.quadraticCurveTo(31, -36, 37, -37);
+    ctx.moveTo(23, -27);
+    ctx.quadraticCurveTo(23, -38, 28, -41);
+    ctx.stroke();
+    circlePath(ctx, 37, -37, 2.5);
+    ctx.fill();
+    circlePath(ctx, 28, -41, 2.5);
+    ctx.fill();
+    ellipsePath(ctx, 31, -18, 4.2, 4.6);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    circlePath(ctx, 32.4, -17, 2.2);
+    ctx.fill();
+    ctx.fillStyle = '#1b1b22';
+    ctx.fillRect(26.5, -23.5, 9, o.rest ? 5.5 : 3.5);
+    ctx.fillStyle = 'rgba(255,110,150,0.8)';
+    ellipsePath(ctx, 21.5, -10, 3.4, 2.2);
+    ctx.fill();
+    // gros ventre qui dépasse
+    const bg = ctx.createLinearGradient(0, -16, 0, 2);
+    bg.addColorStop(0, '#3a3a40');
+    bg.addColorStop(1, '#1a1a1e');
+    ctx.fillStyle = bg;
+    ellipsePath(ctx, -2, -8, 29, 10);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-20, -5);
+    ctx.quadraticCurveTo(-2, 1, 16, -5);
+    ctx.stroke();
+    // grosse carapace ronde
+    const sg = ctx.createRadialGradient(-10, -32, 3, -3, -20, 34);
+    sg.addColorStop(0, '#ff7a6a');
+    sg.addColorStop(0.6, '#e3201b');
+    sg.addColorStop(1, '#a40f10');
+    ctx.fillStyle = sg;
+    ctx.beginPath();
+    ctx.moveTo(-33, -10);
+    ctx.bezierCurveTo(-35, -38, -12, -50, 3, -47);
+    ctx.bezierCurveTo(21, -45, 27, -27, 22, -10);
+    ctx.quadraticCurveTo(-5, -5, -33, -10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#7a0c0c';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#151515';
+    const n = o.spots == null ? 7 : o.spots;
+    for (let i = 0; i < n; i++) {
+      circlePath(ctx, SPOTS[i][0] * 1.15 - 2, SPOTS[i][1] * 1.12 - 3, i === 1 ? 5.2 : 4.4);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ellipsePath(ctx, -10, -37, 7, 2.8, -0.4);
+    ctx.fill();
+    fatMouth(ctx, 31, -8 + Math.sin(t * 3) * 0.2, o.rest);
   }
 
   // ---------------- Gros oeil à pattes ----------------
   function eyeMonster(ctx, x, y, o) {
     ctx.save();
     ctx.translate(x, y);
+    if (o.fat) {
+      eyeMonsterFat(ctx, o);
+      ctx.restore();
+      return;
+    }
     const dir = o.dir || 1;
     const lp = o.legPhase || 0;
     const moving = o.moving !== false;
@@ -431,6 +741,11 @@ const Art = (() => {
   function rubik(ctx, x, y, o) {
     ctx.save();
     ctx.translate(x + (o.shake || 0), y);
+    if (o.fat) {
+      rubikFat(ctx, o);
+      ctx.restore();
+      return;
+    }
     const S = 40;
     const D = 7;
     const st = (S - 8) / 3;
@@ -539,6 +854,11 @@ const Art = (() => {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(o.dir || 1, 1);
+    if (o.fat) {
+      ladybugFat(ctx, o);
+      ctx.restore();
+      return;
+    }
     const t = o.t || 0;
     const lp = o.legPhase || 0;
     ctx.strokeStyle = '#151515';
@@ -1267,6 +1587,214 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // ---------------- Badges ----------------
+  // La moustache de Malice qui s'allonge comme une corde jusqu'à l'anneau.
+  function mustacheRope(ctx, x0, y0, x1, y1, t, attached) {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const d = Math.hypot(dx, dy) || 1;
+    const nx = -dy / d;
+    const ny = dx / d;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const n = Math.max(6, Math.floor(d / 8));
+    for (const side of [-1, 1]) {
+      ctx.strokeStyle = '#1c1717';
+      ctx.lineWidth = 3.6;
+      ctx.beginPath();
+      for (let i = 0; i <= n; i++) {
+        const k = i / n;
+        const wob = Math.sin(k * d / 8 + t * 10 * side) * 2.4 * side * Math.sin(k * Math.PI) + side * 1.2;
+        const px = x0 + dx * k + nx * wob;
+        const py = y0 + dy * k + ny * wob;
+        if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+      }
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x0 + nx * 1.5, y0 + ny * 1.5);
+    ctx.lineTo(x1 + nx * 1.5, y1 + ny * 1.5);
+    ctx.stroke();
+    // bouclettes au bout
+    ctx.strokeStyle = '#1c1717';
+    ctx.lineWidth = 3.2;
+    const a0 = Math.atan2(dy, dx);
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      if (attached) ctx.arc(x1, y1, 11, a0 + Math.PI + side * 0.3, a0 + Math.PI + side * 2.6, side < 0);
+      else ctx.arc(x1 + nx * side * 4, y1 + ny * side * 4, 4, a0 - 1, a0 + 2.6);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Anneau doré où la moustache peut s'accrocher.
+  function anchorRing(ctx, x, y, t, o) {
+    ctx.save();
+    ctx.translate(x, y);
+    if (o.glow) {
+      const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 34);
+      g.addColorStop(0, `rgba(255,240,150,${0.35 + 0.15 * Math.sin(t * 4)})`);
+      g.addColorStop(1, 'rgba(255,240,150,0)');
+      ctx.fillStyle = g;
+      circlePath(ctx, 0, 0, 34);
+      ctx.fill();
+    }
+    if (o.targeted) {
+      ctx.save();
+      ctx.rotate(t * 2);
+      ctx.strokeStyle = '#7ff0ff';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([7, 6]);
+      circlePath(ctx, 0, 0, 22 + Math.sin(t * 8) * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    // petite attache
+    ctx.fillStyle = '#9a6a1a';
+    roundRectPath(ctx, -5, -21, 10, 7, 2);
+    ctx.fill();
+    // l'anneau
+    const rg = ctx.createLinearGradient(-14, -14, 14, 14);
+    rg.addColorStop(0, '#fff3a0');
+    rg.addColorStop(0.5, '#ffc21f');
+    rg.addColorStop(1, '#c07a00');
+    ctx.strokeStyle = '#8a5200';
+    ctx.lineWidth = 9;
+    circlePath(ctx, 0, 0, 12);
+    ctx.stroke();
+    ctx.strokeStyle = rg;
+    ctx.lineWidth = 6.5;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 12, -2.6, -1.4);
+    ctx.stroke();
+    if (o.flash > 0) {
+      ctx.strokeStyle = `rgba(255,255,255,${o.flash * 2.5})`;
+      ctx.lineWidth = 3;
+      circlePath(ctx, 0, 0, 12 + (0.35 - o.flash) * 60);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  const BADGE_COLORS = { saut: ['#7fd0ff', '#2a7de0'], grappin: ['#d6a6ff', '#7a3ad8'] };
+
+  // Médaille de badge avec ses rubans.
+  function badge(ctx, x, y, r, kind, t) {
+    const [c1, c2] = BADGE_COLORS[kind] || BADGE_COLORS.saut;
+    ctx.save();
+    ctx.translate(x, y);
+    // rubans
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = side < 0 ? '#ff4f9a' : '#7ff0ff';
+      ctx.beginPath();
+      ctx.moveTo(side * r * 0.2, r * 0.3);
+      ctx.lineTo(side * r * 0.75, r * 1.45);
+      ctx.lineTo(side * r * 0.45, r * 1.25);
+      ctx.lineTo(side * r * 0.25, r * 1.5);
+      ctx.lineTo(side * r * -0.1, r * 0.4);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // bord doré festonné
+    ctx.beginPath();
+    for (let i = 0; i <= 32; i++) {
+      const a = (i / 32) * TAU;
+      const rr = r * (i % 2 ? 0.92 : 1);
+      ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    const gg = ctx.createLinearGradient(-r, -r, r, r);
+    gg.addColorStop(0, '#fff3a0');
+    gg.addColorStop(0.5, '#ffc21f');
+    gg.addColorStop(1, '#c47a00');
+    ctx.fillStyle = gg;
+    ctx.fill();
+    ctx.strokeStyle = '#8a5200';
+    ctx.lineWidth = Math.max(1, r * 0.06);
+    ctx.stroke();
+    const ig = ctx.createRadialGradient(-r * 0.25, -r * 0.3, 1, 0, 0, r * 0.75);
+    ig.addColorStop(0, c1);
+    ig.addColorStop(1, c2);
+    ctx.fillStyle = ig;
+    circlePath(ctx, 0, 0, r * 0.74);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = Math.max(1, r * 0.05);
+    ctx.stroke();
+    ctx.save();
+    ctx.scale(r / 30, r / 30);
+    if (kind === 'grappin') {
+      // une moustache accrochée à un anneau
+      ctx.strokeStyle = '#ffc21f';
+      ctx.lineWidth = 4;
+      circlePath(ctx, 0, -10, 6);
+      ctx.stroke();
+      ctx.strokeStyle = '#1c1717';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, -4);
+      ctx.quadraticCurveTo(-3, 0, 0, 3);
+      ctx.stroke();
+      ctx.fillStyle = '#1c1717';
+      ctx.beginPath();
+      ctx.moveTo(0, 3);
+      ctx.bezierCurveTo(5, 0, 13, 1, 15, 6);
+      ctx.bezierCurveTo(16, 9, 18, 7, 18, 4);
+      ctx.bezierCurveTo(20, 11, 12, 13, 7, 11);
+      ctx.bezierCurveTo(4, 10, 2, 11, 0, 10);
+      ctx.bezierCurveTo(-2, 11, -4, 10, -7, 11);
+      ctx.bezierCurveTo(-12, 13, -20, 11, -18, 4);
+      ctx.bezierCurveTo(-18, 7, -16, 9, -15, 6);
+      ctx.bezierCurveTo(-13, 1, -5, 0, 0, 3);
+      ctx.fill();
+    } else {
+      // flèches vers le haut + ressort
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const yy of [-12, -2]) {
+        ctx.beginPath();
+        ctx.moveTo(-9, yy + 7);
+        ctx.lineTo(0, yy - 2);
+        ctx.lineTo(9, yy + 7);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = '#ffe14d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-8, 18);
+      for (let i = 0; i < 5; i++) ctx.lineTo(i % 2 ? -8 : 8, 15 - i * 2.2);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // reflet qui passe
+    const sh = ((t || 0) * 0.8) % 2.5;
+    if (sh < 1) {
+      ctx.save();
+      circlePath(ctx, 0, 0, r * 0.95);
+      ctx.clip();
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      const sx = -r * 1.6 + sh * r * 3.2;
+      ctx.beginPath();
+      ctx.moveTo(sx, -r);
+      ctx.lineTo(sx + r * 0.35, -r);
+      ctx.lineTo(sx - r * 0.25, r);
+      ctx.lineTo(sx - r * 0.6, r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
   // ---------------- Drapeaux ----------------
   function flag(ctx, x, y, h, t, o) {
     ctx.save();
@@ -1301,6 +1829,6 @@ const Art = (() => {
     MALICE, CUBE_COLORS, maliceRainbow, malice, maliceHead,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,
-    eclair, sparks, babyBird, lutinFace, flag,
+    eclair, sparks, babyBird, lutinFace, flag, mustacheRope, anchorRing, badge,
   };
 })();
