@@ -22,6 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tout l'historique, pour compter les commits
+      - name: Numéro de version
+        run: |
+          VERSION="1.$(git rev-list --count HEAD)"
+          DATE="$(TZ=Europe/Paris git log -1 --format=%cd --date=format-local:%d/%m/%Y)"
+          echo "const GAME_VERSION = '$VERSION · $DATE';" > js/version.js
+          cat js/version.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

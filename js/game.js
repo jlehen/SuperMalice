@@ -61,6 +61,7 @@ const Game = {
     Sound.setMuted(this.save.muted);
     this.isTouch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     document.body.classList.toggle('touch', this.isTouch);
+    $('#version').textContent = 'version ' + (typeof GAME_VERSION === 'string' ? GAME_VERSION : 'dev');
     this.bindUI();
     Input.bindTouch($('#touch'));
     window.addEventListener('resize', () => this.resize());

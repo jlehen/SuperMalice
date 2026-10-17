@@ -151,6 +151,15 @@ body.touch #stage { align-items: flex-start; }
   opacity: 0.9;
   text-shadow: 0 2px 0 #4a0f45;
 }
+.version {
+  position: absolute;
+  right: calc(var(--s) * 16px);
+  bottom: calc(var(--s) * 12px);
+  margin: 0;
+  font-size: calc(var(--s) * 13px);
+  opacity: 0.75;
+  text-shadow: 0 1px 0 #4a0f45;
+}
 .stats { margin: 0; font-size: calc(var(--s) * 20px); text-shadow: 0 2px 0 #4a0f45; }
 
 h2 {

@@ -64,6 +64,8 @@ Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraî
 - Polices : Fredoka et Luckiest Guy (Google Fonts).
 - Le site est publié automatiquement sur GitHub Pages à chaque `git push` sur `main`
   (voir [`.github/workflows/pages.yml`](.github/workflows/pages.yml)).
+- Le numéro de version (en bas à droite de l'écran d'accueil) est calculé à la publication :
+  `1.<nombre de commits> · <date>`. Il augmente à chaque mise à jour ; en local, il affiche « dev ».
 - Pour jouer en local : ouvrir `index.html` dans un navigateur (double-clic), ou lancer
   `python3 -m http.server` dans le dossier puis aller sur http://localhost:8000.
 
@@ -78,3 +80,4 @@ Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraî
 | `js/audio.js` | Sons et musiques |
 | `js/input.js` | Clavier, écran tactile, manette |
 | `js/levels.js` | Les cartes des niveaux |
+| `js/version.js` | Numéro de version (rempli automatiquement à la publication) |
