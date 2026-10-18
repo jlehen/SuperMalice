@@ -123,7 +123,7 @@ class Player {
     this.target = badgeGrappin && (!this.grap || this.grap.phase === 'swing') ? this.findAnchor(this.grap && this.grap.anchor) : null;
     if (this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing')) {
       this.updateHanging(dt);
-      if (w.inLava(this)) this.die('lava');
+      if (w.inLava(this) && !this.lavaProof()) this.die('lava');
       return;
     }
     if (I.pressed.grapple && badgeGrappin && !this.pound && this.hurtT <= 0.2) this.startGrapple();
@@ -267,8 +267,31 @@ class Player {
     if (this.grap) this.updateMustacheTip(dt);
     this.updateMimic(dt, dir);
 
-    if (w.inLava(this)) this.die('lava');
-    else if (this.y > w.height + 60) this.die('fall');
+    if (w.inLava(this)) {
+      if (this.lavaProof()) this.lavaBounce();
+      else this.die('lava');
+    } else if (this.y > w.height + 60) this.die('fall');
+  }
+
+  // Mode Bébé : avec l'étoile, la lave ne brûle pas.
+  lavaProof() { return this.star > 0 && this.world.diff.starLava; }
+
+  // ... et Malice rebondit dessus comme sur un trampoline.
+  lavaBounce() {
+    if (this.vy < 0) return;
+    const w = this.world;
+    this.vy = -PHYS.jump;
+    this.jumping = false;
+    this.pound = 0;
+    this.onGround = false;
+    this.platform = null;
+    Sound.sfx.lavaBounce();
+    for (let i = 0; i < 10; i++) {
+      w.spawn({ type: 'spark', x: this.cx + rand(-16, 16), y: this.y + this.h, vx: rand(-140, 140), vy: rand(-320, -80), life: 0.5, size: rand(4, 7), color: i % 2 ? '#ffb02e' : '#ff5a1f' });
+    }
+    for (let i = 0; i < 3; i++) {
+      w.spawn({ type: 'smoke', x: this.cx + rand(-12, 12), y: this.y + this.h, vy: -60, life: 0.8, size: 10, color: '#888' });
+    }
   }
 
   updateMimic(dt, dir) {

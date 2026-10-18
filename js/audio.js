@@ -121,6 +121,7 @@ const Sound = (() => {
       arp([523, 494, 466, 440, 415, 392, 370, 349], { type: 'square', d: 0.12, v: 0.08, gap: 0.09 });
     },
     lava() { noise({ f: 600, f2: 100, d: 0.8, v: 0.4 }); tone({ type: 'sine', f: 200, f2: 60, d: 0.6, v: 0.25 }); },
+    lavaBounce() { noise({ filter: 'highpass', f: 3500, f2: 1500, d: 0.3, v: 0.18 }); tone({ type: 'square', f: 220, f2: 660, d: 0.2, v: 0.08 }); },
     throwIt() { noise({ filter: 'bandpass', f: 700, f2: 2400, d: 0.14, v: 0.25, q: 2 }); },
     splat() { noise({ f: 700, f2: 150, d: 0.16, v: 0.25 }); tone({ type: 'sine', f: 260, f2: 90, d: 0.14, v: 0.2 }); },
     stick() { tone({ type: 'sine', f: 180, f2: 90, d: 0.25, v: 0.3 }); noise({ f: 500, d: 0.2, v: 0.2 }); },
