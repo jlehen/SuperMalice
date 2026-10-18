@@ -12,6 +12,13 @@ const Input = (() => {
   const pressed = {};
   let capture = false;
 
+  // Courir : un appui rapide sur une direction, puis on rappuie et on reste appuyé.
+  const RUN_TAP = 0.35; // durée max de l'appui rapide (secondes)
+  const RUN_GAP = 0.35; // temps max entre le lâcher et le deuxième appui
+  const run = { left: false, right: false };
+  const downAt = { left: 0, right: 0 };
+  const tapEnd = { left: -Infinity, right: -Infinity };
+
   // On utilise la position physique des touches (e.code) : ZQSD sur un clavier
   // AZERTY correspond à WASD sur un clavier QWERTY, donc les deux marchent.
   const KEYMAP = {
@@ -124,12 +131,25 @@ const Input = (() => {
     }
   }
 
+  function updateRun(a, h, now) {
+    if (h && !prev[a]) {
+      run[a] = now - tapEnd[a] <= RUN_GAP;
+      downAt[a] = now;
+    } else if (!h && (prev[a] || tapped[a])) {
+      // un appui si rapide qu'il tient entre deux images compte aussi
+      tapEnd[a] = !prev[a] || now - downAt[a] <= RUN_TAP ? now : -Infinity;
+    }
+    if (!h) run[a] = false;
+  }
+
   // Appelé une fois par image. Les appuis "pressed" restent mémorisés
   // jusqu'à ce qu'une étape de jeu les consomme (voir consume()).
   function update() {
     pollPad();
+    const now = performance.now() / 1000;
     ACTIONS.forEach((a) => {
       const h = !!(keys[a] || touch[a] || pad[a]);
+      if (a === 'left' || a === 'right') updateRun(a, h, now);
       if ((h && !prev[a]) || tapped[a]) pressed[a] = true;
       tapped[a] = false;
       held[a] = h;
@@ -154,6 +174,7 @@ const Input = (() => {
   return {
     held,
     pressed,
+    run,
     update,
     consume,
     reset,

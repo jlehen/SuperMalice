@@ -237,7 +237,7 @@ const Art = (() => {
         ctx.fill();
       }
     }
-    const wig = pose === 'walk' ? Math.sin((o.ph || 0) * 2) * 0.7 : 0;
+    const wig = pose === 'walk' || pose === 'run' ? Math.sin((o.ph || 0) * 2) * 0.7 : 0;
     drawMustache(ctx, C, hx + 4.6, hy + 8.4, wig);
     // nez rond
     circlePath(ctx, hx + 4.6, hy + 4.2, 4.2);
@@ -351,7 +351,7 @@ const Art = (() => {
 
   function headSway(o) {
     const pose = o.pose || 'idle';
-    return Math.sin((o.ph || 0) + (o.t || 0) * 2) * (pose === 'walk' ? 0.22 : 0.07);
+    return Math.sin((o.ph || 0) + (o.t || 0) * 2) * (pose === 'walk' || pose === 'run' ? 0.22 : 0.07);
   }
 
   function isFlying(pose) {
@@ -466,7 +466,7 @@ const Art = (() => {
       }
     }
     // moustache vue de côté : touffue devant, pointe relevée vers la joue
-    const wig = pose === 'walk' ? Math.sin((o.ph || 0) * 2) * 0.7 : 0;
+    const wig = pose === 'walk' || pose === 'run' ? Math.sin((o.ph || 0) * 2) * 0.7 : 0;
     ctx.beginPath();
     ctx.moveTo(mx + 5.4, my - 2.8);
     ctx.bezierCurveTo(mx + 9.8, my - 1.2, mx + 9.4, my + 4.4, mx + 5.2, my + 4.6);
@@ -922,6 +922,15 @@ const Art = (() => {
         armF = -s * 0.8; armB = s * 0.8;
         bob = -Math.abs(Math.cos(ph)) * 2;
         lean = 0.05;
+        break;
+      }
+      case 'run': {
+        // grandes enjambées, penchée en avant
+        const s = Math.sin(ph);
+        legF = s * 0.95; legB = -s * 0.95;
+        armF = -s * 1.15; armB = s * 1.15;
+        bob = -Math.abs(Math.cos(ph)) * 3;
+        lean = 0.16;
         break;
       }
       case 'jump': legF = -0.95; legB = 0.45; armF = -1.65; armB = 1.15; break;

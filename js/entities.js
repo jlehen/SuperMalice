@@ -5,11 +5,13 @@ const PHYS = {
   gravity: 2300,
   maxFall: 1000,
   run: 285,
+  sprint: 470,
   accGround: 2300,
   accAir: 1600,
   decGround: 2700,
   decAir: 900,
   jump: 950,
+  runJump: 1010,
   jumpCut: 520,
   coyote: 0.1,
   buffer: 0.14,
@@ -38,6 +40,7 @@ class Player {
     this.vx = 0;
     this.vy = 0;
     this.facing = 1;
+    this.running = false;
     this.onGround = false;
     this.coyote = 0;
     this.jumpBuf = 0;
@@ -153,15 +156,26 @@ class Player {
     }
     if (this.crouch) dir = 0;
 
+    // ---- Courir (appui rapide sur la direction, puis rester appuyé) ----
+    const wasRunning = this.running;
+    this.running = dir !== 0 && I.run[dir > 0 ? 'right' : 'left'];
+    if (this.running && !wasRunning && this.onGround && !this.pound) {
+      Sound.sfx.dash();
+      for (let i = 0; i < 5; i++) {
+        w.spawn({ type: 'dust', x: this.cx - dir * 10, y: this.y + this.h, vx: -dir * rand(40, 140), vy: rand(-50, -10), life: 0.35, size: rand(4, 7) });
+      }
+    }
+    const top = this.running ? PHYS.sprint : PHYS.run;
+
     if (this.pound) {
       this.vx = 0;
-    } else if (this.boostT > 0 && Math.abs(this.vx) > PHYS.run && (dir === 0 || dir === Math.sign(this.vx))) {
+    } else if (this.boostT > 0 && Math.abs(this.vx) > top && (dir === 0 || dir === Math.sign(this.vx))) {
       // garde l'élan pris en se balançant au grappin
       this.boostT -= dt;
-      this.vx = approach(this.vx, Math.sign(this.vx) * PHYS.run, 260 * dt);
+      this.vx = approach(this.vx, Math.sign(this.vx) * top, 260 * dt);
       if (dir) this.facing = dir;
     } else {
-      const target = dir * PHYS.run;
+      const target = dir * top;
       let acc;
       if (this.onGround) acc = dir ? PHYS.accGround : PHYS.decGround;
       else acc = dir ? PHYS.accAir : PHYS.decAir;
@@ -193,7 +207,8 @@ class Player {
           w.spawn({ type: 'spark', x: this.cx + rand(-14, 14), y: this.y + this.h, vx: rand(-150, 150), vy: rand(-260, -60), life: 0.6, size: rand(4, 7), color: i % 2 ? '#7ff0ff' : '#ffffff' });
         }
       } else {
-        this.vy = -PHYS.jump;
+        // avec de l'élan, on saute un peu plus haut (mais jamais 5 cases)
+        this.vy = -(Math.abs(this.vx) > PHYS.run + 40 ? PHYS.runJump : PHYS.jump);
         this.jumping = true;
         Sound.sfx.jump();
       }
@@ -255,7 +270,7 @@ class Player {
 
     if (this.onGround && Math.abs(this.vx) > 10) {
       this.ph += dt * Math.abs(this.vx) * 0.052;
-      if (Math.random() < dt * 6 && Math.abs(this.vx) > 200) {
+      if (Math.random() < dt * (this.running ? 14 : 6) && Math.abs(this.vx) > 200) {
         w.spawn({ type: 'dust', x: this.cx - this.facing * 8, y: this.y + this.h, vx: -this.facing * 30, vy: -20, life: 0.3, size: 4 });
       }
     } else if (this.onGround) {
@@ -561,7 +576,7 @@ class Player {
     else if (this.hurtT > 0) pose = 'hurt';
     else if (!this.onGround) pose = this.vy < 0 ? 'jump' : 'fall';
     else if (this.throwAnim > 0) pose = 'throw';
-    else if (Math.abs(this.vx) > 15) pose = 'walk';
+    else if (Math.abs(this.vx) > 15) pose = Math.abs(this.vx) > PHYS.run + 20 ? 'run' : 'walk';
     if (this.throwAnim > 0 && !this.onGround && !this.pound) pose = 'throw';
 
     let sx = 1;

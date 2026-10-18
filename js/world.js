@@ -493,7 +493,9 @@ class World {
   updateCamera(dt, snap) {
     const p = this.player;
     if (p.dead) return;
-    this.look = snap ? p.facing * 60 : approach(this.look, p.facing * 60, dt * 140);
+    // en courant, on voit plus loin devant
+    const ahead = p.facing * (p.running ? 110 : 60);
+    this.look = snap ? ahead : approach(this.look, ahead, dt * 140);
     let tx = p.cx - VIEW_W * 0.45 + this.look;
     let ty = p.y + p.h / 2 - VIEW_H * 0.56;
     tx = clamp(tx, 0, Math.max(0, this.width - VIEW_W));

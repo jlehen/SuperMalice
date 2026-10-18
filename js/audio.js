@@ -142,6 +142,7 @@ const Sound = (() => {
     shoot() { tone({ type: 'square', f: 900, f2: 300, d: 0.1, v: 0.07 }); },
     checkpoint() { arp([784, 988, 1175, 1568], { type: 'triangle', d: 0.16, v: 0.22, gap: 0.07 }); },
     pound() { noise({ f: 500, f2: 80, d: 0.3, v: 0.45 }); tone({ type: 'sine', f: 160, f2: 45, d: 0.25, v: 0.4 }); },
+    dash() { noise({ filter: 'bandpass', f: 400, f2: 1800, d: 0.2, v: 0.22, q: 1.5 }); tone({ type: 'square', f: 260, f2: 520, d: 0.08, v: 0.04 }); },
     spin() { tone({ type: 'square', f: 600, f2: 900, d: 0.12, v: 0.05 }); },
     star() { arp([523, 659, 784, 1047, 784, 1047, 1319, 1568], { type: 'square', d: 0.08, v: 0.07, gap: 0.045 }); },
     kill() { tone({ type: 'square', f: 300, f2: 900, d: 0.15, v: 0.08 }); },

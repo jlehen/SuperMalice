@@ -833,7 +833,8 @@ const Game = {
       .replace(/\{BAS\}/g, touch ? 'le bouton ▼' : 'la flèche ↓')
       .replace(/\{SAUT\}/g, touch ? 'le gros bouton rose' : 'Espace')
       .replace(/\{GRAPPIN\}/g, touch ? 'le bouton moustache' : 'la touche V')
-      .replace(/\{FLECHES\}/g, touch ? '◀ ▶' : '← →');
+      .replace(/\{FLECHES\}/g, touch ? '◀ ▶' : '← →')
+      .replace(/\{AVANCER\}/g, touch ? 'le bouton ▶' : 'la flèche →');
   },
 
   // ---------- Boutons tactiles ----------

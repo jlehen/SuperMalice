@@ -28,6 +28,7 @@ doit traverser 5 mondes pour sauver le **bébé oiseau** coincé sur un rocher a
 | Clavier | Action |
 |---|---|
 | ← → (ou Q D) | Marcher |
+| → une fois vite, puis → sans lâcher | Courir (marche aussi vers la gauche) |
 | Espace, ↑ ou Z | Sauter (garder appuyé pour sauter plus haut) |
 | ↓ ou S en l'air | Écraser vers le bas (casse les blocs lutin) |
 | X | Lancer du caramel |
@@ -37,6 +38,8 @@ doit traverser 5 mondes pour sauver le **bébé oiseau** coincé sur un rocher a
 | M | Couper le son |
 
 Sur tablette ou téléphone (à tenir à l'horizontale), des gros boutons apparaissent sur l'écran.
+Pour courir, c'est pareil avec le bouton ◀ ou ▶ (ou la manette) : un appui rapide, puis on rappuie
+et on reste appuyé. En courant, on saute beaucoup plus loin.
 
 Astuce : si on ne touche à rien pendant quelques secondes, Malice se tourne vers toi et fait une grimace.
 Une manette de jeu fonctionne aussi.
