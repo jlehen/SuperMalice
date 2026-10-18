@@ -65,7 +65,7 @@ const LEVELS = [
     talk: [
       "Bienvenue dans la forêt ! Les ronces, ça pique : saute par-dessus.",
       "Les chips au vinaigre rendent les ennemis tout gros et tout essoufflés !",
-      "Les coccinelles lancent leurs points noirs. Évite-les et saute-leur dessus !",
+      "Les coccinelles lancent leurs points noirs. Saute-leur dessus, et écrase aussi les points noirs !",
       "Sous les ronces qui pendent, ne saute pas : marche tout doucement !",
     ],
     map: [

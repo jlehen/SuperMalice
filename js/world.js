@@ -411,17 +411,21 @@ class World {
   interactions() {
     const p = this.player;
     const pb = { x: p.x + 3, y: p.y + 4, w: p.w - 6, h: p.h - 4 };
+    // Mesuré avant le premier rebond : en tombant sur une coccinelle et sur son point noir
+    // en même temps, on écrase les deux.
+    const falling = p.vy > 0;
+    const feet = p.prevBottom;
+    const pounding = p.pound === 2;
+    const stomps = (top) => (falling && feet <= top) || pounding;
     for (const e of this.enemies) {
       if (e.dying || e.dead || !overlap(pb, e)) continue;
       if (p.star > 0) {
         e.kill('star');
         continue;
       }
-      const stomping = (p.vy > 0 && p.prevBottom <= e.y + 18) || p.pound === 2;
-      if (stomping) {
+      if (stomps(e.y + 18)) {
         e.stomp();
         p.bounceOff();
-        p.prevBottom = p.y + p.h;
         continue;
       }
       if (e.harmful()) p.hurt(e);
@@ -431,6 +435,9 @@ class World {
       if (p.star > 0) {
         h.dead = true;
         this.puff(h.x + h.w / 2, h.y + h.h / 2, '#ddd');
+      } else if (h instanceof BlackDot && stomps(h.y + 12)) {
+        h.squash();
+        p.bounceOff();
       } else if (p.hurt(h) && h instanceof BlackDot) {
         h.dead = true;
       }

@@ -1175,6 +1175,21 @@ class BlackDot {
     }
   }
 
+  // Malice lui saute dessus : le point noir éclate en petites miettes.
+  squash() {
+    const w = this.world;
+    const cx = this.x + 7;
+    const cy = this.y + 7;
+    this.dead = true;
+    Sound.sfx.stomp();
+    w.puff(cx, cy, '#333');
+    for (let i = 0; i < 6; i++) {
+      w.spawn({ type: 'dot', x: cx, y: cy, vx: rand(-170, 170), vy: rand(-260, -60), g: 900, life: 0.5, size: rand(2.5, 4), color: '#151515' });
+    }
+    w.game.addScore(50);
+    w.popText(cx, this.y - 4, '+50', '#ffffff');
+  }
+
   draw(ctx) {
     const cx = this.x + 7;
     const cy = this.y + 7;
