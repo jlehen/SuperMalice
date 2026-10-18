@@ -66,8 +66,8 @@ Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraî
 
 - Pure page web (HTML + JavaScript), sans aucune dépendance ni étape de compilation.
 - Tous les dessins sont faits en code (canvas), tous les sons et musiques sont synthétisés (Web Audio).
-- Les musiques sont des variations sur le thème de *Super Mario Bros.* (partition « Overworld »),
-  transcrites dans [`js/music.js`](js/music.js) puis réarrangées pour chaque monde :
+- Les musiques sont des variations sur le thème de *Super Mario Bros.* (partition « Overworld »,
+  et « Invincible » pour l'étoile), transcrites dans [`js/music.js`](js/music.js) puis réarrangées pour chaque monde :
 
   | Monde | Variation |
   |---|---|
@@ -80,6 +80,7 @@ Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraî
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |
   | Victoire | marche triomphale en ré majeur, avec la vraie fin du morceau |
+  | Étoile (invincible) | disco arc-en-ciel : la mélodie ne bouge pas, les accords changent sous elle, puis tout monte d'un ton |
 - Polices : Fredoka et Luckiest Guy (Google Fonts).
 - Le site est publié automatiquement sur GitHub Pages à chaque `git push` sur `main`
   (voir [`.github/workflows/pages.yml`](.github/workflows/pages.yml)).

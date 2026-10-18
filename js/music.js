@@ -1,7 +1,8 @@
 'use strict';
 
 // Les musiques : des variations sur le thème principal de Super Mario Bros. (« Overworld »),
-// une pour chaque monde. Les morceaux sont fabriqués au chargement à partir de la partition.
+// une pour chaque monde, et une sur le thème de l'étoile (« Invincible »).
+// Les morceaux sont fabriqués au chargement à partir des partitions.
 const Music = (() => {
   // ---------- La partition ----------
   // Une mesure = [mélodie, basse (main gauche), accords].
@@ -38,6 +39,11 @@ const Music = (() => {
   };
   // mesures qui se répètent à l'identique
   [[11, 7], [12, 8], [19, 15], [20, 16], [21, 1], [22, 2], [31, 27], [32, 28]].forEach(([a, b]) => { BARS[a] = BARS[b]; });
+
+  // Le thème de l'étoile (« Invincible ») : deux mesures qui tournent en boucle, tout en staccato.
+  // Des accords dans l'aigu (fa+do, puis mi+si) auxquels répond une note grave (ré, puis do).
+  BARS.s1 = ['f4+c5:8 f4+c5 f4+c5 d4:16 f4+c5 r f4+c5:8 d4:16 f4+c5 d4 f4+c5:8', 'd3:8 r a3 r:16 d4 r:4 a3:8 d4', 'Dm7'];
+  BARS.s2 = ['e4+b4:8 e4+b4 e4+b4 c4:16 e4+b4 r e4+b4:8 c4:16 e4+b4 c4 e4+b4:8', 'c3:8 r g3 r:16 c4 r:4 g3:8 c4', 'Cmaj7'];
 
   // Les grandes parties du morceau
   const SECT = {
@@ -77,21 +83,23 @@ const Music = (() => {
     return out;
   }
 
+  // les accords d'une mesure (« Ab Bb » : un par demi-mesure)
+  function chordLine(str) {
+    const syms = str.split(' ');
+    return syms.map((sym, i) => ({ t: (i * 4) / syms.length, d: 4 / syms.length, sym }));
+  }
+
   const PARSED = {};
   Object.keys(BARS).forEach((n) => {
     const [mel, bass, ch] = BARS[n];
-    const syms = ch.split(' ');
-    PARSED[n] = {
-      mel: parseLine(mel),
-      bass: parseLine(bass),
-      ch: syms.map((sym, i) => ({ t: (i * 4) / syms.length, d: 4 / syms.length, sym })),
-    };
+    PARSED[n] = { mel: parseLine(mel), bass: parseLine(bass), ch: chordLine(ch) };
   });
 
   // ---------- Accords ----------
   const QUAL = {
     '': [0, 4, 7], m: [0, 3, 7], 7: [0, 4, 7, 10], maj7: [0, 4, 7, 11], m7: [0, 3, 7, 10],
     6: [0, 4, 7, 9], 9: [0, 4, 7, 10, 14], maj9: [0, 4, 7, 11, 14], '7#5': [0, 4, 8, 10], sus4: [0, 5, 7],
+    m9: [0, 3, 7, 10, 14], m11: [0, 3, 7, 10, 14, 17],
   };
   const LETTER = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
   function chordOf(sym) {
@@ -134,8 +142,9 @@ const Music = (() => {
       this.hits = [];
     }
 
-    part(bars, fn) {
-      fn(new Part(this, bars));
+    // o.key : transposer cette partie (en demi-tons) ; o.chords : d'autres accords, un par mesure
+    part(bars, fn, o = {}) {
+      fn(new Part(this, bars, o));
       this.src += bars.length * 4;
       return this;
     }
@@ -150,8 +159,9 @@ const Music = (() => {
   }
 
   class Part {
-    constructor(S, bars) {
+    constructor(S, bars, o) {
       this.S = S;
+      this.key = S.key + (o.key || 0);
       this.f0 = S.warp(S.src);
       this.f1 = S.warp(S.src + bars.length * 4);
       this.mel = [];
@@ -162,7 +172,7 @@ const Music = (() => {
         const off = S.src + i * 4;
         b.mel.forEach((e) => this.mel.push({ t: e.t + off, d: e.d, p: e.p, bar: i }));
         b.bass.forEach((e) => this.bass.push({ t: e.t + off, d: e.d, p: e.p, bar: i }));
-        b.ch.forEach((c) => {
+        (o.chords ? chordLine(o.chords[i]) : b.ch).forEach((c) => {
           const ch = chordOf(S.chordMap[c.sym] || c.sym);
           const tones = ch.iv.map((x) => {
             const pcx = (ch.root + x) % 12;
@@ -183,7 +193,7 @@ const Music = (() => {
       let shift = 0;
       if (M && M[pc] != null) shift = M[pc] - pc;
       else if (M && next != null && Math.abs(next - m) === 1 && M[next % 12] != null && M[next % 12] < next % 12) shift = -1;
-      return m + shift + this.S.key;
+      return m + shift + this.key;
     }
 
     add(name, inst, v, t, d, m) {
@@ -230,7 +240,7 @@ const Music = (() => {
     // C accord complet, G accord « jazz » (tierce, septième, neuvième), a0…a5 notes d'arpège.
     pattern(name, inst, v, pat, o = {}) {
       const bar = o.bar || this.S.meter;
-      const key = this.S.key;
+      const key = this.key;
       const low = (o.low || 55) + key;
       const base = 12 * ((o.bassOct == null ? 2 : o.bassOct) + 1) + key;
       for (let b = this.f0, k = 0; b < this.f1 - 1e-6; b += bar, k++) {
@@ -492,6 +502,38 @@ const Music = (() => {
     return S.out({ drumV: 0.8 });
   }
 
+  // Étoile : disco arc-en-ciel, grosse caisse sur chaque temps, basse qui saute d'octave.
+  // La mélodie ne change pas, c'est le sol qui bouge sous ses pieds : d'abord les accords d'origine,
+  // puis d'autres accords (si♭, la, sol), et la cadence de Mario (do → ré → mi) fait tout monter d'un ton.
+  function star() {
+    const S = new Song({ bpm: 168 });
+    const THEME = ['s1', 's2', 's1', 's2'];
+    const OCT = [rep(8, (k) => [k * 0.5, 0.4, k % 2 ? 'O' : 'R'])];
+    const PAD = [[[0, 1.95, 'G'], [2, 1.95, 'G']]];
+    const hats = rep(8, (i) => [i * 0.5, i % 2 ? 'o' : 'h', i % 2 ? 0.5 : 0.6]);
+    const D = [[[0, 'k'], [1, 'k'], [2, 'k'], [3, 'k'], [1, 'p', 0.7], [3, 'p', 0.7], ...hats]];
+    const FILL = [[0, 'k'], [1, 'k'], [1, 'p', 0.7], [2, 's', 0.5], [2.25, 's', 0.55], [2.5, 't', 0.7], [2.75, 't', 0.75], [3, 's', 0.7], [3.25, 's', 0.8], [3.5, 's', 0.9], [3.75, 's']];
+    S.part(THEME, (p) => {
+      p.melody('lead', 'pulse', 0.12, { gate: 0.6 });
+      p.bassLine('bass', 'synbass', 0.15, { oct: -1, gate: 0.6 });
+      p.drums(D, { crash: true });
+    });
+    S.part(THEME, (p) => {
+      p.melody('lead', 'pluck', 0.1);
+      p.pattern('bass', 'synbass', 0.13, OCT);
+      p.pattern('pad', 'strings', 0.045, PAD, { low: 55 });
+      p.drums(D, { fill: FILL });
+    }, { chords: ['Bbmaj9', 'Am9', 'Gm11', 'Cmaj7 D9'] });
+    S.part(THEME, (p) => {
+      p.melody('lead', 'saw', 0.14, { gate: 0.6 });
+      p.melody('glock', 'glock', 0.06, { oct: 1, top: true });
+      p.pattern('bass', 'synbass', 0.13, OCT);
+      p.pattern('pad', 'strings', 0.045, PAD, { low: 55 });
+      p.drums(D, { crash: true, fill: FILL });
+    }, { key: 2 });
+    return S.out({ drumV: 0.7 });
+  }
+
   const SONGS = {
     title: title(),
     meadow: meadow(),
@@ -502,6 +544,7 @@ const Music = (() => {
     'badge-grappin': swingJazz(),
     volcano: volcano(),
     victory: victory(),
+    star: star(),
   };
   Object.keys(SONGS).forEach((name) => Sound.defineSong(name, SONGS[name]));
 

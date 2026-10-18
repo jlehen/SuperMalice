@@ -349,18 +349,10 @@ const Sound = (() => {
   }
 
   // ---------- Musique ----------
-  // Les morceaux des niveaux sont fabriqués dans music.js (variations sur le thème de Super Mario Bros.).
+  // Les morceaux des niveaux et de l'étoile sont fabriqués dans music.js (variations sur Super Mario Bros.).
   // Les petits morceaux ci-dessous sont écrits case par case (une case = une croche) :
   // "-" prolonge la note précédente, "." est un silence, "|" sépare les mesures (ignoré).
   const SONGS = {
-    star: {
-      bpm: 184,
-      tracks: [
-        { w: 'square', v: 0.045, n: 'C5 E5 G5 C6 G5 E5 C5 E5 | D5 F5 A5 D6 A5 F5 D5 F5 | E5 G5 B5 E6 B5 G5 E5 G5 | F5 A5 C6 F6 G6 - - .' },
-        { w: 'triangle', v: 0.16, n: 'C3 . C3 . G2 . G2 . | D3 . D3 . A2 . A2 . | E3 . E3 . B2 . B2 . | F3 . F3 . G3 . G3 .' },
-        { d: 'k h s h k h s h', v: 0.6 },
-      ],
-    },
     clear: {
       bpm: 160, once: true,
       tracks: [
