@@ -542,6 +542,7 @@ class World {
     for (const h of this.hazards) h.draw(ctx);
     for (const pr of this.projectiles) pr.draw(ctx);
     this.player.draw(ctx);
+    if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);
     this.drawLava(ctx, camX, camY);
     this.drawParticles(ctx);

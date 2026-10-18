@@ -1555,6 +1555,142 @@ class MovingPlatform {
   }
 }
 
+// « Pouf ! » : étincelles et cercle de lumière quand un drapeau se change en papillon.
+function butterflyPouf(w, x, y) {
+  w.spawn({ type: 'ring', x, y, life: 0.35, size: 46, color: '#fff3a0' });
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    w.spawn({ type: 'spark', x, y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, life: 0.45, size: rand(4, 7), color: choose(['#fff59a', '#ff9fd8', '#ffffff']) });
+  }
+  w.puff(x, y, '#ffd0e8');
+}
+
+// Le papillon qui sort d'un drapeau quand Malice le touche.
+// Avec perch : il voltige autour du haut du mât et s'y pose de temps en temps (il s'envole si Malice s'approche).
+// Avec orbit : il vient tourner autour de Malice, tantôt devant elle, tantôt derrière.
+class Butterfly {
+  constructor(world, x, y, o) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+    this.vx = 0;
+    this.vy = 0;
+    this.size = o.size || 1;
+    this.perch = o.perch || null;
+    this.orbit = !!o.orbit;
+    this.star = !!o.star;
+    this.t = rand(0, 10);
+    this.phase = 0;
+    this.age = o.born ? 0 : 99;
+    this.mode = o.born ? 'born' : this.perch ? 'perch' : 'fly';
+    this.modeT = rand(2, 4);
+    this.front = false;
+    this.center = null;
+  }
+
+  update(dt) {
+    const w = this.world;
+    const p = w.player;
+    this.t += dt;
+    this.age += dt;
+    this.modeT -= dt;
+    if ((this.age < 1.8 || this.orbit) && this.mode !== 'perch' && Math.random() < dt * 9 && w.onScreen(this)) {
+      w.spawn({ type: 'spark', x: this.x + rand(-12, 12), y: this.y + rand(-6, 12), vy: 30, life: 0.5, size: rand(2, 4), color: choose(['#fff59a', '#ff9fd8', '#ffffff']) });
+    }
+    if (this.mode === 'born') {
+      // il sort du drapeau et bat des ailes sur place, puis s'envole
+      this.phase += dt * 18;
+      if (this.age > 0.6) {
+        this.mode = 'fly';
+        this.modeT = rand(2.5, 4);
+        this.vy = -220;
+      }
+      return;
+    }
+    const scared = this.perch && !p.dead && Math.hypot(p.cx - this.perch.x, p.y - this.perch.y) < 50;
+    if (this.mode === 'perch') {
+      this.phase += dt * 2.2;
+      if (scared || this.modeT <= 0) {
+        this.mode = 'fly';
+        this.modeT = rand(3, 6);
+        this.vx = rand(-90, 90);
+        this.vy = -200;
+      }
+      return;
+    }
+    this.phase += dt * 17;
+    if (this.orbit) {
+      if (!this.center) this.center = { x: p.cx, y: p.y + 18 };
+      const c = this.center;
+      const k = Math.min(1, dt * 3);
+      c.x += (p.cx - c.x) * k;
+      c.y += (p.y + 18 - c.y) * k;
+      const a = this.t * 2.2;
+      // il rejoint son cercle de plus en plus vite, puis y reste accroché :
+      // devant Malice sur la moitié basse, derrière sur la moitié haute
+      const k2 = Math.min(1, dt * Math.min(10, 2 + (this.age - 0.6) * 8));
+      const ox = this.x;
+      const oy = this.y;
+      this.x += (c.x + Math.cos(a) * 68 - this.x) * k2;
+      this.y += (c.y + Math.sin(a) * 18 - this.y) * k2;
+      this.vx = (this.x - ox) / dt;
+      this.vy = (this.y - oy) / dt;
+      this.front = Math.sin(a) > 0;
+      return;
+    }
+    let tx;
+    let ty;
+    if (this.mode === 'land') {
+      tx = this.perch.x;
+      ty = this.perch.y;
+      if (scared) {
+        this.mode = 'fly';
+        this.modeT = rand(2, 3);
+      } else if (Math.hypot(tx - this.x, ty - this.y) < 3) {
+        this.mode = 'perch';
+        this.modeT = rand(2, 4);
+        this.x = tx;
+        this.y = ty;
+        this.vx = 0;
+        this.vy = 0;
+        return;
+      }
+    } else {
+      tx = this.perch.x + Math.sin(this.t * 1.3) * 48;
+      ty = this.perch.y - 20 + Math.sin(this.t * 2.3) * 24;
+      if (this.modeT <= 0 && !scared) this.mode = 'land';
+    }
+    const dx = tx - this.x;
+    const dy = ty - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const sp = Math.min(this.mode === 'land' ? 160 : 320, d * 3);
+    const k = Math.min(1, dt * 4);
+    this.vx += ((dx / d) * sp - this.vx) * k;
+    this.vy += ((dy / d) * sp - this.vy) * k;
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+  }
+
+  draw(ctx) {
+    // en sortant du drapeau, il grossit avec un petit rebond
+    const k = clamp((this.age - 0.15) / 0.45, 0, 1);
+    if (k <= 0) return;
+    const grow = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2);
+    const perched = this.mode === 'perch';
+    let s = this.size * grow;
+    if (this.orbit && this.mode !== 'born') s *= 1 + 0.12 * Math.sin(this.t * 2.2);
+    const bob = perched ? 0 : -Math.sin(this.phase) * 2 * this.size;
+    const p = this.world.player;
+    Art.butterfly(ctx, this.x, this.y + bob, s, this.t, {
+      open: perched ? 0.6 + 0.4 * Math.cos(this.phase) : 0.5 + 0.5 * Math.cos(this.phase),
+      rot: perched ? 0 : clamp(this.vx / 600, -0.35, 0.35),
+      look: p ? (p.cx - this.x) / 80 : 0,
+      star: this.star,
+    });
+  }
+}
+
+// Drapeau de passage : quand Malice le touche, il se change en papillon (et on y repartira).
 class Checkpoint {
   constructor(world, x, y, idx) {
     this.world = world;
@@ -1562,7 +1698,8 @@ class Checkpoint {
     this.y = y;
     this.idx = idx;
     this.active = false;
-    this.raise = 0;
+    this.morph = 1;
+    this.butterfly = null;
     this.t = 0;
   }
 
@@ -1570,7 +1707,8 @@ class Checkpoint {
     const w = this.world;
     const p = w.player;
     this.t += dt;
-    if (this.active) this.raise = Math.min(1, this.raise + dt * 2.5);
+    if (this.morph < 1) this.morph = Math.min(1, this.morph + dt / 0.35);
+    if (this.butterfly) this.butterfly.update(dt);
     if (!this.active && !p.dead && p.cx > this.x - 16 && Math.abs(p.y + p.h - this.y) < 220) {
       this.activate(true);
     }
@@ -1578,29 +1716,37 @@ class Checkpoint {
 
   activate(fx) {
     this.active = true;
+    // il se pose sur la boule dorée en haut du mât
+    const perch = { x: this.x, y: this.y - 107 };
     if (!fx) {
-      this.raise = 1;
+      this.butterfly = new Butterfly(this.world, perch.x, perch.y, { perch });
       return;
     }
     const w = this.world;
+    const cx = this.x + 19;
+    const cy = this.y - 23;
+    this.morph = 0;
+    this.butterfly = new Butterfly(w, cx, cy, { perch, born: true });
     w.game.setCheckpoint(this.idx);
     Sound.sfx.checkpoint();
+    Sound.sfx.butterfly();
     w.popText(this.x, this.y - 110, 'Drapeau !', '#ffffff', 22);
-    for (let i = 0; i < 14; i++) {
-      w.spawn({ type: 'confetti', x: this.x, y: this.y - 80, vx: rand(-160, 160), vy: rand(-300, -80), g: 500, life: 1.2, size: rand(4, 7), color: `hsl(${randInt(0, 360)},90%,60%)` });
-    }
+    butterflyPouf(w, cx, cy);
   }
 
   draw(ctx) {
-    const k = this.raise;
+    // gris à mi-mât tant que Malice n'est pas passée ; ensuite il ne reste que le mât et le papillon
     Art.flag(ctx, this.x, this.y, 84, this.t, {
       color: this.active ? '#ff4f9a' : '#c4c4d4',
-      lower: (1 - k) * 46,
-      emblem: this.active ? (g, ex, ey) => Art.maliceHead(g, ex, ey, 0.5) : null,
+      lower: 46,
+      cloth: this.active ? 1 - this.morph : 1,
     });
+    if (this.butterfly) this.butterfly.draw(ctx);
   }
 }
 
+// Le grand drapeau de l'arrivée : il descend le long du mât, puis devient un grand papillon étoilé
+// qui tourne autour de Malice.
 class Goal {
   constructor(world, x, y) {
     this.world = world;
@@ -1609,16 +1755,31 @@ class Goal {
     this.t = 0;
     this.reached = false;
     this.flagY = 0;
+    this.morph = 0;
+    this.butterfly = null;
   }
 
   update(dt) {
     this.t += dt;
-    const p = this.world.player;
+    const w = this.world;
+    const p = w.player;
     if (!this.reached && !p.dead && p.cx >= this.x - 10) {
       this.reached = true;
-      this.world.game.levelComplete();
+      w.game.levelComplete();
     }
-    if (this.reached) this.flagY = Math.min(1, this.flagY + dt * 1.5);
+    if (this.reached) {
+      this.flagY = Math.min(1, this.flagY + dt * 2);
+      if (this.flagY >= 1 && !this.butterfly) {
+        // le centre du drapeau une fois en bas du mât
+        const cx = this.x + 30;
+        const cy = this.y - 49;
+        this.butterfly = new Butterfly(w, cx, cy, { born: true, orbit: true, star: true, size: 1.6 });
+        butterflyPouf(w, cx, cy);
+        Sound.sfx.butterfly();
+      }
+      if (this.butterfly) this.morph = Math.min(1, this.morph + dt / 0.35);
+    }
+    if (this.butterfly) this.butterfly.update(dt);
   }
 
   draw(ctx) {
@@ -1627,9 +1788,15 @@ class Goal {
     roundRectPath(ctx, this.x - 20, this.y - 14, 40, 14, 4);
     ctx.fill();
     Art.flag(ctx, this.x, this.y - 12, h, this.t, {
-      color: '#ff4f9a', w: 56, fh: 38, lower: this.flagY * (h - 60), ball: '#ffd23a',
+      color: '#ff4f9a', w: 56, fh: 38, lower: this.flagY * (h - 60), cloth: 1 - this.morph, ball: '#ffd23a',
       emblem: (g, ex, ey) => Art.star(g, ex, ey, 11, this.t),
     });
+    if (this.butterfly && !this.butterfly.front) this.butterfly.draw(ctx);
+  }
+
+  // dessiné après Malice, quand le papillon passe devant elle
+  drawFront(ctx) {
+    if (this.butterfly && this.butterfly.front) this.butterfly.draw(ctx);
   }
 }
 

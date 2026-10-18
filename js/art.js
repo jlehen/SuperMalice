@@ -2418,9 +2418,21 @@ const Art = (() => {
     ctx.fillStyle = o.ball || '#ffd23a';
     circlePath(ctx, 0, -h - 4, 5);
     ctx.fill();
+    // cloth < 1 : le tissu rapetisse en tournoyant (il est en train de devenir un papillon)
+    const cloth = o.cloth == null ? 1 : o.cloth;
+    if (cloth <= 0) {
+      ctx.restore();
+      return;
+    }
     const fy = -h + 4 + (o.lower || 0);
     const fw = o.w || 34;
     const fh = o.fh || 22;
+    if (cloth < 1) {
+      ctx.translate(2 + fw / 2, fy + fh / 2);
+      ctx.rotate((1 - cloth) * 4);
+      ctx.scale(cloth, cloth);
+      ctx.translate(-2 - fw / 2, -fy - fh / 2);
+    }
     ctx.fillStyle = o.color;
     ctx.beginPath();
     ctx.moveTo(2, fy);
@@ -2438,10 +2450,119 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // ---------------- Papillon ----------------
+  // Le papillon qui sort d'un drapeau, vu de face (il a une petite moustache, comme Malice).
+  // open : 1 = ailes grandes ouvertes, 0 = repliées ; look : -1..1, où il regarde ; star : étoiles sur les ailes.
+  function butterfly(ctx, x, y, s, t, o) {
+    o = o || {};
+    const open = o.open == null ? 1 : o.open;
+    const line = o.line || '#9a1a56';
+    const spot = o.spot || '#ffe14d';
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(o.rot || 0);
+    ctx.scale(s, s);
+    ctx.lineJoin = 'round';
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.scale(side * (0.1 + 0.9 * open), 1);
+      // aile du bas
+      ctx.beginPath();
+      ctx.moveTo(1, 2);
+      ctx.bezierCurveTo(9, 1, 19, 6, 17, 14);
+      ctx.bezierCurveTo(15, 21, 5, 21, 1, 9);
+      ctx.closePath();
+      paint(ctx, o.color2 || '#ff9fcd', line, 1.5);
+      ctx.fillStyle = spot;
+      circlePath(ctx, 10, 12, 2.8);
+      ctx.fill();
+      // aile du haut
+      ctx.beginPath();
+      ctx.moveTo(1, 3);
+      ctx.bezierCurveTo(1, -9, 13, -22, 22, -18);
+      ctx.bezierCurveTo(30, -14, 26, -1, 1, 5);
+      ctx.closePath();
+      paint(ctx, o.color || '#ff4f9a', line, 1.5);
+      if (o.star) {
+        ctx.save();
+        ctx.translate(15, -9);
+        starShape(ctx, 6.5, 0.45);
+        paint(ctx, spot, '#c98a00', 1);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = spot;
+        circlePath(ctx, 15, -9, 4.6);
+        ctx.fill();
+        circlePath(ctx, 22, -14, 1.9);
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      circlePath(ctx, 13.5, -10.5, 1.5);
+      ctx.fill();
+      ctx.restore();
+    }
+    // corps
+    ellipsePath(ctx, 0, 6, 3.3, 10);
+    paint(ctx, '#7a4a8c', '#3e1f4a', 1.2);
+    // antennes
+    ctx.strokeStyle = '#3e1f4a';
+    ctx.lineWidth = 1.3;
+    ctx.lineCap = 'round';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(side * 2, -12);
+      ctx.quadraticCurveTo(side * 3.5, -19, side * 8, -21);
+      ctx.stroke();
+      ctx.fillStyle = spot;
+      circlePath(ctx, side * 8, -21, 1.9);
+      ctx.fill();
+    }
+    // tête
+    circlePath(ctx, 0, -8, 6);
+    paint(ctx, '#b48ad0', '#5e3a78', 1.2);
+    ctx.fillStyle = 'rgba(255,143,168,0.7)';
+    circlePath(ctx, -4, -5.8, 1.4);
+    ctx.fill();
+    circlePath(ctx, 4, -5.8, 1.4);
+    ctx.fill();
+    // yeux (ils clignent de temps en temps)
+    const look = clamp(o.look || 0, -1, 1) * 0.6;
+    if ((t % 3.7) < 0.12) {
+      ctx.strokeStyle = '#14213d';
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.moveTo(-3.8, -9); ctx.lineTo(-0.9, -9);
+      ctx.moveTo(0.9, -9); ctx.lineTo(3.8, -9);
+      ctx.stroke();
+    } else {
+      for (const side of [-1, 1]) {
+        ctx.fillStyle = '#fff';
+        ellipsePath(ctx, side * 2.3, -9.2, 1.9, 2.4);
+        ctx.fill();
+        ctx.fillStyle = '#14213d';
+        circlePath(ctx, side * 2.3 + look, -8.9, 1.2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        circlePath(ctx, side * 2.3 + look + 0.4, -9.4, 0.4);
+        ctx.fill();
+      }
+    }
+    // petite moustache noire aux pointes relevées
+    ctx.fillStyle = MALICE.mustache;
+    ctx.beginPath();
+    ctx.moveTo(0, -6.2);
+    ctx.bezierCurveTo(-1.8, -7.2, -4.4, -6.8, -5.6, -5.6);
+    ctx.bezierCurveTo(-4.4, -4.4, -1.8, -3.8, 0, -4.8);
+    ctx.bezierCurveTo(1.8, -3.8, 4.4, -4.4, 5.6, -5.6);
+    ctx.bezierCurveTo(4.4, -6.8, 1.8, -7.2, 0, -6.2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   return {
     MALICE, MIMIC_DUR, CUBE_COLORS, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,
-    eclair, sparks, babyBird, lutinFace, flag, mustacheRope, anchorRing, badge,
+    eclair, sparks, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
   };
 })();

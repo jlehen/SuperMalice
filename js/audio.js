@@ -141,6 +141,12 @@ const Sound = (() => {
     },
     shoot() { tone({ type: 'square', f: 900, f2: 300, d: 0.1, v: 0.07 }); },
     checkpoint() { arp([784, 988, 1175, 1568], { type: 'triangle', d: 0.16, v: 0.22, gap: 0.07 }); },
+    // le drapeau devient papillon : un « pouf » qui scintille, puis des battements d'ailes
+    butterfly() {
+      noise({ filter: 'bandpass', f: 2500, f2: 6000, d: 0.28, v: 0.14, q: 1.5 });
+      tone({ type: 'sine', f: 700, f2: 2100, d: 0.3, v: 0.12 });
+      tone({ type: 'sine', f: 1400, d: 0.45, v: 0.05, vib: 14, vibDepth: 260, delay: 0.25 });
+    },
     pound() { noise({ f: 500, f2: 80, d: 0.3, v: 0.45 }); tone({ type: 'sine', f: 160, f2: 45, d: 0.25, v: 0.4 }); },
     dash() { noise({ filter: 'bandpass', f: 400, f2: 1800, d: 0.2, v: 0.22, q: 1.5 }); tone({ type: 'square', f: 260, f2: 520, d: 0.08, v: 0.04 }); },
     spin() { tone({ type: 'square', f: 600, f2: 900, d: 0.12, v: 0.05 }); },

@@ -41,6 +41,9 @@ Sur tablette ou téléphone (à tenir à l'horizontale), des gros boutons appara
 Pour courir, c'est pareil avec le bouton ◀ ou ▶ (ou la manette) : un appui rapide, puis on rappuie
 et on reste appuyé. En courant, on saute beaucoup plus loin.
 
+Quand Malice touche un drapeau, il se transforme en papillon : si elle perd une vie, elle repartira de là
+(le papillon l'attend, posé en haut du mât). Le drapeau de l'arrivée devient un grand papillon étoilé qui lui tourne autour.
+
 Astuce : si on ne touche à rien pendant quelques secondes, Malice se tourne vers toi et fait une grimace.
 Une manette de jeu fonctionne aussi.
 
