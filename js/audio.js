@@ -117,6 +117,45 @@ const Sound = (() => {
     weapon() { arp([330, 440, 554, 659, 880], { type: 'square', d: 0.1, v: 0.07, gap: 0.05 }); },
     candy() { tone({ type: 'square', f: 1318, d: 0.06, v: 0.06 }); tone({ type: 'square', f: 1760, d: 0.18, v: 0.06, delay: 0.06 }); },
     hurt() { tone({ type: 'square', f: 440, f2: 140, d: 0.35, v: 0.12, vib: 18, vibDepth: 40 }); },
+    // Le bruit de ce qui fait mal à Malice (en plus du « aïe »), voir OUCH dans entities.js.
+    ouch(kind) {
+      switch (kind) {
+        case 'butt': // boiiing ! et un petit cri tout aigu
+          tone({ type: 'triangle', f: 220, f2: 1200, d: 0.3, v: 0.25 });
+          tone({ type: 'square', f: 1400, f2: 900, d: 0.25, v: 0.04, delay: 0.06, vib: 28, vibDepth: 160 });
+          break;
+        case 'head': // toc !
+          tone({ type: 'sine', f: 1100, f2: 700, d: 0.1, v: 0.3 });
+          tone({ type: 'triangle', f: 2200, d: 0.35, v: 0.08, delay: 0.03 });
+          break;
+        case 'zap': // bzzzzzt
+          tone({ type: 'sawtooth', f: 95, d: 0.5, v: 0.13, vib: 55, vibDepth: 35 });
+          noise({ filter: 'highpass', f: 3500, d: 0.5, v: 0.12 });
+          break;
+        case 'ko': // bong !
+          tone({ type: 'sine', f: 196, f2: 140, d: 0.5, v: 0.4 });
+          tone({ type: 'triangle', f: 590, f2: 420, d: 0.4, v: 0.12 });
+          break;
+        case 'hypno': // ouiiin-ouiiin
+          tone({ type: 'sine', f: 900, f2: 300, d: 0.8, v: 0.12, vib: 7, vibDepth: 120 });
+          break;
+        case 'scramble': // le cube qui tourne : cric-crac-cric
+          for (let i = 0; i < 6; i++) noise({ filter: 'highpass', f: 2600, d: 0.03, v: 0.18, delay: i * 0.06 });
+          break;
+        case 'soot': // pouf !
+          noise({ f: 1800, f2: 150, d: 0.35, v: 0.35 });
+          break;
+        case 'spots': // plop plop plop
+          for (let i = 0; i < 3; i++) tone({ type: 'sine', f: 380 + i * 140, f2: 900 + i * 200, d: 0.07, v: 0.18, delay: i * 0.07 });
+          break;
+        default: break;
+      }
+    },
+    cough() {
+      noise({ filter: 'bandpass', f: 700, d: 0.09, v: 0.3, q: 2 });
+      noise({ filter: 'bandpass', f: 600, d: 0.11, v: 0.25, q: 2, delay: 0.12 });
+    },
+    pop() { tone({ type: 'sine', f: 500, f2: 1100, d: 0.06, v: 0.12 }); },
     die() {
       arp([523, 494, 466, 440, 415, 392, 370, 349], { type: 'square', d: 0.12, v: 0.08, gap: 0.09 });
     },

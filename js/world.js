@@ -217,10 +217,10 @@ class World {
       for (let c = c0; c <= c1; c++) {
         const ch = this.tileAt(c, r);
         if (ch === '^') {
-          const box = { x: c * TILE + 5, y: r * TILE + 20, w: TILE - 10, h: TILE - 20 };
+          const box = { x: c * TILE + 5, y: r * TILE + 20, w: TILE - 10, h: TILE - 20, ouch: 'butt' };
           if (overlap(b, box)) return box;
         } else if (ch === 'v') {
-          const box = { x: c * TILE + 5, y: r * TILE, w: TILE - 10, h: TILE - 20 };
+          const box = { x: c * TILE + 5, y: r * TILE, w: TILE - 10, h: TILE - 20, ouch: 'head' };
           if (overlap(b, box)) return box;
         }
       }
@@ -428,7 +428,7 @@ class World {
         p.bounceOff();
         continue;
       }
-      if (e.harmful()) p.hurt(e);
+      if (e.harmful()) p.hurt(e, e.ouch);
     }
     for (const h of this.hazards) {
       if (h.dead || (h.harmful && !h.harmful()) || !overlap(pb, h)) continue;
@@ -438,16 +438,16 @@ class World {
       } else if (h instanceof BlackDot && stomps(h.y + 12)) {
         h.squash();
         p.bounceOff();
-      } else if (p.hurt(h) && h instanceof BlackDot) {
+      } else if (p.hurt(h, h.ouch) && h instanceof BlackDot) {
         h.dead = true;
       }
     }
     for (const ec of this.eclairs) {
       const b = ec.box();
-      if (b && boxOverlap(pb, b.x, b.y, b.w, b.h)) p.hurt(b);
+      if (b && boxOverlap(pb, b.x, b.y, b.w, b.h)) p.hurt(b, 'zap');
     }
     const th = this.thornHit(pb);
-    if (th) p.hurt(th);
+    if (th) p.hurt(th, th.ouch);
     for (const it of this.items) {
       if (!it.dead && it.appear <= 0 && overlap(pb, it)) this.collect(it);
     }

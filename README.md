@@ -23,6 +23,21 @@ doit traverser 5 mondes pour sauver le **bébé oiseau** coincé sur un rocher a
 - **Moustache-Grappin** : près d'un anneau doré, appuyer sur **V** : la moustache de Malice s'y accroche.
   On se balance avec ← →, on saute pour se lancer, et on peut enchaîner les anneaux.
 
+## Quand Malice a mal
+
+Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie :
+
+| Danger | Ce qui arrive à Malice |
+|---|---|
+| Ronces au sol | ça pique les fesses ! Elle s'envole en se tenant les fesses toutes rouges |
+| Ronces qui pendent | une grosse bosse soulève sa casquette (avec les épines plantées dedans) |
+| Éclairs au chocolat | électrocutée : figée, on voit son squelette, puis les cheveux en pétard qui fument |
+| Boulets des coccinelles | K.O. une demi-seconde : la langue qui pend, les yeux mi-clos, des étoiles autour de la tête |
+| Gros œil | hypnotisée : yeux en spirale, elle avance les bras tendus comme une somnambule |
+| Rubik's cube | toutes ses couleurs sont mélangées, puis reviennent une par une (clic, clic…) |
+| Morceaux de cube qui explose | toute noire de suie, cheveux en pétard, elle tousse des petits nuages |
+| Coccinelle | couverte de points noirs, qui sautent un par un (le dernier sur le nez) |
+
 ## Commandes
 
 | Clavier | Action |

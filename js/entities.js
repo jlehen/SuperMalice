@@ -29,6 +29,31 @@ const GRAPPLE = { range: 340, shoot: 2600, pull: 820, len: 58 };
 const STUCK_TIME = 10;
 const STAR_TIME = 15;
 
+// Ce qui arrive à Malice quand elle perd de l'énergie, selon ce qui l'a touchée (dessins dans art.js) :
+// dur = durée de l'animation, pose = temps où tout son corps réagit, lock = temps sans pouvoir bouger,
+// freeze = temps où elle reste figée, vx / vy = comment elle est projetée,
+// hold = moment de l'animation qu'on garde si elle n'a plus d'énergie et tombe.
+const OUCH = {
+  // les ronces au sol piquent les fesses : elle s'envole en se tenant les fesses
+  butt: { dur: 0.75, pose: 0.7, lock: 0.3, vx: 220, vy: -780, hold: 0.3, text: 'Aïe, mes fesses !', color: '#ff8aa8' },
+  // les ronces qui pendent : une grosse bosse soulève la casquette
+  head: { dur: 1.3, pose: 0.45, lock: 0.25, vx: 220, vy: 150, hold: 0.4, text: 'Ouille, ma tête !', color: '#ffb36a' },
+  // les éclairs électrocutent : figée, on voit son squelette, puis elle est un peu grillée
+  zap: { dur: 1.4, pose: 0.8, lock: 0.25, freeze: 0.5, vx: 260, vy: -430, hold: 0.9, text: 'Bzzzzt !', color: '#fff27a' },
+  // les boulets des coccinelles : K.O. (la langue qui pend, les yeux mi-clos, des étoiles)
+  ko: { dur: 0.5, pose: 0.5, lock: 0.5, vx: 200, vy: -300, hold: 0.25, text: 'Bong !', color: '#ffffff' },
+  // le gros oeil hypnotise : yeux en spirale, elle avance les bras tendus comme une somnambule
+  hypno: { dur: 1.5, pose: 0.4, lock: 0.25, vx: 260, vy: -430, hold: 0.6, text: 'Tout tourne…', color: '#d6a6ff' },
+  // le Rubik's cube mélange ses couleurs, qui reviennent une par une
+  scramble: { dur: 1.3, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3, text: 'Tout mélangé !', color: '#7ad0ff' },
+  // les morceaux du cube qui explose : toute noire de suie, cheveux en pétard, elle tousse
+  soot: { dur: 2, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.6, text: 'Kof kof !', color: '#d0d0d0' },
+  // la coccinelle lui colle ses points noirs, qui sautent un par un
+  spots: { dur: 2.4, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.5, text: 'Plein de pois !', color: '#ff6a6a' },
+  // n'importe quoi d'autre
+  hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
+};
+
 // ======================= MALICE =======================
 class Player {
   constructor(world, x, y) {
@@ -50,6 +75,9 @@ class Player {
     this.invuln = 0;
     this.star = 0;
     this.hurtT = 0;
+    // ce qui vient de lui faire mal (voir OUCH), et le temps où elle reste figée (électrocutée)
+    this.ouch = null;
+    this.stunT = 0;
     this.throwT = 0;
     this.throwAnim = 0;
     this.land = 0;
@@ -82,6 +110,7 @@ class Player {
   update(dt) {
     const w = this.world;
     this.t += dt;
+    if (this.ouch) this.updateOuch(dt);
     if (this.dead) {
       this.grap = null;
       this.deathT += dt;
@@ -115,6 +144,13 @@ class Player {
       }
       if (this.star <= 0) w.game.onStarEnd();
     }
+    if (this.stunT > 0) {
+      // électrocutée : figée sur place, puis projetée
+      this.stunT -= dt;
+      if (this.stunT > 0) return;
+      this.vx = this.stunVx;
+      this.vy = this.stunVy;
+    }
 
     if (this.superSpin > 0) this.superSpin -= dt;
     const I = Input;
@@ -129,7 +165,7 @@ class Player {
       if (w.inLava(this) && !this.lavaProof()) this.die('lava');
       return;
     }
-    if (I.pressed.grapple && badgeGrappin && !this.pound && this.hurtT <= 0.2) this.startGrapple();
+    if (I.pressed.grapple && badgeGrappin && !this.pound && this.hurtT <= 0) this.startGrapple();
 
     if (this.platform) {
       this.x += this.platform.dx;
@@ -137,7 +173,7 @@ class Player {
     }
 
     let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0);
-    if (this.hurtT > 0.2) dir = 0;
+    if (this.hurtT > 0) dir = 0;
 
     // ---- S'accroupir (et préparer le super saut) ----
     const wantCrouch = this.onGround && I.held.down && !this.pound;
@@ -311,7 +347,7 @@ class Player {
 
   updateMimic(dt, dir) {
     const I = Input.held;
-    const still = this.onGround && !dir && !this.crouch && !this.pound && !this.grap && this.hurtT <= 0
+    const still = this.onGround && !dir && !this.crouch && !this.pound && !this.grap && this.hurtT <= 0 && !this.ouch
       && this.throwAnim <= 0 && Math.abs(this.vx) < 10 && !I.jump && !I.down;
     if (!still) {
       this.idleT = 0;
@@ -503,7 +539,7 @@ class Player {
 
   throwIt(kind) {
     const g = this.world.game;
-    if (this.throwT > 0 || this.pound || this.hurtT > 0.2) return;
+    if (this.throwT > 0 || this.pound || this.hurtT > 0) return;
     if (g[kind] <= 0) return;
     g[kind]--;
     this.throwT = 0.28;
@@ -524,23 +560,36 @@ class Player {
     this.energy = Math.min(this.world.game.energyMax, this.energy + n);
   }
 
-  hurt(src) {
+  // kind : ce qui l'a touchée (voir OUCH)
+  hurt(src, kind) {
     if (this.dead || this.won || this.invuln > 0 || this.star > 0) return false;
     const w = this.world;
+    if (!OUCH[kind]) kind = 'hit';
+    const O = OUCH[kind];
     this.energy -= 1;
     Sound.sfx.hurt();
+    Sound.sfx.ouch(kind);
     w.shake(6);
+    this.ouch = { kind, t: 0, dur: O.dur, seed: Math.random() * 100 };
+    if (O.text) w.popText(this.cx, this.y - 22, O.text, O.color, 20);
     if (this.energy <= 0) {
       this.die('hurt');
       return true;
     }
     this.invuln = 1.6;
-    this.hurtT = 0.45;
+    this.hurtT = O.lock;
     this.grap = null;
     const sx = src ? src.x + (src.w || 0) / 2 : this.cx - this.facing;
     const d = Math.sign(this.cx - sx) || -this.facing;
-    this.vx = d * 260;
-    this.vy = -430;
+    this.vx = d * O.vx;
+    this.vy = O.vy;
+    if (O.freeze) {
+      this.stunT = O.freeze;
+      this.stunVx = this.vx;
+      this.stunVy = this.vy;
+      this.vx = 0;
+      this.vy = 0;
+    }
     this.pound = 0;
     this.platform = null;
     this.onGround = false;
@@ -550,10 +599,75 @@ class Player {
     return true;
   }
 
+  // Les petits effets pendant que Malice a mal : fumée, toux, anneaux, pois qui sautent…
+  updateOuch(dt) {
+    const w = this.world;
+    const k = this.ouch;
+    const t0 = k.t;
+    k.t += dt;
+    // si elle tombe, on garde l'animation au moment où ça se voit le mieux
+    if (this.dead) k.t = Math.min(k.t, OUCH[k.kind].hold);
+    const t = k.t;
+    const passed = (time) => t0 < time && t >= time;
+    // point du dessin de Malice (x vers l'avant, y depuis les pieds) dans le monde
+    const f = this.dead ? 1 : this.facing;
+    const at = (x, y) => ({ x: this.cx + f * x, y: this.y + this.h + 1 + y });
+    switch (k.kind) {
+      case 'zap': {
+        const p = at(rand(-8, 8), -58);
+        if (this.stunT > 0 || (this.dead && this.deathT < 0.5)) {
+          if (Math.random() < dt * 20) {
+            w.spawn({ type: 'spark', x: this.cx + rand(-22, 22), y: this.y + rand(0, this.h), vx: rand(-90, 90), vy: rand(-90, 20), life: 0.3, size: rand(3, 5), color: '#fff59a' });
+          }
+        } else if (Math.random() < dt * 12) {
+          // un peu grillée : de la fumée sort de la tête
+          w.spawn({ type: 'smoke', x: p.x, y: p.y, vx: rand(-15, 15), vy: -55, life: 0.7, size: 4, color: '#777' });
+        }
+        break;
+      }
+      case 'soot': {
+        if (Math.random() < dt * 10) {
+          const p = at(rand(-10, 6), -62);
+          w.spawn({ type: 'smoke', x: p.x, y: p.y, vx: rand(-15, 15), vy: -50, life: 0.8, size: 4, color: '#666' });
+        }
+        // kof ! un petit nuage sort de la bouche
+        if (Art.COUGHS.some(passed)) {
+          Sound.sfx.cough();
+          const p = at(17, -30);
+          for (let i = 0; i < 3; i++) {
+            w.spawn({ type: 'smoke', x: p.x, y: p.y, vx: f * rand(50, 110), vy: rand(-30, 10), life: 0.5, size: rand(3, 5), color: '#555' });
+          }
+        }
+        break;
+      }
+      case 'hypno':
+        if (Math.random() < dt * 4) {
+          const p = at(9, -44);
+          w.spawn({ type: 'ring', x: p.x, y: p.y, life: 0.6, size: 26, color: 'rgba(160,80,255,0.8)' });
+        }
+        break;
+      case 'scramble':
+        if (Art.SCRAMBLE_BACK.some(passed)) Sound.sfx.click();
+        break;
+      case 'spots':
+        Art.MALICE_SPOTS.forEach(([x, y], i) => {
+          if (!passed(Art.spotPop(i))) return;
+          const p = at(x, y);
+          Sound.sfx.pop();
+          w.spawn({ type: 'dot', x: p.x, y: p.y, vx: rand(-100, 100), vy: rand(-240, -140), g: 900, life: 0.6, size: 2.2, color: '#151515' });
+        });
+        break;
+      default: break;
+    }
+    if (t >= k.dur && !this.dead) this.ouch = null;
+  }
+
   die(cause) {
     if (this.dead || this.won) return;
     this.dead = true;
     this.cause = cause;
+    if (cause !== 'hurt') this.ouch = null;
+    this.stunT = 0;
     this.deathT = 0;
     this.energy = 0;
     this.star = 0;
@@ -568,12 +682,16 @@ class Player {
   draw(ctx) {
     let pose = 'idle';
     const hanging = this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing');
-    if (this.dead) pose = 'hurt';
+    const k = this.ouch;
+    // tout son corps réagit à ce qui lui a fait mal
+    const ouching = k && (this.dead || k.t < OUCH[k.kind].pose);
+    if (k) k.shock = k.kind === 'zap' && (this.dead ? this.deathT < 0.5 : this.stunT > 0);
+    if (this.dead) pose = k ? 'ouch' : 'hurt';
     else if (this.won) pose = this.onGround ? 'win' : 'jump';
     else if (hanging) pose = 'hang';
     else if (this.pound) pose = 'pound';
     else if (this.crouch) pose = 'crouch';
-    else if (this.hurtT > 0) pose = 'hurt';
+    else if (ouching) pose = 'ouch';
     else if (!this.onGround) pose = this.vy < 0 ? 'jump' : 'fall';
     else if (this.throwAnim > 0) pose = 'throw';
     else if (Math.abs(this.vx) > 15) pose = Math.abs(this.vx) > PHYS.run + 20 ? 'run' : 'walk';
@@ -589,7 +707,8 @@ class Player {
       sx = 0.92;
       sy = 1.08;
     }
-    const blink = this.invuln > 0 && !this.dead && Math.floor(this.invuln * 14) % 2 === 0;
+    // elle clignote (invincible un moment), mais pas pendant qu'on voit bien ce qui lui arrive
+    const blink = this.invuln > 0 && !this.dead && !ouching && Math.floor(this.invuln * 14) % 2 === 0;
     ctx.save();
     if (blink) ctx.globalAlpha = 0.35;
     if (this.onGround && !this.dead) {
@@ -642,6 +761,7 @@ class Player {
       palette: this.star > 0 ? Art.maliceRainbow(this.t) : (this.dead && this.cause === 'lava' ? LAVA_PALETTE : null),
       holding: this.holding,
       face: pose === 'idle' ? this.mimic : null,
+      ouch: k,
     });
     ctx.restore();
   }
@@ -941,6 +1061,7 @@ class Enemy {
 class EyeMonster extends Enemy {
   constructor(world, x, y) {
     super(world, x, y, 38, 50);
+    this.ouch = 'hypno'; // ce qu'il fait à Malice quand il la touche (voir OUCH)
     this.hue = choose([140, 200, 30, 280, 320]);
     this.chasing = false;
     this.alertT = 0;
@@ -1010,6 +1131,7 @@ class EyeMonster extends Enemy {
 class Rubik extends Enemy {
   constructor(world, x, y) {
     super(world, x, y, 40, 40);
+    this.ouch = 'scramble';
     this.state = 'calm';
     this.hopT = rand(0.4, 1.4);
     this.colors = Array.from({ length: 9 }, () => choose(Art.CUBE_COLORS));
@@ -1110,6 +1232,7 @@ class Rubik extends Enemy {
 class Ladybug extends Enemy {
   constructor(world, x, y, flying) {
     super(world, x, y, 54, 40);
+    this.ouch = 'spots';
     this.flying = flying;
     this.shootT = rand(1.2, 2.5);
     this.aimT = 0;
@@ -1191,6 +1314,7 @@ class Ladybug extends Enemy {
 class BlackDot {
   constructor(world, x, y, vx, vy) {
     this.world = world;
+    this.ouch = 'ko';
     this.w = 14;
     this.h = 14;
     this.x = x - 7;
@@ -1249,6 +1373,7 @@ class BlackDot {
 class CubeBit {
   constructor(world, x, y, vx, vy, color) {
     this.world = world;
+    this.ouch = 'soot';
     this.w = 13;
     this.h = 13;
     this.x = x - 6;
