@@ -44,7 +44,8 @@ Une manette de jeu fonctionne aussi.
 ## Difficulté (choisie au début)
 
 - **Bébé** : comme Gentil, en plus doux. Les ennemis sont plus lents, les éclairs plus rares,
-  et surtout le caramel et les chips marchent pour toujours : un ennemi collé ou essoufflé le reste.
+  l'étoile dure 30 secondes au lieu de 15, et surtout le caramel et les chips marchent pour toujours :
+  un ennemi collé ou essoufflé le reste.
 - **Gentil** : vies illimitées, on repart du dernier drapeau.
 - **Classique** : 3 vies ; si on les perd toutes, on recommence le niveau.
 - **Difficile** : 3 vies ; si on les perd toutes, retour au tout début du jeu.

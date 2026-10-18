@@ -328,7 +328,7 @@ class World {
         this.popText(cx, cy, 'Chips x3 !', '#b6ff7a', 22);
         break;
       case 'star':
-        p.star = STAR_TIME;
+        p.star = this.diff.starTime;
         Sound.sfx.star();
         Sound.playMusic('star');
         this.popText(cx, cy, 'Invincible !', '#fff27a', 24);
