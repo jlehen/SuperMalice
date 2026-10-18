@@ -217,9 +217,9 @@ button {
 }
 
 /* Cartes de difficulté */
-.cards { display: flex; gap: calc(var(--s) * 20px); }
+.cards { display: flex; gap: calc(var(--s) * 16px); }
 .screen .card {
-  width: calc(var(--s) * 250px);
+  width: calc(var(--s) * 212px);
   min-height: calc(var(--s) * 230px);
   display: flex;
   flex-direction: column;
@@ -232,6 +232,7 @@ button {
 .card .emo { width: calc(var(--s) * 56px) !important; height: calc(var(--s) * 56px) !important; }
 .card b { font-size: calc(var(--s) * 30px); }
 .card small { font-size: calc(var(--s) * 18px); font-weight: 600; line-height: 1.3; }
+.screen .card.bebe { background: linear-gradient(#ffc6e4, #ff7ab8 60%, #e0559a); box-shadow: 0 calc(var(--s) * 6px) 0 #9a2e66; }
 .screen .card.gentil { background: linear-gradient(#9cf08a, #3fbf5a 60%, #2a9a44); box-shadow: 0 calc(var(--s) * 6px) 0 #1f6a32; }
 .screen .card.classique { background: linear-gradient(#8fd2ff, #3a9cf0 60%, #2a72c9); box-shadow: 0 calc(var(--s) * 6px) 0 #1d4f8a; }
 .screen .card.difficile { background: linear-gradient(#ffb07a, #ff6a3a 60%, #d6401f); box-shadow: 0 calc(var(--s) * 6px) 0 #8a2a12; }

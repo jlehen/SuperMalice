@@ -705,6 +705,7 @@ class Enemy {
     this.t = Math.random() * 5;
     this.legPhase = 0;
     this.pantT = 0;
+    this.restT = 0;
   }
 
   get cx() { return this.x + this.w / 2; }
@@ -764,10 +765,12 @@ class Enemy {
         this.fatRest = false;
         this.fatT = rand(1.3, 1.9);
       }
+      this.restT += dt;
       this.pantT -= dt;
       if (this.pantT <= 0) {
         this.pantT = 0.45;
-        if (w.onScreen(this)) Sound.sfx.pant();
+        // essoufflé pour toujours (mode Bébé) : on n'entend plus haleter au bout de quelques secondes
+        if (w.onScreen(this) && this.restT < 4) Sound.sfx.pant();
         w.spawn({ type: 'drop', x: this.cx + rand(-18, 18), y: this.y - 4, vx: rand(-60, 60), vy: rand(-140, -60), g: 600, life: 0.6, size: 1 });
       }
     } else {
@@ -777,6 +780,7 @@ class Enemy {
         this.fatRest = true;
         this.fatT = rand(2.2, 3);
         this.pantT = 0;
+        this.restT = 0;
       }
     }
     this.walkPhysics(dt, true);
@@ -798,15 +802,23 @@ class Enemy {
     const w = this.world;
     w.game.addScore(50);
     if (kind === 'caramel') {
-      this.stuck = STUCK_TIME;
+      this.stuck = w.diff.forever ? Infinity : STUCK_TIME;
       this.vx = 0;
       Sound.sfx.stick();
       w.popText(this.cx, this.y - 6, 'Collé !', '#ffcf6a');
       this.onStuck();
     } else if (!this.fat) {
       this.fat = true;
-      this.fatRest = false;
-      this.fatT = 1.2;
+      if (w.diff.forever) {
+        // tout de suite essoufflé, et pour toujours
+        this.fatRest = true;
+        this.fatT = Infinity;
+        this.pantT = 0;
+        this.restT = 0;
+      } else {
+        this.fatRest = false;
+        this.fatT = 1.2;
+      }
       Sound.sfx.crunch();
       Sound.sfx.fat();
       w.popText(this.cx, this.y - 6, 'Miam !', '#b6ff7a');

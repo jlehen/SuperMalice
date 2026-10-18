@@ -43,6 +43,8 @@ Une manette de jeu fonctionne aussi.
 
 ## Difficulté (choisie au début)
 
+- **Bébé** : comme Gentil, en plus doux. Les ennemis sont plus lents, les éclairs plus rares,
+  et surtout le caramel et les chips marchent pour toujours : un ennemi collé ou essoufflé le reste.
 - **Gentil** : vies illimitées, on repart du dernier drapeau.
 - **Classique** : 3 vies ; si on les perd toutes, on recommence le niveau.
 - **Difficile** : 3 vies ; si on les perd toutes, retour au tout début du jeu.
@@ -60,7 +62,7 @@ La légende est en haut du fichier (`#` = sol, `~` = lave, `E` = gros œil, `S` 
 Il suffit de modifier les lettres et de recharger la page.
 
 Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraînement : `index.html?stage=1`
-(on peut ajouter `&difficulte=classique` ou `&difficulte=difficile`).
+(on peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=difficile`).
 
 ## Pour les grands : comment c'est fait
 
