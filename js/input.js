@@ -48,50 +48,81 @@ const Input = (() => {
   });
 
   // ---------- Boutons tactiles ----------
+  // Pas besoin de viser : tout le côté gauche de l'écran sert à marcher
+  // (◀ ou ▶ selon où se pose le doigt) et tout le côté droit
+  // à sauter. Les petits boutons (▼, caramel, chips, moustache) ne comptent
+  // que si le doigt se pose dessus.
+  // Un doigt garde son bouton jusqu'à ce qu'il se lève : il peut seulement
+  // glisser de ◀ à ▶, pour ne jamais lancer des chips en voulant sauter, ni
+  // s'écraser en l'air en voulant avancer.
+  const SMALL_LEFT = ['down'];
+  const SMALL_RIGHT = ['caramel', 'chips', 'grapple'];
   let touchButtons = [];
+  const B = {};
   const pointers = new Map();
 
-  function btnAt(x, y) {
-    let best = null;
-    let bestD = Infinity;
-    for (const el of touchButtons) {
+  function circle(el) {
+    const r = el.getBoundingClientRect();
+    return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2, r: r.width / 2 };
+  }
+
+  function pick(x, y) {
+    const left = x < window.innerWidth / 2;
+    for (const name of left ? SMALL_LEFT : SMALL_RIGHT) {
+      const el = B[name];
       if (el.offsetParent === null) continue;
-      const r = el.getBoundingClientRect();
-      const m = Math.min(24, r.width * 0.25);
-      if (x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m) {
-        const d = Math.hypot(x - (r.left + r.right) / 2, y - (r.top + r.bottom) / 2);
-        if (d < bestD) { bestD = d; best = el; }
-      }
+      const c = circle(el);
+      if (Math.hypot(x - c.x, y - c.y) <= c.r * 1.2) return { el };
     }
-    return best;
+    if (!left) return { el: B.jump };
+    const l = circle(B.left);
+    const r = circle(B.right);
+    // la frontière est un peu plus près de ◀ : on avance bien plus souvent qu'on ne recule
+    const mid = l.x + (r.x - l.x) * 0.45;
+    return { el: x < mid ? B.left : B.right, mid, slack: (r.x - l.x) * 0.08 };
+  }
+
+  // Une petite vibration (Android) : on sent que l'appui est pris sans regarder.
+  function buzz() {
+    if (navigator.vibrate) navigator.vibrate(12);
   }
 
   function refreshTouch() {
     const before = Object.assign({}, touch);
     ACTIONS.forEach((a) => { touch[a] = false; });
     touchButtons.forEach((el) => el.classList.remove('on'));
-    for (const el of pointers.values()) {
-      if (!el) continue;
-      touch[el.dataset.btn] = true;
-      el.classList.add('on');
+    for (const p of pointers.values()) {
+      touch[p.el.dataset.btn] = true;
+      p.el.classList.add('on');
     }
     ACTIONS.forEach((a) => { if (touch[a] && !before[a]) tapped[a] = true; });
   }
 
   function bindTouch(layer) {
     touchButtons = Array.from(layer.querySelectorAll('[data-btn]'));
+    touchButtons.forEach((el) => { B[el.dataset.btn] = el; });
+    // iOS : sans ça, deux pouces posés ressemblent à un zoom, et le navigateur
+    // peut retarder ou annuler l'appui.
+    const block = (e) => { if (e.cancelable) e.preventDefault(); };
+    layer.addEventListener('touchstart', block, { passive: false });
+    layer.addEventListener('touchmove', block, { passive: false });
     layer.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       Sound.unlock();
-      pointers.set(e.pointerId, btnAt(e.clientX, e.clientY));
+      pointers.set(e.pointerId, pick(e.clientX, e.clientY));
+      buzz();
       refreshTouch();
     });
     layer.addEventListener('pointermove', (e) => {
-      if (!pointers.has(e.pointerId)) return;
+      const p = pointers.get(e.pointerId);
+      if (!p || p.mid === undefined) return;
       e.preventDefault();
-      const el = btnAt(e.clientX, e.clientY);
-      if (el !== pointers.get(e.pointerId)) {
-        pointers.set(e.pointerId, el);
+      let el = p.el;
+      if (e.clientX < p.mid - p.slack) el = B.left;
+      else if (e.clientX > p.mid + p.slack) el = B.right;
+      if (el !== p.el) {
+        p.el = el;
+        buzz();
         refreshTouch();
       }
     });

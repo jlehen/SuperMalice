@@ -53,6 +53,11 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | M | Couper le son |
 
 Sur tablette ou téléphone (à tenir à l'horizontale), des gros boutons apparaissent sur l'écran.
+Pas besoin de viser sans regarder : n'importe où sur la moitié droite de l'écran, on saute ; n'importe où
+sur la moitié gauche, on marche (◀ ou ▶ selon le côté où se pose le pouce). Les petits boutons
+(▼, caramel, chips, moustache) ne marchent que si on pose le doigt dessus, et un doigt garde son bouton
+jusqu'à ce qu'on le lève : on ne lance plus des chips en voulant sauter. Sur Android, le téléphone vibre
+un tout petit peu à chaque appui.
 Pour courir, c'est pareil avec le bouton ◀ ou ▶ (ou la manette) : un appui rapide, puis on rappuie
 et on reste appuyé. En courant, on saute beaucoup plus loin.
 
