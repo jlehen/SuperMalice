@@ -54,9 +54,9 @@ class World {
           case 'R': this.enemies.push(new Rubik(this, mx - 20, by - 40)); break;
           case 'D': this.enemies.push(new Ladybug(this, mx - 27, by - 40, false)); break;
           case 'W': this.enemies.push(new Ladybug(this, mx - 27, y + 4, true)); break;
-          case 'o': this.items.push(new Item(this, 'candy', mx, y + TILE / 2)); break;
-          case 'y': this.items.push(new Item(this, 'lollipop', mx, y + TILE / 2)); break;
-          case 'b': this.items.push(new Item(this, 'ball', mx, y + TILE / 2)); break;
+          case 'o': this.items.push(new Item(this, 'candy', mx, this.treatY('candy', c, r))); break;
+          case 'y': this.items.push(new Item(this, 'lollipop', mx, this.treatY('lollipop', c, r))); break;
+          case 'b': this.items.push(new Item(this, 'ball', mx, this.treatY('ball', c, r))); break;
           case '!': this.checkpoints.push(new Checkpoint(this, mx, by, this.checkpoints.length)); break;
           case 'G': this.goal = new Goal(this, mx, by); break;
           case 'N': this.goal = new BirdGoal(this, mx, by); break;
@@ -83,6 +83,14 @@ class World {
     this.player = new Player(this, start.x - 14, start.y - 56);
     this.player.y = start.y - this.player.h;
     this.updateCamera(0, true);
+  }
+
+  // Une friandise juste au-dessus du sol s'y pose ; en l'air, elle reste au milieu de sa case
+  // (sinon Malice attraperait sans sauter celles qui flottent juste au-dessus de sa tête).
+  treatY(kind, c, r) {
+    const below = this.tileAt(c, r + 1);
+    if (isSolidCh(below) || below === '-') return (r + 1) * TILE - ITEM_SIZE[kind] / 2 - 3;
+    return r * TILE + TILE / 2;
   }
 
   // ---------- Cases ----------
