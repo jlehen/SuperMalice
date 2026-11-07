@@ -31,6 +31,36 @@ de Malice, pépie de temps en temps, et c'est lui qui donne les conseils.
    qui s'enfuient : si on en attrape un, une vie en plus et tous les cœurs ! Au bout, toute la famille oiseau
    attend dans son nid, sur un gâteau géant.
 
+## Les personnages
+
+**Super Malice** est toujours là. À chaque fois qu'on charge le jeu, **3 autres personnages** sont tirés au hasard
+parmi 13 : on choisit son personnage après « Jouer ». Chacun a un pouvoir (touche **B**, ou le bouton étoile sur tablette) :
+
+| Personnage | Pouvoir |
+|---|---|
+| Le Lutin | un bloc lutin magique apparaît sous ses pieds (il disparaît au bout de 6 secondes) |
+| La Biche | double saut |
+| Gros Bonbon | garder B : il roule en boule et rebondit très haut |
+| Ronaxel | tire un ballon ; en l'air, saut « SIUUU ! » tout là-haut |
+| Le Poussin | en l'air, il bat des ailes 3 fois pour remonter |
+| Luisy | saute très haut, et plane en gardant le saut appuyé |
+| Messi | garder B (ou courir) : il dribble à travers les ennemis |
+| La Licorne | charge arc-en-ciel avec sa corne, même en l'air |
+| Bébé Dragon | crache des bulles de feu, et la lave ne lui fait rien |
+| Le Pingouin | glisse sur le ventre et renverse tout |
+| Le Chat Ninja | s'accroche aux murs et saute de mur en mur |
+| La Sirène | une vague qui renverse les ennemis ; en l'air, une bulle l'emporte vers le haut |
+| Le Dinosaure | BOUM : le sol tremble (aussi en écrasant vers le bas) |
+
+Tous gardent le caramel, les chips et les badges.
+
+**Méthode cachée pour tester** : sur l'écran d'accueil, toucher (ou cliquer) **5 fois de suite le numéro de version**
+en bas à droite : tous les personnages apparaissent. On peut aussi mettre `?personnages=tous` dans l'adresse,
+ou `?perso=licorne` pour jouer directement avec un personnage (`index.html?niveau=2&perso=dino`).
+
+Les dessins sont dans [`js/persos/`](js/persos/) (un fichier par personnage), les pouvoirs dans [`js/pouvoirs.js`](js/pouvoirs.js).
+La page [`outils/galerie.html`](outils/galerie.html) montre tous les personnages dans toutes leurs poses.
+
 ## Les badges
 
 - **Super Saut** : rester appuyé sur ↓ pour s'accroupir, puis sauter → on saute deux fois plus haut.
@@ -63,6 +93,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | X | Lancer du caramel |
 | C | Lancer des chips |
 | V | Moustache-grappin (avec le badge) |
+| B | Pouvoir du personnage |
 | Échap ou P | Pause |
 | M | Couper le son |
 
@@ -138,6 +169,9 @@ Pour tester directement un niveau : `index.html?niveau=3` (de 1 à 8), ou un sta
 | `js/game.js` | Déroulement du jeu, menus, HUD |
 | `js/world.js` | Un niveau en cours : décor, collisions, caméra |
 | `js/entities.js` | Malice, ennemis, bonus, dangers |
+| `js/heroes.js` | La liste des personnages, et ce qu'ils ont tous en commun pour les dessiner |
+| `js/persos/` | Le dessin de chaque personnage |
+| `js/pouvoirs.js` | Les pouvoirs des personnages |
 | `js/art.js` | Dessins des personnages et objets |
 | `js/scenery.js` | Dessins des décors de tous les mondes |
 | `js/audio.js` | Sons, instruments et lecteur de musique |

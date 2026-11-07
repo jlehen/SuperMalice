@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Galerie des personnages</title>
+  <style>
+    body { margin: 0; background: #8fd0ff; font-family: sans-serif; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <!-- Toutes les poses de tous les personnages, pour vérifier les dessins.
+       galerie.html?perso=lutin : un seul personnage, en grand.
+       &pose=walk : une seule pose. &fige=1.3 : l'animation arrêtée à ce moment.
+       &oiseau=1 : avec le bébé oiseau sur la tête. -->
+  <canvas id="c"></canvas>
+  <script src="../js/util.js"></script>
+  <script src="../js/art.js"></script>
+  <script src="../js/heroes.js"></script>
+  <script src="../js/persos/lutin.js"></script>
+  <script src="../js/persos/biche.js"></script>
+  <script src="../js/persos/bonbon.js"></script>
+  <script src="../js/persos/ronaxel.js"></script>
+  <script src="../js/persos/poussin.js"></script>
+  <script src="../js/persos/luisy.js"></script>
+  <script src="../js/persos/messi.js"></script>
+  <script src="../js/persos/licorne.js"></script>
+  <script src="../js/persos/dragon.js"></script>
+  <script src="../js/persos/pingouin.js"></script>
+  <script src="../js/persos/chat.js"></script>
+  <script src="../js/persos/sirene.js"></script>
+  <script src="../js/persos/dino.js"></script>
+  <script>
+    const P = new URLSearchParams(location.search);
+    const only = P.get('perso');
+    const onlyPose = P.get('pose');
+    const frozen = P.has('fige') ? parseFloat(P.get('fige')) : null;
+    // &oiseau=1 : le bébé oiseau sur la tête, comme pendant le retour à la maison
+    const withBird = P.has('oiseau');
+    // poses communes, puis les poses spéciales des pouvoirs
+    const POSES = ['idle', 'walk', 'run', 'jump', 'fall', 'pound', 'crouch', 'throw', 'hang', 'hurt', 'win', 'hold',
+      'ouch:butt', 'ouch:ko', 'ouch:soot', 'ouch:zap', 'star', 'power1', 'power2'];
+    // les poses spéciales des pouvoirs (voir pouvoirs.js)
+    const POWER_POSES = {
+      lutin: ['magic'], bonbon: ['ball'], ronaxel: ['kick', 'siu'], poussin: ['flap'], luisy: ['glide'],
+      messi: ['dribble'], licorne: ['charge'], dragon: ['breathe'], pingouin: ['slide'], chat: ['wall'],
+      sirene: ['wave', 'bubble'], dino: ['stomp'],
+    };
+    const ids = HEROES.map((h) => h.id).filter((id) => !only || id === only);
+    const poses = onlyPose ? [onlyPose] : POSES;
+    // un seul personnage : en grand, sur plusieurs lignes (et une case de plus, tourné vers la gauche)
+    const CELL = only ? 150 : 74;
+    const SC = only ? 1.9 : 1;
+    const PER_ROW = only ? 7 : poses.length;
+    const cells = [];
+    ids.forEach((id, i) => {
+      const list = only ? poses.concat(['gauche']) : poses;
+      list.forEach((p, j) => {
+        const row = only ? Math.floor(j / PER_ROW) : i;
+        const col = only ? j % PER_ROW : j;
+        cells.push({ id, p, x: 120 + (col + 0.5) * CELL, y: 30 + (row + 0.85) * CELL * 1.25 });
+      });
+    });
+    const rows = only ? Math.ceil((poses.length + 1) / PER_ROW) : ids.length;
+    const cv = document.getElementById('c');
+    const ctx = cv.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const W = 120 + PER_ROW * CELL;
+    const H = 30 + rows * (CELL * 1.25);
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    cv.style.width = W + 'px';
+    cv.style.height = H + 'px';
+    const start = performance.now();
+    function frame() {
+      const t = frozen !== null ? frozen : (performance.now() - start) / 1000;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = '#8fd0ff';
+      ctx.fillRect(0, 0, W, H);
+      ctx.font = '12px sans-serif';
+      const lines = new Set();
+      for (const c of cells) {
+        if (!lines.has(c.y)) {
+          lines.add(c.y);
+          ctx.fillStyle = '#5a9a3a';
+          ctx.fillRect(0, c.y, W, 4);
+          ctx.fillStyle = '#123';
+          ctx.fillText(HERO_BY_ID[c.id].name, 4, c.y - CELL * 0.6);
+          Heroes.head(ctx, c.id, 40, c.y - CELL * 0.3, only ? 1.3 : 0.75);
+        }
+        if (only || c.y === cells[0].y) {
+          ctx.fillStyle = '#123';
+          ctx.fillText(c.p, c.x - CELL / 2 + 4, only ? c.y - CELL * 1.1 : 16);
+        }
+        let pose = c.p;
+        const o = { t, ph: t * 13, facing: 1, scale: SC };
+        if (c.p.startsWith('ouch:')) {
+          pose = 'ouch';
+          o.ouch = { kind: c.p.slice(5), t: (t % 1.2) * 0.4, dur: 1.4, seed: 1, shock: c.p === 'ouch:zap' };
+        } else if (c.p === 'star') {
+          pose = 'run';
+          o.star = true;
+        } else if (c.p.startsWith('power')) {
+          pose = (POWER_POSES[c.id] || [])[+c.p.slice(5) - 1] || 'jump';
+        } else if (c.p === 'hold') {
+          o.holding = (g) => Art.heldBird(g, t, {});
+        } else if (c.p === 'gauche') {
+          pose = 'walk';
+          o.facing = -1;
+        }
+        o.pose = pose;
+        o.pw = { t: t % 1, roll: t * 8 };
+        if (withBird) {
+          // comme Player.drawHatBird : le bébé oiseau assis sur la tête (retour à la maison)
+          o.onHead = (g) => {
+            g.save();
+            g.translate(-2, -61);
+            g.scale(0.5, 0.5);
+            Art.babyBird(g, 0, 0, t, { noNest: true });
+            g.restore();
+          };
+        }
+        Heroes.draw(ctx, c.id, c.x, c.y, o);
+      }
+      if (frozen === null) requestAnimationFrame(frame);
+      else window.drawn = true;
+    }
+    frame();
+  </script>
+</body>
+</html>

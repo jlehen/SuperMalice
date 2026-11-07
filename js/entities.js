@@ -118,6 +118,10 @@ class Player {
     this.birdGone = false;
     this.chirpT = rand(4, 9);
     this.beakT = 0;
+    // le personnage choisi et son pouvoir (voir heroes.js et pouvoirs.js)
+    this.hero = world.game.hero || 'malice';
+    this.pow = POWERS[this.hero] || {};
+    this.pw = {};
   }
 
   get cx() { return this.x + this.w / 2; }
@@ -185,6 +189,9 @@ class Player {
       return;
     }
     if (I.pressed.grapple && badgeGrappin && !this.pound && this.hurtT <= 0) this.startGrapple();
+    const pow = this.pow;
+    if (this.pw.poseT > 0) this.pw.poseT -= dt;
+    if (pow.update) pow.update(this, dt, I);
 
     if (this.platform) {
       this.x += this.platform.dx;
@@ -220,10 +227,13 @@ class Player {
         w.spawn({ type: 'dust', x: this.cx - dir * 10, y: this.y + this.h, vx: -dir * rand(40, 140), vy: rand(-50, -10), life: 0.35, size: rand(4, 7) });
       }
     }
-    const top = this.inChoco ? 110 : this.running ? PHYS.sprint : PHYS.run;
+    let top = this.inChoco ? 110 : this.running ? PHYS.sprint : PHYS.run;
+    if (pow.top && !this.inChoco) top = pow.top(this, top);
 
     if (this.pound) {
       this.vx = 0;
+    } else if (pow.move && pow.move(this, dt, dir)) {
+      // le pouvoir s'occupe de la vitesse (charge, glissade…)
     } else if (this.boostT > 0 && Math.abs(this.vx) > top && (dir === 0 || dir === Math.sign(this.vx))) {
       // garde l'élan pris en se balançant au grappin
       this.boostT -= dt;
@@ -264,13 +274,17 @@ class Player {
         }
       } else {
         // avec de l'élan, on saute un peu plus haut (mais jamais 5 cases)
-        this.vy = -(Math.abs(this.vx) > PHYS.run + 40 ? PHYS.runJump : PHYS.jump);
+        const v = Math.abs(this.vx) > PHYS.run + 40 ? PHYS.runJump : PHYS.jump;
+        this.vy = -(pow.jump ? pow.jump(this, v) : v);
         this.jumping = true;
         Sound.sfx.jump();
       }
       for (let i = 0; i < 5; i++) {
         w.spawn({ type: 'dust', x: this.cx + rand(-10, 10), y: this.y + this.h, vx: rand(-60, 60), vy: rand(-40, -10), life: 0.4, size: rand(4, 7) });
       }
+    } else if (I.pressed.jump && !this.onGround && !this.pound && pow.airJump && pow.airJump(this)) {
+      // double saut, battement d'ailes, saut de mur…
+      this.jumpBuf = 0;
     }
     if (this.jumping && !I.held.jump && this.vy < -PHYS.jumpCut) this.vy = -PHYS.jumpCut;
     if (this.vy >= 0) this.jumping = false;
@@ -293,6 +307,7 @@ class Player {
       }
     } else {
       this.vy = Math.min(this.vy + PHYS.gravity * dt, this.pound === 2 ? PHYS.pound : PHYS.maxFall);
+      if (pow.fall && !this.pound) pow.fall(this, dt);
     }
     if (this.inChoco) {
       // on s'enfonce tout doucement
@@ -309,12 +324,14 @@ class Player {
     // le vent pousse Malice (montagne des nuages), mais pas quand elle reste sagement immobile par terre
     const push = this.onGround && !dir ? 0 : w.windPush(this);
     this.vx += push;
+    const pounded = this.pound === 2;
     const res = w.moveBody(this, dt, this.pound === 2 ? (tiles) => w.poundTiles(this, tiles) : null);
     if (!res.wall) this.vx -= push;
     if (res.landed) this.platform = null;
     if (res.ceil) w.headBump(this, res.ceil);
     if (!res.landed) this.checkPlatforms();
     if (res.landed) this.springTile();
+    if (res.wall && !this.onGround && pow.wall) pow.wall(this, res.wall);
 
     if (this.onGround && !wasGround) {
       this.land = 0.12;
@@ -333,6 +350,7 @@ class Player {
       }
     }
     if (this.onGround && this.pound) this.pound = 0;
+    if (this.onGround && !wasGround && pow.land) pow.land(this, fallSpeed, pounded);
 
     if (this.onGround && Math.abs(this.vx) > 10) {
       this.ph += dt * Math.abs(this.vx) * 0.052;
@@ -415,8 +433,11 @@ class Player {
     }
   }
 
-  // Mode Bébé : avec l'étoile, la lave ne brûle pas.
-  lavaProof() { return this.star > 0 && this.world.diff.starLava; }
+  // Mode Bébé : avec l'étoile, la lave ne brûle pas (et jamais pour Bébé Dragon).
+  lavaProof() { return (this.star > 0 && this.world.diff.starLava) || !!this.pow.lavaProof; }
+
+  // Pendant la charge de la licorne, la glissade du pingouin… les ennemis touchés sont renversés.
+  knocks() { return !!(this.pow.knocks && this.pow.knocks(this)); }
 
   // ... et Malice rebondit dessus comme sur un trampoline.
   lavaBounce() {
@@ -641,7 +662,7 @@ class Player {
 
   bounceOff() {
     this.pound = 0;
-    this.vy = -(Input.held.jump ? PHYS.bounceHeld : PHYS.bounce);
+    this.vy = -(Input.held.jump ? PHYS.bounceHeld : PHYS.bounce) * (this.pow.bounce || 1);
     this.jumping = Input.held.jump;
     this.onGround = false;
     this.platform = null;
@@ -788,6 +809,11 @@ class Player {
     else if (this.throwAnim > 0) pose = 'throw';
     else if (Math.abs(this.vx) > 15) pose = Math.abs(this.vx) > PHYS.run + 20 ? 'run' : 'walk';
     if (this.throwAnim > 0 && !this.onGround && !this.pound) pose = 'throw';
+    // les poses des pouvoirs
+    if (!this.dead && !this.won && !hanging && !ouching) {
+      const sp = (this.pow.pose && this.pow.pose(this)) || (this.pw.poseT > 0 ? this.pw.pose : null);
+      if (sp) pose = sp;
+    }
 
     let sx = 1;
     let sy = 1;
@@ -843,22 +869,24 @@ class Player {
     if (this.dead && this.cause === 'lava') {
       ctx.globalAlpha = 1;
     }
-    let palette = null;
-    if (this.star > 0) palette = Art.maliceRainbow(this.t);
-    else if (this.dead && this.cause === 'lava') palette = LAVA_PALETTE;
-    else if (this.dead && this.cause === 'choco') palette = CHOCO_PALETTE;
-    Art.malice(ctx, this.cx, this.y + this.h + 1, {
+    const lava = this.dead && this.cause === 'lava';
+    const choco = this.dead && this.cause === 'choco';
+    Heroes.draw(ctx, this.hero, this.cx, this.y + this.h + 1, {
       facing: this.dead ? 1 : this.facing,
       pose,
       t: this.t,
       ph: this.ph,
       sx,
       sy,
-      palette,
+      star: this.star > 0,
+      lava,
+      choco,
+      palette: lava ? LAVA_PALETTE : choco ? CHOCO_PALETTE : null,
       holding: this.holding,
       face: pose === 'idle' ? this.mimic : null,
       ouch: k,
       onHead: this.world.def.sequel && !this.birdGone ? (c) => this.drawHatBird(c, pose) : null,
+      pw: this.pw,
     });
     ctx.restore();
   }

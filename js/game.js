@@ -62,6 +62,9 @@ const Game = {
   isTouch: false,
   diffKey: 'gentil',
   diff: DIFFS.gentil,
+  // le personnage choisi, et ceux qu'on peut choisir (Malice + 3 tirés au hasard)
+  hero: 'malice',
+  roster: ['malice'],
 
   init() {
     this.canvas = $('#game');
@@ -101,8 +104,34 @@ const Game = {
     });
     this.drawIcons();
 
-    // Raccourcis pour tester : ?niveau=3 lance le niveau 3, ?stage=1 le 1er stage d'entraînement.
+    // À chaque chargement, 3 personnages tirés au hasard (Malice est toujours là).
+    const others = HEROES.map((h) => h.id).filter((id) => id !== 'malice');
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = randInt(0, i);
+      [others[i], others[j]] = [others[j], others[i]];
+    }
+    this.roster = ['malice'].concat(others.slice(0, 3));
+    // Méthode cachée pour tester tous les personnages : toucher 5 fois le numéro de version
+    // (ou ?personnages=tous dans l'adresse).
+    let taps = [];
+    $('#version').addEventListener('click', () => {
+      const now = performance.now();
+      taps = taps.filter((t) => now - t < 3000).concat(now);
+      if (taps.length >= 5) {
+        taps = [];
+        this.showAllHeroes();
+      }
+    });
+
+    // Raccourcis pour tester : ?niveau=3 lance le niveau 3, ?stage=1 le 1er stage d'entraînement,
+    // ?perso=licorne joue avec la licorne.
     const params = new URLSearchParams(location.search);
+    if (params.get('personnages') === 'tous') this.roster = HEROES.map((h) => h.id);
+    const perso = params.get('perso');
+    if (HERO_BY_ID[perso]) {
+      this.hero = perso;
+      if (!this.roster.includes(perso)) this.roster[this.roster.length - 1] = perso;
+    }
     const lv = parseInt(params.get('niveau') || params.get('level'), 10);
     const st = parseInt(params.get('stage'), 10);
     let start = -1;
@@ -218,7 +247,9 @@ const Game = {
 
   action(a, data) {
     switch (a) {
-      case 'play': this.showDifficulty(); break;
+      case 'play': this.showHeroes(); break;
+      case 'heroes': this.showHeroes(); break;
+      case 'hero': this.pickHero(data.hero); break;
       case 'help': this.showScreen('scr-help'); break;
       case 'back': this.toTitle(); break;
       case 'diff': this.pickDifficulty(data.diff); break;
@@ -247,6 +278,75 @@ const Game = {
     Input.setCapture(false);
     this.showScreen('scr-title');
     Sound.playMusic('title');
+  },
+
+  // ---------- Choix du personnage ----------
+  showHeroes() {
+    this.state = 'title';
+    const box = $('#hero-list');
+    box.innerHTML = '';
+    const many = this.roster.length > 4;
+    box.classList.toggle('many', many);
+    $('#hero-note').textContent = many
+      ? 'Tous les personnages (pour tester) !'
+      : 'Les personnages changent à chaque fois qu\'on recharge le jeu !';
+    for (const id of this.roster) {
+      const h = HERO_BY_ID[id];
+      const b = document.createElement('button');
+      b.className = 'card hero ' + id;
+      b.dataset.action = 'hero';
+      b.dataset.hero = id;
+      b.innerHTML = `<canvas></canvas><b>${h.name}</b><i>${h.power}</i><small>${this.powerText(h.desc)}</small>`;
+      box.appendChild(b);
+    }
+    this.showScreen('scr-hero');
+    const picked = $(`#hero-list [data-hero="${this.hero}"]`);
+    if (picked && !this.isTouch) setTimeout(() => picked.focus({ preventScroll: true }), 40);
+  },
+
+  showAllHeroes() {
+    this.roster = HEROES.map((h) => h.id);
+    Sound.sfx.oneUp();
+    this.showHeroes();
+  },
+
+  pickHero(id) {
+    if (!HERO_BY_ID[id]) return;
+    this.hero = id;
+    this.showDifficulty();
+  },
+
+  // Les personnages bougent sur leurs cartes : celui qu'on montre du doigt marche.
+  drawHeroCards() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const active = document.activeElement;
+    for (const cv of $$('#hero-list canvas')) {
+      const card = cv.parentElement;
+      const id = card.dataset.hero;
+      const r = cv.getBoundingClientRect();
+      const W = Math.max(1, Math.round(r.width * dpr));
+      const H = Math.max(1, Math.round(r.height * dpr));
+      if (cv.width !== W || cv.height !== H) {
+        cv.width = W;
+        cv.height = H;
+      }
+      const g = cv.getContext('2d');
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.clearRect(0, 0, W, H);
+      const k = H / 140;
+      g.setTransform(k, 0, 0, k, 0, 0);
+      const cx = W / k / 2;
+      g.fillStyle = 'rgba(0,0,0,0.18)';
+      ellipsePath(g, cx, 128, 34, 6);
+      g.fill();
+      const on = card === active || card.matches(':hover');
+      const t = this.t + hash(id.length * 7.7 + id.charCodeAt(0)) * 10;
+      Heroes.draw(g, id, cx, 128, { pose: on ? 'walk' : 'idle', t, ph: t * 11, facing: 1, scale: 1.75 });
+    }
+  },
+
+  powerText(s) {
+    return s.replace(/\{POUVOIR\}/g, this.isTouch ? 'Le bouton pouvoir' : 'La touche B');
   },
 
   showDifficulty() {
@@ -365,11 +465,12 @@ const Game = {
     this.state = 'gameover';
     this.stateT = 0;
     Sound.playMusic('gameover');
-    let msg = 'Malice n\'a plus de vies… On recommence ce niveau !';
+    const name = HERO_BY_ID[this.hero].name;
+    let msg = `${name} n'a plus de vies… On recommence ce niveau !`;
     if (this.diff.gameOver === 'game') {
       msg = this.levelIndex >= SEQUEL_START
-        ? 'Malice n\'a plus de vies… Retour au début du voyage, dans la grotte !'
-        : 'Malice n\'a plus de vies… Retour au tout début de l\'aventure !';
+        ? `${name} n'a plus de vies… Retour au début du voyage, dans la grotte !`
+        : `${name} n'a plus de vies… Retour au tout début de l'aventure !`;
     }
     $('#over-msg').textContent = msg;
     Input.setCapture(false);
@@ -548,7 +649,7 @@ const Game = {
           const family = this.victoryKind === 'family';
           $('#vic-msg').textContent = family
             ? 'Le bébé oiseau a retrouvé toute sa famille !'
-            : 'Malice a sauvé le bébé oiseau ! Maintenant, ramène-le chez lui…';
+            : `${HERO_BY_ID[this.hero].name} a sauvé le bébé oiseau ! Maintenant, ramène-le chez lui…`;
           $('#btn-sequel').classList.toggle('hidden', family);
           $('#vic-stats').textContent = `Friandises : ${this.candies}   •   Score : ${this.score}`;
           Input.setCapture(false);
@@ -586,6 +687,7 @@ const Game = {
       }
     } else {
       this.drawTitleScene(ctx);
+      if ($('#scr-hero').classList.contains('show')) this.drawHeroCards();
     }
   },
 
@@ -663,7 +765,7 @@ const Game = {
       Art.badge(ctx, VIEW_W / 2, 305, 42, lv.badge, this.t);
       drawOutlinedText(ctx, `Gagne le badge « ${BADGE_INFO[lv.badge].name} » !`, VIEW_W / 2, 400, 24, '#ffe2f4');
     } else {
-      Art.maliceHead(ctx, VIEW_W / 2 - 40, 300, 1.6);
+      Heroes.head(ctx, this.hero, VIEW_W / 2 - 40, 300, 1.6);
       drawOutlinedText(ctx, '× ' + (this.lives === Infinity ? '∞' : this.lives), VIEW_W / 2 + 30, 302, 34, '#ffffff');
       drawOutlinedText(ctx, lv.intro || '', VIEW_W / 2, 400, 22, '#ffe2f4');
     }
@@ -712,7 +814,7 @@ const Game = {
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ellipsePath(ctx, 165, 478, 50 - hop, 10);
     ctx.fill();
-    Art.malice(ctx, 165, 476 - hop, {
+    Heroes.draw(ctx, this.hero, 165, 476 - hop, {
       pose: 'hold', t, facing: 1, scale: 2.7, view: '3q',
       holding: (c) => Art.heldBird(c, t, { chirp: Math.floor(t * 3) % 2 === 0 }),
     });
@@ -766,7 +868,7 @@ const Game = {
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ellipsePath(ctx, 400, 498, 40 - hop * 0.6, 8);
     ctx.fill();
-    Art.malice(ctx, 400, 496 - hop, { pose: 'win', t, facing: 1, scale: 2.1, view: '3q' });
+    Heroes.draw(ctx, this.hero, 400, 496 - hop, { pose: 'win', t, facing: 1, scale: 2.1, view: '3q' });
     for (let i = 0; i < 7; i++) {
       const a = t * 1.2 + (i * Math.PI * 2) / 7;
       ctx.font = '700 32px Fredoka, sans-serif';
@@ -858,11 +960,17 @@ const Game = {
         ctx.fill();
       }
     }
-    Art.maliceHead(ctx, 34, 70, 0.75);
+    Heroes.head(ctx, this.hero, 34, 70, 0.75);
     drawOutlinedText(ctx, '×' + (this.lives === Infinity ? '∞' : this.lives), 52, 72, 20, '#ffffff', 'left');
     Art.candy(ctx, 112, 71, 0.8, t, 0);
     drawOutlinedText(ctx, String(this.candies), 130, 72, 20, '#fff3a0', 'left');
     let bx = 30;
+    // le pouvoir du personnage (sur tablette, il y a un bouton)
+    if (this.hero !== 'malice' && !this.isTouch) {
+      this.keyCap(ctx, bx - 6, 112, 'B');
+      drawOutlinedText(ctx, HERO_BY_ID[this.hero].power, bx + 8, 113, 15, '#ffe680', 'left');
+      bx += 30 + ctx.measureText(HERO_BY_ID[this.hero].power).width;
+    }
     for (const b of ['saut', 'grappin']) {
       if (!this.hasBadge(b)) continue;
       Art.badge(ctx, bx, 114, 14, b, t);
@@ -933,6 +1041,8 @@ const Game = {
   textFor(s) {
     const touch = this.isTouch;
     return s
+      .replace(/Malice/g, HERO_BY_ID[this.hero].call)
+      .replace(/\{POUVOIR\}/g, touch ? 'le bouton pouvoir' : 'la touche B')
       .replace(/\{BAS\}/g, touch ? 'le bouton ▼' : 'la flèche ↓')
       .replace(/\{SAUT\}/g, touch ? 'le gros bouton rose' : 'Espace')
       .replace(/\{GRAPPIN\}/g, touch ? 'le bouton moustache' : 'la touche V')
@@ -944,6 +1054,11 @@ const Game = {
   // ---------- Boutons tactiles ----------
   updateTouchUI() {
     $('#t-grapple').classList.toggle('hidden', !this.hasBadge('grappin'));
+    $('#t-power').classList.toggle('hidden', this.hero === 'malice');
+    if (this.powerIcon !== this.hero) {
+      this.powerIcon = this.hero;
+      this.drawIcons($('#t-power'));
+    }
     const playing = this.state === 'play' || this.state === 'dying' || this.state === 'clear' || this.state === 'intro';
     $('#touch').classList.toggle('show', this.isTouch && playing);
     $('#hudbtns').classList.toggle('show', playing || this.state === 'pause');
@@ -1043,6 +1158,11 @@ const Game = {
           break;
         }
         case 'malice': Art.malice(g, c - 2, 47, { pose: 'idle', t: 1, scale: 0.75 }); break;
+        // le bouton pouvoir : la tête du personnage dans une étoile
+        case 'power':
+          Art.star(g, c, c, 23, 0);
+          Heroes.head(g, this.hero, c, c + 1, 0.62);
+          break;
         default: break;
       }
     });

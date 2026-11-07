@@ -3997,5 +3997,7 @@ const Art = (() => {
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,
     eclair, sparks, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
     bat, grumpyBird, gummyBear, candyEye, gem, GEMS, bigBird, birdNest,
+    // pour les autres personnages (heroes.js)
+    paint, mixColor, ouchPose, koStars, spotsOverlay,
   };
 })();

@@ -39,6 +39,14 @@
           <p class="version" id="version"></p>
         </section>
 
+        <!-- Choix du personnage (Malice + 3 tirés au hasard à chaque chargement) -->
+        <section class="screen" id="scr-hero">
+          <h2>Choisis ton personnage</h2>
+          <div class="cards heroes" id="hero-list"></div>
+          <p class="note" id="hero-note">Les personnages changent à chaque fois qu'on recharge le jeu&nbsp;!</p>
+          <button class="small" data-action="back">← Retour</button>
+        </section>
+
         <!-- Difficulté -->
         <section class="screen" id="scr-diff">
           <h2>Choisis la difficulté</h2>
@@ -64,7 +72,7 @@
               <small>3 vies.<br>Plus de vies&nbsp;? Retour au tout début&nbsp;!</small>
             </button>
           </div>
-          <button class="small" data-action="back">← Retour</button>
+          <button class="small" data-action="heroes">← Retour</button>
         </section>
 
         <!-- Choix du niveau -->
@@ -101,6 +109,7 @@
                 <tr><td><kbd>X</kbd></td><td>Lancer du caramel</td></tr>
                 <tr><td><kbd>C</kbd></td><td>Lancer des chips</td></tr>
                 <tr><td><kbd>V</kbd></td><td>Moustache-grappin (badge)</td></tr>
+                <tr><td><kbd>B</kbd></td><td>Pouvoir du personnage</td></tr>
                 <tr><td><kbd>Échap</kbd> ou <kbd>P</kbd></td><td>Pause</td></tr>
                 <tr><td><kbd>M</kbd></td><td>Couper le son</td></tr>
               </table>
@@ -173,6 +182,7 @@
         <div class="tb small item empty" id="t-caramel" data-btn="caramel"><canvas data-icon="caramel" width="30"></canvas><span class="count">0</span></div>
         <div class="tb small item empty" id="t-chips" data-btn="chips"><canvas data-icon="chips" width="30"></canvas><span class="count">0</span></div>
         <div class="tb grapple hidden" id="t-grapple" data-btn="grapple"><canvas data-icon="mustache" width="34"></canvas></div>
+        <div class="tb power hidden" id="t-power" data-btn="power"><canvas data-icon="power" width="50"></canvas></div>
         <div class="tb jump" data-btn="jump">⤒</div>
       </div>
     </div>
@@ -187,7 +197,22 @@
   <script src="js/input.js"></script>
   <script src="js/art.js"></script>
   <script src="js/scenery.js"></script>
+  <script src="js/heroes.js"></script>
+  <script src="js/persos/lutin.js"></script>
+  <script src="js/persos/biche.js"></script>
+  <script src="js/persos/bonbon.js"></script>
+  <script src="js/persos/ronaxel.js"></script>
+  <script src="js/persos/poussin.js"></script>
+  <script src="js/persos/luisy.js"></script>
+  <script src="js/persos/messi.js"></script>
+  <script src="js/persos/licorne.js"></script>
+  <script src="js/persos/dragon.js"></script>
+  <script src="js/persos/pingouin.js"></script>
+  <script src="js/persos/chat.js"></script>
+  <script src="js/persos/sirene.js"></script>
+  <script src="js/persos/dino.js"></script>
   <script src="js/entities.js"></script>
+  <script src="js/pouvoirs.js"></script>
   <script src="js/world.js"></script>
   <script src="js/levels.js"></script>
   <script src="js/game.js"></script>

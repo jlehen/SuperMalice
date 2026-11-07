@@ -200,6 +200,25 @@ const Sound = (() => {
     },
     grapple() { noise({ filter: 'bandpass', f: 1200, f2: 3500, d: 0.12, v: 0.25, q: 3 }); tone({ type: 'square', f: 300, f2: 900, d: 0.1, v: 0.05 }); },
     grab() { tone({ type: 'triangle', f: 1500, d: 0.08, v: 0.2 }); tone({ type: 'triangle', f: 2250, d: 0.15, v: 0.15, delay: 0.05 }); },
+    // ---- les pouvoirs des personnages (pouvoirs.js) ----
+    magic() { arp([1047, 1319, 1568, 2093], { type: 'sine', d: 0.12, v: 0.12, gap: 0.035 }); tone({ type: 'triangle', f: 330, f2: 660, d: 0.15, v: 0.15 }); },
+    magicGone() { tone({ type: 'sine', f: 900, f2: 300, d: 0.18, v: 0.08 }); },
+    kick() { noise({ f: 1800, f2: 300, d: 0.08, v: 0.4 }); tone({ type: 'sine', f: 180, f2: 70, d: 0.1, v: 0.4 }); },
+    // SIUUUU ! (une voix qui monte, puis qui tient)
+    siu() {
+      tone({ type: 'sawtooth', f: 260, f2: 620, d: 0.25, v: 0.07 });
+      tone({ type: 'sawtooth', f: 620, f2: 560, d: 0.7, v: 0.07, delay: 0.22, vib: 7, vibDepth: 18 });
+      noise({ filter: 'highpass', f: 5000, d: 0.12, v: 0.12 });
+    },
+    flap() { noise({ filter: 'bandpass', f: 900, f2: 1600, d: 0.09, v: 0.3, q: 2 }); tone({ type: 'sine', f: 1700, f2: 2300, d: 0.05, v: 0.05 }); },
+    horn() { noise({ filter: 'bandpass', f: 600, f2: 2400, d: 0.3, v: 0.25, q: 1.2 }); arp([523, 784, 1047], { type: 'triangle', d: 0.1, v: 0.12, gap: 0.04 }); },
+    fire() { noise({ filter: 'bandpass', f: 500, f2: 1500, d: 0.25, v: 0.35, q: 1.5 }); tone({ type: 'sine', f: 400, f2: 900, d: 0.12, v: 0.08 }); },
+    slide() { noise({ filter: 'highpass', f: 3500, f2: 1800, d: 0.5, v: 0.12 }); tone({ type: 'triangle', f: 500, f2: 300, d: 0.2, v: 0.08 }); },
+    wallJump() { tone({ type: 'square', f: 400, f2: 1000, d: 0.12, v: 0.06 }); noise({ filter: 'highpass', f: 2500, d: 0.04, v: 0.15 }); },
+    bubble() { [0, 0.07, 0.15].forEach((delay, i) => tone({ type: 'sine', f: 300 + i * 120, f2: 900 + i * 200, d: 0.08, v: 0.15, delay })); },
+    bubblePop() { tone({ type: 'sine', f: 700, f2: 1500, d: 0.05, v: 0.2 }); noise({ filter: 'highpass', f: 3000, d: 0.04, v: 0.15 }); },
+    wave() { noise({ filter: 'lowpass', f: 400, f2: 2200, d: 0.45, v: 0.4 }); },
+    quake() { noise({ f: 300, f2: 50, d: 0.6, v: 0.6 }); tone({ type: 'sine', f: 90, f2: 35, d: 0.55, v: 0.5 }); },
     select() { tone({ type: 'triangle', f: 660, d: 0.07, v: 0.2 }); },
     confirm() { tone({ type: 'triangle', f: 660, d: 0.07, v: 0.2 }); tone({ type: 'triangle', f: 990, d: 0.12, v: 0.2, delay: 0.07 }); },
 

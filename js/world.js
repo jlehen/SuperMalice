@@ -1,11 +1,14 @@
 'use strict';
 
 const LUTIN_BLOCKS = 'LFKCS';
-const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || LUTIN_BLOCKS.includes(ch);
+// u : bloc magique du Lutin (il disparaît tout seul)
+const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || LUTIN_BLOCKS.includes(ch);
 // plateformes qu'on traverse par dessous : planche, nuage… ou pont arc-en-ciel
 const isLedgeCh = (ch) => ch === '-' || ch === '=';
 // les minerais de la grotte, dans l'ordre de Art.GEMS : or, rubis, émeraude, topaze, diamant
 const GEM_CHARS = 'gretd';
+const MAGIC_TIME = 6;
+const MAGIC_MAX = 4;
 
 // Un niveau en cours de jeu : le décor, les personnages et tout ce qui bouge.
 class World {
@@ -32,6 +35,7 @@ class World {
     this.eclairs = [];
     this.particles = [];
     this.bubbles = [];
+    this.magic = [];
     this.goal = null;
     this.storms = def.storms || [];
     this.stormT = 1.5;
@@ -264,6 +268,59 @@ class World {
       o.y + (o.h || 0) > this.cam.y - m && o.y < this.cam.y + VIEW_H + m;
   }
 
+  // ---------- Blocs magiques du Lutin ----------
+  addMagicBlock(c, r) {
+    if (r < 0 || r >= this.rows || c < 0 || c >= this.cols || this.tiles[r][c] !== '.') return false;
+    const box = { x: c * TILE, y: r * TILE, w: TILE, h: TILE };
+    if (this.enemies.some((e) => !e.dying && overlap(e, box))) return false;
+    // pas plus de 4 à la fois : le plus vieux s'en va
+    if (this.magic.length >= MAGIC_MAX) this.removeMagic(this.magic[0]);
+    this.tiles[r][c] = 'u';
+    this.magic.push({ c, r, t: 0 });
+    Sound.sfx.magic();
+    for (let i = 0; i < 12; i++) {
+      this.spawn({ type: 'spark', x: c * TILE + rand(0, TILE), y: r * TILE + rand(0, TILE), vx: rand(-90, 90), vy: rand(-140, -20), life: 0.5, size: rand(3, 6), color: i % 2 ? '#fff6a0' : '#7dff9a' });
+    }
+    return true;
+  }
+
+  removeMagic(m) {
+    this.magic = this.magic.filter((o) => o !== m);
+    if (this.tiles[m.r][m.c] === 'u') this.tiles[m.r][m.c] = '.';
+    Sound.sfx.magicGone();
+    this.puff(m.c * TILE + TILE / 2, m.r * TILE + TILE / 2, '#d8ffe0');
+  }
+
+  updateMagic(dt) {
+    for (const m of this.magic.slice()) {
+      m.t += dt;
+      if (m.t >= MAGIC_TIME) this.removeMagic(m);
+    }
+  }
+
+  drawMagic(ctx) {
+    const img = Scenery.lutinSprite();
+    const pad = Scenery.PAD;
+    for (const m of this.magic) {
+      // il apparaît en grossissant, puis clignote avant de disparaître
+      const left = MAGIC_TIME - m.t;
+      if (left < 1.5 && Math.floor(left * 8) % 2 === 0) continue;
+      const k = Math.min(1, m.t / 0.12);
+      const cx = m.c * TILE + TILE / 2;
+      const cy = m.r * TILE + TILE / 2;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(k, k);
+      ctx.globalAlpha = 0.92;
+      ctx.drawImage(img, -TILE / 2 - pad, -TILE / 2 - pad, TILE + pad * 2, TILE + pad * 2);
+      ctx.globalAlpha = 0.35 + 0.2 * Math.sin(this.t * 6 + m.c);
+      ctx.fillStyle = '#d8ffe0';
+      roundRectPath(ctx, -TILE / 2, -TILE / 2, TILE, TILE - 2, 9);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // ---------- Blocs lutin ----------
   headBump(p, tiles) {
     let best = tiles[0];
@@ -429,6 +486,7 @@ class World {
     for (const a of this.anchors) a.update(dt);
     if (this.goal) this.goal.update(dt);
     if (this.def.sequel) p.birdTalk = this.flowers.reduce((m, f) => Math.max(m, f.show), 0);
+    this.updateMagic(dt);
     this.updateStorms(dt);
     this.updateWinds(dt);
     this.updateLight(dt);
@@ -469,6 +527,10 @@ class World {
         e.kill('star');
         continue;
       }
+      if (p.knocks()) {
+        knockEnemy(p, e, p.pow.knockWord);
+        continue;
+      }
       if (stomps(e.y + 18)) {
         e.stomp();
         p.bounceOff();
@@ -478,7 +540,7 @@ class World {
     }
     for (const h of this.hazards) {
       if (h.dead || (h.harmful && !h.harmful()) || !overlap(pb, h)) continue;
-      if (p.star > 0) {
+      if (p.star > 0 || p.knocks()) {
         h.dead = true;
         this.puff(h.x + h.w / 2, h.y + h.h / 2, '#ddd');
       } else if (h instanceof BlackDot && stomps(h.y + 12)) {
@@ -666,6 +728,7 @@ class World {
     ctx.save();
     ctx.translate(-camX, -camY);
     this.drawLutinShine(ctx, camX, camY);
+    this.drawMagic(ctx);
     for (const cp of this.checkpoints) cp.draw(ctx);
     if (this.goal) this.goal.draw(ctx);
     for (const pl of this.platforms) pl.draw(ctx);

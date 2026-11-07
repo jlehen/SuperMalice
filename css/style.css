@@ -238,6 +238,29 @@ button {
 .screen .card.difficile { background: linear-gradient(#ffb07a, #ff6a3a 60%, #d6401f); box-shadow: 0 calc(var(--s) * 6px) 0 #8a2a12; }
 .screen .card.picked { border-color: var(--yellow); }
 
+/* Cartes des personnages */
+#scr-hero { background: rgba(25, 8, 45, 0.55); gap: calc(var(--s) * 10px); }
+.cards.heroes { flex-wrap: wrap; justify-content: center; max-width: calc(var(--s) * 920px); }
+.screen .card.hero {
+  width: calc(var(--s) * 206px);
+  min-height: calc(var(--s) * 300px);
+  gap: calc(var(--s) * 4px);
+  padding: calc(var(--s) * 10px) calc(var(--s) * 10px) calc(var(--s) * 14px);
+  background: linear-gradient(#b9a2ff, #7a5ae8 60%, #5a3ac0);
+  box-shadow: 0 calc(var(--s) * 6px) 0 #2e1a7a;
+}
+.screen .card.hero.malice { background: linear-gradient(#ffc6e4, #ff7ab8 60%, #e0559a); box-shadow: 0 calc(var(--s) * 6px) 0 #9a2e66; }
+.card.hero canvas { width: calc(var(--s) * 150px); height: calc(var(--s) * 140px); }
+.card.hero b { font-size: calc(var(--s) * 26px); line-height: 1.05; }
+.card.hero i { font-style: normal; font-size: calc(var(--s) * 17px); color: var(--yellow); }
+.card.hero small { font-size: calc(var(--s) * 15px); }
+/* tous les personnages (méthode cachée) : des petites cartes */
+.cards.heroes.many { gap: calc(var(--s) * 8px); }
+.screen .cards.many .card.hero { width: calc(var(--s) * 118px); min-height: 0; padding: calc(var(--s) * 4px); border-width: calc(var(--s) * 3px); border-radius: calc(var(--s) * 18px); }
+.cards.many .card.hero canvas { width: calc(var(--s) * 96px); height: calc(var(--s) * 90px); }
+.cards.many .card.hero b { font-size: calc(var(--s) * 15px); }
+.cards.many .card.hero i, .cards.many .card.hero small { display: none; }
+
 /* Liste des niveaux */
 .row-btns {
   display: flex;
@@ -346,6 +369,7 @@ kbd {
 .pad.right .tb { position: absolute; }
 .tb.jump { right: 0; bottom: 0; width: calc(var(--tb) * 1.2); height: calc(var(--tb) * 1.2); font-size: calc(var(--tb) * 0.55); background: rgba(255, 79, 154, 0.4); }
 .tb.grapple { right: calc(var(--tb) * 1.35); bottom: 0; width: calc(var(--tb) * 0.85); height: calc(var(--tb) * 0.85); background: rgba(150, 100, 255, 0.35); }
+.tb.power { right: calc(var(--tb) * 2.35); bottom: calc(var(--tb) * 0.1); width: calc(var(--tb) * 0.95); height: calc(var(--tb) * 0.95); background: rgba(255, 200, 60, 0.4); }
 .hidden { display: none !important; }
 .tb.small { width: calc(var(--tb) * 0.78); height: calc(var(--tb) * 0.78); flex-direction: column; font-size: calc(var(--tb) * 0.22); font-weight: 700; }
 #t-caramel { right: calc(var(--tb) * 1.4); bottom: calc(var(--tb) * 1.0); }
