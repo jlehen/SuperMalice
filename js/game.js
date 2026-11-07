@@ -352,7 +352,11 @@ const Game = {
   },
 
   powerText(s) {
-    return s.replace(/\{POUVOIR\}/g, this.isTouch ? 'Le bouton pouvoir' : 'La touche B');
+    const what = this.isTouch ? 'le bouton pouvoir' : 'la touche B';
+    // avec une majuscule en début de phrase
+    return s
+      .replace(/^\{POUVOIR\}/, what[0].toUpperCase() + what.slice(1))
+      .replace(/\{POUVOIR\}/g, what);
   },
 
   showDifficulty() {

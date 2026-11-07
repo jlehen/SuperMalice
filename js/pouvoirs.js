@@ -99,7 +99,8 @@ const POWERS = {
       if (p.pw.used || !canPower(p)) return false;
       p.pw.used = true;
       p.vy = -PHYS.jump * 0.92;
-      p.jumping = true;
+      // lancé avec la touche pouvoir : le saut n'est pas coupé parce que saut n'est pas appuyé
+      p.jumping = !!Input.held.jump;
       p.superSpin = 0.55;
       Sound.sfx.jump();
       for (let i = 0; i < 8; i++) {
@@ -231,8 +232,14 @@ const POWERS = {
       pw.cd = 0.75;
       Sound.sfx.horn();
     },
+    stop(p) { p.pw.charge = 0; },
     move(p) {
       if (!(p.pw.charge > 0)) return false;
+      // dans le chocolat, on s'enfonce : pas de charge
+      if (p.inChoco) {
+        p.pw.charge = 0;
+        return false;
+      }
       p.vx = p.facing * 720;
       if (!p.onGround) p.vy = Math.min(p.vy, 0) * 0.5;
       return true;
@@ -275,9 +282,14 @@ const POWERS = {
         Sound.sfx.slide();
       }
     },
+    stop(p) { p.pw.slide = 0; },
     move(p) {
       const pw = p.pw;
       if (!(pw.slide > 0)) return false;
+      if (p.inChoco) {
+        pw.slide = 0;
+        return false;
+      }
       // ça glisse vite, puis un peu moins
       p.vx = p.facing * (420 + 260 * Math.min(1, pw.slide / 0.5));
       return true;
@@ -324,7 +336,7 @@ const POWERS = {
       p.vx = -side * 430;
       p.facing = -side;
       p.boostT = 0.3;
-      p.jumping = true;
+      p.jumping = !!Input.held.jump;
       Sound.sfx.wallJump();
       for (let i = 0; i < 5; i++) {
         p.world.spawn({ type: 'dust', x: side > 0 ? p.x + p.w : p.x, y: p.y + rand(10, 50), vx: -side * rand(20, 80), vy: rand(-40, 40), life: 0.35, size: rand(4, 6) });
@@ -358,6 +370,8 @@ const POWERS = {
         Sound.sfx.bubble();
       }
     },
+    stop(p) { if (p.pw.bubble > 0) this.pop(p); },
+    ceil(p) { if (p.pw.bubble > 0) this.pop(p); },
     pop(p) {
       p.pw.bubble = 0;
       Sound.sfx.bubblePop();

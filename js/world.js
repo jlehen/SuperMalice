@@ -288,6 +288,17 @@ class World {
     if (r < 0 || r >= this.rows || c < 0 || c >= this.cols || this.tiles[r][c] !== '.') return false;
     const box = { x: c * TILE, y: r * TILE, w: TILE, h: TILE };
     if (this.enemies.some((e) => !e.dying && overlap(e, box))) return false;
+    if (this.items.some((it) => !it.dead && overlap(it, box))) return false;
+    if (this.critters.some((ce) => !ce.dead && overlap(ce, box))) return false;
+    // tout le trajet d'une plateforme qui bouge (et la place de celui qui est dessus)
+    for (const pl of this.platforms) {
+      const h = pl.kind === 'h';
+      const path = {
+        x: pl.x0, y: pl.y0 - (h ? 0 : pl.range) - 60,
+        w: pl.w + (h ? pl.range : 0), h: pl.h + 60 + (h ? 0 : pl.range),
+      };
+      if (overlap(path, box)) return false;
+    }
     // pas plus de 4 à la fois : le plus vieux s'en va
     if (this.magic.length >= MAGIC_MAX) this.removeMagic(this.magic[0]);
     this.tiles[r][c] = 'u';
@@ -860,7 +871,8 @@ class World {
         if (this.tiles[r][c] !== '#') continue;
         // sous un plafond (grotte), on cherche le vrai sol plus bas
         if (this.tiles[r - 1][c] === '#') continue;
-        if (this.tiles[r - 1][c] !== '.') break;
+        // (un bloc magique du Lutin posé par terre ne fait pas disparaître l'herbe)
+        if (this.tiles[r - 1][c] !== '.' && this.tiles[r - 1][c] !== 'u') break;
         const h = hash2(c * 3.1, r * 1.7);
         if (h < 0.42) {
           const v = hash2(c, r + 9);

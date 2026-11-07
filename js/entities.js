@@ -329,7 +329,10 @@ class Player {
     const res = w.moveBody(this, dt, this.pound === 2 ? (tiles) => w.poundTiles(this, tiles) : null);
     if (!res.wall) this.vx -= push;
     if (res.landed) this.platform = null;
-    if (res.ceil) w.headBump(this, res.ceil);
+    if (res.ceil) {
+      w.headBump(this, res.ceil);
+      if (pow.ceil) pow.ceil(this);
+    }
     if (!res.landed) this.checkPlatforms();
     if (res.landed) this.springTile();
     if (res.wall && !this.onGround && pow.wall) pow.wall(this, res.wall);
@@ -521,6 +524,12 @@ class Player {
     }
     this.grap = { phase: 'shoot', anchor: a, t: 0, tipX: m.x, tipY: m.y, ang: 0, angV: 0, len: GRAPPLE.len, stuckT: 0 };
     this.pound = 0;
+    this.stopPower();
+  }
+
+  // La charge, la glissade, la bulle… s'arrêtent (grappin, ou quand on a mal).
+  stopPower() {
+    if (this.pow.stop) this.pow.stop(this);
   }
 
   // La moustache part vers l'anneau (ou dans le vide) pendant que Malice bouge normalement.
@@ -679,6 +688,7 @@ class Player {
     const w = this.world;
     if (!OUCH[kind]) kind = 'hit';
     const O = OUCH[kind];
+    this.stopPower();
     this.energy -= 1;
     Sound.sfx.hurt();
     Sound.sfx.ouch(kind);
