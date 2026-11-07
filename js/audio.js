@@ -310,6 +310,23 @@ const Sound = (() => {
         tone({ type: 'sine', f, f2: f * 1.35, d: 0.08, v: 0.055, delay: i * 0.085 + Math.random() * 0.03 });
       }
     },
+
+    // ---- Les Grands Arbres ----
+    // on attrape un pissenlit géant : un souffle qui monte, et trois petites clochettes
+    puffGrab() {
+      noise({ filter: 'bandpass', f: 450, f2: 1800, d: 0.45, v: 0.08, q: 0.9, a: 0.06 });
+      arp([784, 1175, 1568], { type: 'sine', d: 0.25, v: 0.08, gap: 0.07 });
+    },
+    // on le lâche : pfff ! les graines s'envolent en scintillant
+    puffRelease() {
+      noise({ filter: 'highpass', f: 2600, f2: 900, d: 0.5, v: 0.06, a: 0.03 });
+      arp([2093, 1760, 1568, 1319], { type: 'sine', d: 0.18, v: 0.04, gap: 0.05 });
+    },
+    // il a repoussé : un petit « plop » tout doux
+    puffGrow() {
+      tone({ type: 'sine', f: 520, f2: 1250, d: 0.1, v: 0.07 });
+      tone({ type: 'triangle', f: 1568, d: 0.2, v: 0.035, delay: 0.08 });
+    },
   };
 
   // ---------- Instruments ----------

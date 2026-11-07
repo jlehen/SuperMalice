@@ -13,6 +13,15 @@ const Scenery = (() => {
       plat: '#ff7fb6', platDark: '#d24f8c', platLight: '#ffd0e6', platDots: '#ffffff',
       bramble: '#8a3f8a', brambleDark: '#3d1640', thorn: '#ffffff',
     },
+    // les grands arbres : les gros troncs (#) ont de l'écorce et de la mousse dessus,
+    // les plateformes (-) sont des branches avec des feuilles
+    treetops: {
+      dirt: '#9a6438', dirtDark: '#5e3a1e', dirtLight: '#bd8550', stripe: 'rgba(70,35,12,0.3)',
+      top: '#62cf4c', topDark: '#2f9a3a', topLight: '#b4f57c', blades: true, bark: true,
+      brick: '#c08a50', brickDark: '#7a4a22', brickLight: '#e6b878', crate: true,
+      plat: '#9a6438', platDark: '#5e3a1e', platLight: '#c99460', branch: true,
+      bramble: '#8a3f8a', brambleDark: '#3d1640', thorn: '#ffffff',
+    },
     forest: {
       dirt: '#7a5236', dirtDark: '#52341f', dirtLight: '#9a6d48', stripe: 'rgba(40,20,5,0.2)',
       top: '#3fb45a', topDark: '#1f7f3e', topLight: '#8fe08a', blades: true,
@@ -133,9 +142,10 @@ const Scenery = (() => {
       g.fillStyle = bg;
       g.fillRect(0, 0, T, T);
     }
+    if (th.bark) drawBark(g, false);
     // strates
     g.fillStyle = th.stripe;
-    for (const sy of th.fluffy ? [] : [12, 36]) {
+    for (const sy of th.fluffy || th.bark ? [] : [12, 36]) {
       g.beginPath();
       g.moveTo(0, sy);
       for (let x = 0; x <= T; x += 8) g.lineTo(x, sy + Math.sin((x / T) * TAU) * 2.5);
@@ -171,7 +181,7 @@ const Scenery = (() => {
       }
     }
     // cailloux
-    for (let i = 0; i < (th.fluffy || th.biscuit ? 0 : 3); i++) {
+    for (let i = 0; i < (th.fluffy || th.biscuit || th.bark ? 0 : 3); i++) {
       const px = 7 + hash(v * 5.3 + i) * 34;
       const py = (m.t ? 20 : 6) + hash(v * 9.7 + i * 2) * (m.t ? 22 : 36);
       const r = 2.5 + hash(v * 3.1 + i * 5) * 3;
@@ -331,6 +341,69 @@ const Scenery = (() => {
     }
   }
 
+  // ---------- Écorce et troncs (les Grands Arbres) ----------
+  // De longues rainures qui montent (elles se raccordent d'une case à l'autre), et parfois un nœud.
+  function drawBark(g, knot, x0, x1) {
+    const T = TILE;
+    const xa = x0 || 0;
+    const xb = x1 || T;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    for (let k = 0; k < 4; k++) {
+      const bx = 6 + k * 12;
+      if (bx < xa + 4 || bx > xb - 4) continue;
+      const groove = (dx) => {
+        g.beginPath();
+        for (let y = -2; y <= T + 2; y += 4) {
+          const x = bx + dx + Math.sin((y / T) * TAU + k * 1.7) * 2;
+          if (y === -2) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+      };
+      groove(0);
+      g.strokeStyle = 'rgba(60,30,10,0.38)';
+      g.lineWidth = 3;
+      g.stroke();
+      groove(2.6);
+      g.strokeStyle = 'rgba(255,225,180,0.2)';
+      g.lineWidth = 1.2;
+      g.stroke();
+    }
+    if (knot) {
+      // un nœud dans le bois
+      const kx = (xa + xb) / 2 + 2;
+      ellipsePath(g, kx, T * 0.55, 6.5, 9);
+      g.fillStyle = 'rgba(60,30,10,0.45)';
+      g.fill();
+      ellipsePath(g, kx, T * 0.55, 3.5, 5.5);
+      g.fillStyle = 'rgba(30,12,2,0.55)';
+      g.fill();
+      ellipsePath(g, kx - 1.5, T * 0.5, 2.5, 1.2);
+      g.fillStyle = 'rgba(255,225,180,0.35)';
+      g.fill();
+    }
+  }
+
+  // Un morceau de tronc (|) : il est dans le décor, un peu plus sombre que les gros troncs (#).
+  // l / r : c'est le bord gauche / droit du tronc.
+  function trunkSprite(l, r, v) {
+    return sprite(`tr:${l | 0}${r | 0}:${v}`, TILE, TILE, (g) => {
+      const T = TILE;
+      const x0 = l ? 4 : 0;
+      const x1 = r ? T - 4 : T;
+      // la lumière vient de la gauche : le tronc s'assombrit vers la droite (sur deux cases)
+      const gr = g.createLinearGradient(l ? x0 : -T, 0, r ? x1 : 2 * T, 0);
+      gr.addColorStop(0, '#a87442');
+      gr.addColorStop(0.45, '#83522c');
+      gr.addColorStop(1, '#5c381c');
+      g.fillStyle = gr;
+      g.fillRect(x0, 0, x1 - x0, T);
+      drawBark(g, v === 0, x0, x1);
+      g.fillStyle = 'rgba(50,25,8,0.75)';
+      if (l) g.fillRect(x0, 0, 2, T);
+      if (r) g.fillRect(x1 - 2, 0, 2, T);
+    });
+  }
+
   function groundSprite(theme, m, v) {
     const key = `g:${theme}:${m.t | 0}${m.l | 0}${m.r | 0}${m.b | 0}:${v}`;
     return sprite(key, TILE + PAD * 2, TILE + PAD * 2, (g) => drawGround(g, THEMES[theme], m, v));
@@ -465,14 +538,81 @@ const Scenery = (() => {
     });
   }
 
+  // Une feuille : de (x, y) vers l'angle a, longue de 12 * s.
+  function leaf(g, x, y, a, s, color) {
+    g.save();
+    g.translate(x, y);
+    g.rotate(a);
+    g.scale(s, s);
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.quadraticCurveTo(5, -5.5, 12, 0);
+    g.quadraticCurveTo(5, 5.5, 0, 0);
+    g.closePath();
+    g.fillStyle = color;
+    g.fill();
+    g.strokeStyle = 'rgba(30,90,30,0.55)';
+    g.lineWidth = 0.8;
+    g.beginPath();
+    g.moveTo(1, 0);
+    g.lineTo(10, 0);
+    g.stroke();
+    g.restore();
+  }
+
   // ---------- Plateformes traversables ----------
-  function platformSprite(theme, l, r) {
-    return sprite(`p:${theme}:${l | 0}${r | 0}`, TILE + PAD * 2, TILE + PAD * 2, (g) => {
+  // v : petite variante du dessin (pour les branches des Grands Arbres)
+  function platformSprite(theme, l, r, v) {
+    const key = THEMES[theme].branch ? `p:${theme}:${l | 0}${r | 0}:${v | 0}` : `p:${theme}:${l | 0}${r | 0}`;
+    return sprite(key, TILE + PAD * 2, TILE + PAD * 2, (g) => {
       const th = THEMES[theme];
       const T = TILE;
       g.translate(PAD, PAD);
       const x0 = l ? 2 : -1;
       const x1 = r ? T - 2 : T + 1;
+      if (th.branch) {
+        // une branche : du bois, de la mousse dessus, des feuilles qui pendent dessous
+        const gr = g.createLinearGradient(0, 1, 0, 16);
+        gr.addColorStop(0, th.platLight);
+        gr.addColorStop(0.45, th.plat);
+        gr.addColorStop(1, th.platDark);
+        g.fillStyle = gr;
+        cornerRect(g, x0, 1, x1 - x0, 15, l ? 7 : 0, r ? 7 : 0, r ? 7 : 0, l ? 7 : 0);
+        g.fill();
+        g.strokeStyle = 'rgba(60,30,10,0.4)';
+        g.lineWidth = 1.3;
+        g.lineCap = 'round';
+        for (const [y, ph] of [[7, v], [11, v + 2]]) {
+          g.beginPath();
+          g.moveTo(x0 + 4, y);
+          for (let x = x0 + 4; x <= x1 - 4; x += 4) g.lineTo(x, y + Math.sin(x * 0.3 + ph) * 0.9);
+          g.stroke();
+        }
+        // la mousse sur le dessus
+        g.fillStyle = '#5fbf45';
+        g.beginPath();
+        g.moveTo(x0 + (l ? 3 : 0), 4);
+        for (let x = x0 + (l ? 3 : 0); x <= x1 - (r ? 3 : 0); x += 4) g.lineTo(x, 0.5 + Math.sin(x * 0.45 + v) * 1.2);
+        g.lineTo(x1 - (r ? 3 : 0), 4);
+        g.closePath();
+        g.fill();
+        g.fillStyle = 'rgba(200,255,160,0.55)';
+        roundRectPath(g, x0 + 5, 0.5, x1 - x0 - 10, 1.5, 0.8);
+        g.fill();
+        // des feuilles qui pendent (et une petite pousse dessus)
+        const cols = ['#4fb84a', '#6fd25a', '#3a9e3e'];
+        const spots = [[[9, 1.9], [33, 1.25]], [[18, 1.6], [41, 2.1]], [[6, 1.35], [27, 1.8]]][v % 3];
+        spots.forEach(([lx, a], i) => leaf(g, lx, 14, a, 1, cols[(i + v) % 3]));
+        leaf(g, 22 + v * 6, 1, -1.2 - v * 0.3, 0.8, cols[(v + 1) % 3]);
+        // au bout de la branche, une touffe de feuilles
+        for (const [on, ex, dir] of [[l, x0, -1], [r, x1, 1]]) {
+          if (!on) continue;
+          leaf(g, ex, 6, dir > 0 ? -0.5 : Math.PI + 0.5, 1.1, cols[0]);
+          leaf(g, ex, 9, dir > 0 ? 0.3 : Math.PI - 0.3, 1.2, cols[1]);
+          leaf(g, ex - dir * 3, 12, dir > 0 ? 1.0 : Math.PI - 1.0, 1, cols[2]);
+        }
+        return;
+      }
       if (th.cloud) {
         g.fillStyle = th.platDark;
         for (let i = 0; i < 4; i++) {
@@ -970,7 +1110,127 @@ const Scenery = (() => {
     ctx.fill();
   }
 
+  // ---------- Feuillage en haut d'un tronc (les Grands Arbres) ----------
+  // Une grosse touffe de feuilles autour du haut du tronc (x, y), large de w (le tronc), qui bouge un peu.
+  function crown(ctx, x, y, w, v, t) {
+    const R = 46 + w * 0.32;
+    const puffs = [];
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * TAU + v * 3;
+      const d = R * (0.55 + hash(v * 7 + i) * 0.25);
+      puffs.push([Math.cos(a) * d * 1.3, Math.sin(a) * d * 0.7, R * (0.42 + hash(v * 3 + i * 2) * 0.18)]);
+    }
+    puffs.push([0, 0, R * 0.72]);
+    ctx.save();
+    ctx.translate(x + Math.sin(t * 0.9 + v * 10) * 2.5, y - R * 0.3);
+    ctx.fillStyle = '#2a8a3c';
+    puffs.forEach(([px, py, r]) => { circlePath(ctx, px, py + 8, r); ctx.fill(); });
+    ctx.fillStyle = '#44b64d';
+    puffs.forEach(([px, py, r]) => { circlePath(ctx, px, py, r); ctx.fill(); });
+    ctx.fillStyle = '#6ccf58';
+    puffs.forEach(([px, py, r]) => {
+      if (py > R * 0.15) return;
+      circlePath(ctx, px - r * 0.2, py - r * 0.28, r * 0.58);
+      ctx.fill();
+    });
+    // des petites feuilles qui dépassent, et quelques fleurs
+    for (let i = 0; i < 16; i++) {
+      const a = hash(v * 5 + i * 1.3) * TAU;
+      const d = R * (0.5 + hash(v * 9 + i) * 0.55);
+      const lx = Math.cos(a) * d * 1.3;
+      const ly = Math.sin(a) * d * 0.72;
+      leaf(ctx, lx, ly, a + Math.sin(t * 1.7 + i) * 0.15, 0.9, i % 3 ? '#8fe26a' : '#2f9a46');
+    }
+    if (v < 0.65) {
+      for (let i = 0; i < 6; i++) {
+        const a = hash(v * 13 + i * 2.1) * TAU;
+        const d = R * (0.2 + hash(v * 17 + i) * 0.6);
+        const fx = Math.cos(a) * d * 1.2;
+        const fy = Math.sin(a) * d * 0.6;
+        ctx.fillStyle = v < 0.3 ? '#ffd0e6' : '#ffffff';
+        for (let k = 0; k < 5; k++) {
+          circlePath(ctx, fx + Math.cos((k / 5) * TAU) * 3, fy + Math.sin((k / 5) * TAU) * 3, 2.6);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#ffc21f';
+        circlePath(ctx, fx, fy, 1.8);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
   const BG = {
+    // tout là-haut dans les arbres : le ciel, des nuages sous nos pieds, d'autres grands arbres au loin,
+    // les cimes juste en dessous, et la prairie tout en bas
+    treetops(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#3fb0ff'], [0.55, '#a4e0ff'], [0.85, '#dcf4ff'], [1, '#effbff']]);
+      const sy = 62 - cy * 0.05;
+      const sg = ctx.createRadialGradient(760, sy, 8, 760, sy, 50);
+      sg.addColorStop(0, '#fffde0');
+      sg.addColorStop(0.6, '#ffe45c');
+      sg.addColorStop(1, 'rgba(255,220,80,0)');
+      ctx.fillStyle = sg;
+      circlePath(ctx, 760, sy, 50);
+      ctx.fill();
+      forEachItem(cx * 0.05 - t * 6, 380, 2, (x, i, h) => fluffyCloud(ctx, x, 50 + h * 90 - cy * 0.05, 0.7 + h * 0.5, '#ffffff', '#d6ecff'));
+      // la prairie, tout en bas, au loin
+      const off0 = cx * 0.08;
+      const py = 470 - cy * 0.1;
+      hillPath(ctx, off0, py, 16, 0.005, 2.1);
+      stripedFill(ctx, '#b4e6a0', 'rgba(255,255,255,0.18)', off0, 18);
+      forEachItem(off0, 60, 31, (x, i, h) => {
+        const cols = ['#ff9fd0', '#fff07a', '#ffffff', '#ffc08a'];
+        ctx.fillStyle = cols[i & 3];
+        circlePath(ctx, x, py + 18 + h * 50, 1.8);
+        ctx.fill();
+        if (h < 0.35) roundTree(ctx, x + 20, py + 26 + h * 40, 18 + h * 12, '#b9a07a', '#8fd08a', '#76b878');
+      });
+      // une petite brume : c'est loin
+      const hz = ctx.createLinearGradient(0, py - 40, 0, py + 60);
+      hz.addColorStop(0, 'rgba(235,250,255,0)');
+      hz.addColorStop(1, 'rgba(235,250,255,0.45)');
+      ctx.fillStyle = hz;
+      ctx.fillRect(0, py - 40, VIEW_W, VIEW_H - py + 40);
+      // d'autres grands arbres, au loin
+      const off1 = cx * 0.22;
+      forEachItem(off1, 260, 21, (x, i, h) => {
+        const top = 70 + h * 130 - cy * 0.22;
+        const tw = 22 + h * 12;
+        ctx.fillStyle = '#a7bfae';
+        ctx.fillRect(x - tw / 2, top, tw, VIEW_H - top);
+        ctx.fillStyle = '#9fceaa';
+        for (const [dx, dy, r] of [[-40, 10, 42], [38, 4, 46], [0, -22, 52], [-14, 26, 40], [20, 28, 38]]) {
+          circlePath(ctx, x + dx * (0.8 + h * 0.4), top + dy, r * (0.8 + h * 0.4));
+          ctx.fill();
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        circlePath(ctx, x - 14, top - 30, 24);
+        ctx.fill();
+      });
+      // des nuages sous nos pieds
+      forEachItem(cx * 0.3 - t * 10, 420, 9, (x, i, h) => {
+        if (h < 0.5) fluffyCloud(ctx, x, 400 + h * 60 - cy * 0.3, 0.9 + h * 0.5, 'rgba(255,255,255,0.9)', 'rgba(214,236,255,0.9)');
+      });
+      // les cimes des arbres, juste en dessous (avec des trous : on voit la prairie)
+      const off2 = cx * 0.5;
+      forEachItem(off2, 170, 23, (x, i, h) => {
+        if (h < 0.3) return;
+        const by = 545 - cy * 0.45 + h * 20;
+        const s = 0.8 + h * 0.5;
+        for (const [col, dy] of [['#2f9a46', 8], ['#4fbf5a', 0]]) {
+          ctx.fillStyle = col;
+          for (const [dx, ey, r] of [[-50, 10, 40], [-15, -12, 50], [30, -4, 46], [62, 14, 36]]) {
+            circlePath(ctx, x + dx * s, by + ey * s + dy, r * s);
+            ctx.fill();
+          }
+        }
+        ctx.fillStyle = 'rgba(160,240,130,0.6)';
+        circlePath(ctx, x - 22 * s, by - 30 * s, 20 * s);
+        ctx.fill();
+      });
+    },
+
     meadow(ctx, cx, cy, t) {
       sky(ctx, [[0, '#45b4ff'], [0.55, '#9fdcff'], [1, '#e6f8ff']]);
       // soleil
@@ -1662,6 +1922,29 @@ const Scenery = (() => {
           ctx.fill();
         }
       }
+    } else if (theme === 'treetops') {
+      if (v < 0.45) {
+        // un petit pissenlit jaune
+        ctx.rotate(sway);
+        ctx.strokeStyle = '#3f8a2c';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -13);
+        ctx.stroke();
+        Art.dandelionFlower(ctx, 0, -15, 7, 1);
+      } else {
+        // trèfles
+        ctx.fillStyle = '#3fae45';
+        for (const [dx, h] of [[-5, 7], [3, 10], [9, 6]]) {
+          ctx.fillRect(dx - 0.6, -h, 1.2, h);
+          for (let k = 0; k < 3; k++) {
+            const a = (k / 3) * TAU - Math.PI / 2 + sway;
+            circlePath(ctx, dx + Math.cos(a) * 2.6, -h + Math.sin(a) * 2.6, 2.4);
+            ctx.fill();
+          }
+        }
+      }
     } else if (theme === 'forest') {
       if (v < 0.4) {
         // champignon
@@ -1825,5 +2108,6 @@ const Scenery = (() => {
   return {
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
     rainbowSprite, bounceSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
+    trunkSprite, crown,
   };
 })();

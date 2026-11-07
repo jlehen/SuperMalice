@@ -65,6 +65,9 @@ class World {
     this.winds = (def.winds || []).map(([a, b, dir], i) => ({ a, b, dir, ph: i * 1.7, on: false }));
     // champignons et guimauves qui s'écrasent quand on rebondit dessus
     this.springs = new Map();
+    // pissenlits géants, et courants d'air qui font monter : [première colonne, dernière colonne, rangée]
+    this.puffs = [];
+    this.updrafts = (def.updrafts || []).map(([a, b, row]) => ({ a, b, top: row * TILE - 12 }));
 
     let start = { x: 3 * TILE, y: 11 * TILE };
     const flowerSpots = [];
@@ -106,6 +109,13 @@ class World {
             }
             break;
           case 'A': this.hazards.push(new Stalactite(this, x, y)); break;
+          case '*': {
+            // planté sur une branche ou sur le sol, ou bien qui flotte en l'air
+            const below = this.tileAt(c, r + 1);
+            const planted = isSolidCh(below) || isLedgeCh(below);
+            this.puffs.push(new Dandelion(this, mx, planted ? by : y + TILE / 2, planted));
+            break;
+          }
           default:
             if (GEM_CHARS.includes(ch)) {
               const it = new Item(this, 'gem', mx, y + TILE / 2);
@@ -130,6 +140,7 @@ class World {
     }
     this.player = new Player(this, start.x - 14, start.y - 56);
     this.player.y = start.y - this.player.h;
+    this.crowns = this.findCrowns();
     this.updateCamera(0, true);
   }
 
@@ -312,10 +323,59 @@ class World {
       o.y + (o.h || 0) > this.cam.y - m && o.y < this.cam.y + VIEW_H + m;
   }
 
+  // ---------- Les Grands Arbres ----------
+  // Un tronc (|) est dans le décor : on passe devant. Il continue derrière une branche qui le traverse,
+  // et derrière ce qui est posé dessus (friandise, ennemi…).
+  trunkAt(c, r) {
+    const ch = this.tileAt(c, r);
+    // (le bloc magique du Lutin posé devant un tronc)
+    if (ch === 'u' && this.magic.some((m) => m.c === c && m.r === r && m.under === '|')) return true;
+    return ch === '|' || (this.tileAt(c, r + 1) === '|' && (ch === '-' || this.tileAt(c, r - 1) === '|'));
+  }
+
+  // Le feuillage en haut de chaque tronc : une grosse touffe par tronc (les colonnes côte à côte).
+  findCrowns() {
+    const crowns = [];
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        if (!this.trunkAt(c, r) || (r > 0 && this.trunkAt(c, r - 1)) || this.trunkAt(c - 1, r)) continue;
+        let e = c;
+        while (this.trunkAt(e + 1, r) && !(r > 0 && this.trunkAt(e + 1, r - 1))) e++;
+        crowns.push({ x: (c + e + 1) * TILE / 2, y: r * TILE, w: (e - c + 1) * TILE, v: hash2(c, r) });
+      }
+    }
+    return crowns;
+  }
+
+  // Le courant d'air où se trouve Malice (s'il y en a un).
+  updraftAt(b) {
+    const col = (b.x + b.w / 2) / TILE;
+    return this.updrafts.find((z) => col >= z.a && col < z.b + 1) || null;
+  }
+
+  // Une graine de pissenlit qui s'envole.
+  seed(x, y, vx, vy) {
+    this.spawn({ type: 'seed', x, y, vx, vy, g: -12, drag: 0.8, life: rand(1.8, 2.8), size: rand(0.9, 1.25), wob: rand(0, 6) });
+  }
+
+  // Dans un courant d'air, des feuilles montent en tournoyant.
+  updateUpdrafts(dt) {
+    for (const z of this.updrafts) {
+      const x0 = z.a * TILE;
+      const x1 = (z.b + 1) * TILE;
+      if (x1 < this.cam.x - 60 || x0 > this.cam.x + VIEW_W + 60 || Math.random() > dt * 7) continue;
+      this.spawn({
+        type: 'leaf', x: rand(x0 + 10, x1 - 10), y: this.cam.y + VIEW_H + 10, vx: rand(-20, 20), vy: rand(-240, -170),
+        life: rand(2.2, 3), size: rand(1.2, 1.7), vr: rand(-4, 4), wob: rand(0, 6), color: choose(['#7ccf4f', '#a8e05a', '#ffd84a', '#58b53c']),
+      });
+    }
+  }
+
   // ---------- Blocs magiques du Lutin ----------
   addMagicBlock(c, r) {
     const under = r >= 0 && r < this.rows && c >= 0 && c < this.cols ? this.tiles[r][c] : '#';
-    if (under !== '.' && under !== 'w') return false;
+    // (aussi dans une flaque ou devant un tronc d'arbre : ils reviennent quand le bloc s'en va)
+    if (under !== '.' && under !== 'w' && under !== '|') return false;
     const box = { x: c * TILE, y: r * TILE, w: TILE, h: TILE };
     if (this.enemies.some((e) => !e.dying && overlap(e, box))) return false;
     if (this.items.some((it) => !it.dead && overlap(it, box))) return false;
@@ -548,11 +608,13 @@ class World {
     for (const f of this.flowers) f.update(dt);
     for (const ce of this.critters) ce.update(dt);
     for (const a of this.anchors) a.update(dt);
+    for (const d of this.puffs) d.update(dt);
     if (this.goal) this.goal.update(dt);
     if (this.def.sequel) p.birdTalk = this.flowers.reduce((m, f) => Math.max(m, f.show), 0);
     this.updateMagic(dt);
     this.updateStorms(dt);
     this.updateWinds(dt);
+    this.updateUpdrafts(dt);
     this.updateLight(dt);
     for (const [k, v] of this.springs) {
       if (v > 0.4) this.springs.delete(k); else this.springs.set(k, v + dt);
@@ -626,6 +688,14 @@ class World {
     }
     for (const ce of this.critters) {
       if (!ce.dead && overlap(pb, ce)) this.catchEye(ce);
+    }
+    // les pissenlits géants : on les attrape en les touchant (mais si l'on reste immobile dessus
+    // pendant qu'il repousse, on ne le reprend pas tout seul : il faut bouger, ou sauter)
+    const still = p.onGround && Math.abs(p.vx) < 1 && !Input.held.left && !Input.held.right;
+    for (const d of this.puffs) {
+      const touch = !p.grap && overlap(pb, d.box());
+      if (touch && d.ready() && (!d.touched || !still)) p.grabPuff(d);
+      d.touched = touch;
     }
   }
 
@@ -744,6 +814,7 @@ class World {
     for (const q of this.particles) {
       q.life -= dt;
       q.vy += (q.g || 0) * dt;
+      if (q.drag) q.vx *= Math.max(0, 1 - q.drag * dt);
       q.x += q.vx * dt;
       q.y += q.vy * dt;
       if (q.vr) q.rot += q.vr * dt;
@@ -784,6 +855,9 @@ class World {
     this.lights.length = 0;
     this.drawStormClouds(ctx);
     this.drawWinds(ctx);
+    this.drawTrunks(ctx, camX, camY);
+    this.drawCrowns(ctx);
+    this.drawUpdrafts(ctx);
     this.drawDecor(ctx, camX);
     for (const f of this.flowers) f.draw(ctx);
     ctx.restore();
@@ -796,6 +870,9 @@ class World {
     this.drawLutinShine(ctx, camX, camY);
     this.drawMagic(ctx);
     for (const cp of this.checkpoints) cp.draw(ctx);
+    for (const d of this.puffs) {
+      if (d.x > camX - 140 && d.x < camX + VIEW_W + 140) d.draw(ctx);
+    }
     if (this.goal) this.goal.draw(ctx);
     for (const pl of this.platforms) pl.draw(ctx);
     for (const a of this.anchors) a.draw(ctx);
@@ -833,7 +910,8 @@ class World {
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         const ch = this.tiles[r][c];
-        if (ch === '.' || ch === '~') continue;
+        // (les troncs sont dessinés avant, avec le feuillage : voir drawTrunks)
+        if (ch === '.' || ch === '~' || ch === '|') continue;
         let img = null;
         if (ch === '#') {
           const m = { t: !isG(c, r - 1) && r > 0, l: !isG(c - 1, r), r: !isG(c + 1, r), b: !isG(c, r + 1) };
@@ -843,7 +921,7 @@ class World {
         } else if (LUTIN_BLOCKS.includes(ch)) {
           img = Scenery.lutinSprite();
         } else if (ch === '-') {
-          img = Scenery.platformSprite(th, this.tileAt(c - 1, r) !== '-', this.tileAt(c + 1, r) !== '-');
+          img = Scenery.platformSprite(th, this.tileAt(c - 1, r) !== '-', this.tileAt(c + 1, r) !== '-', Math.floor(hash2(c, r) * 3));
         } else if (ch === '=') {
           img = Scenery.rainbowSprite(this.tileAt(c - 1, r) !== '=', this.tileAt(c + 1, r) !== '=');
         } else if (ch === 'M') {
@@ -1006,6 +1084,73 @@ class World {
     }
   }
 
+  // Les courants d'air qui montent : de longues traînées blanches qui ondulent vers le haut.
+  drawUpdrafts(ctx) {
+    for (const z of this.updrafts) {
+      const x0 = z.a * TILE;
+      const x1 = (z.b + 1) * TILE;
+      if (x1 < this.cam.x - 50 || x0 > this.cam.x + VIEW_W + 50) continue;
+      const top = z.top - 30;
+      const g = ctx.createLinearGradient(0, top, 0, this.cam.y + VIEW_H);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(0.3, 'rgba(255,255,255,0.14)');
+      g.addColorStop(1, 'rgba(255,255,255,0.2)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x0 + 6, top, x1 - x0 - 12, this.cam.y + VIEW_H - top);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, top, x1 - x0, this.cam.y + VIEW_H - top);
+      ctx.clip();
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      const step = 90;
+      for (let x = x0 + 22; x < x1 - 10; x += 34) {
+        const off = (this.t * 160 + hash(x) * step) % step;
+        for (let y = this.cam.y + VIEW_H + step - off; y > top - step; y -= step) {
+          ctx.beginPath();
+          ctx.moveTo(x + Math.sin(y * 0.05) * 5, y);
+          ctx.quadraticCurveTo(x + Math.sin(y * 0.05 + 1.5) * 9, y - 15, x + Math.sin(y * 0.05 + 3) * 5, y - 30);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+  }
+
+  // Les troncs d'arbre (on passe devant), aussi derrière une branche qui les traverse.
+  drawTrunks(ctx, camX, camY) {
+    const c0 = Math.max(0, Math.floor(camX / TILE) - 1);
+    const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / TILE) + 1);
+    const r0 = Math.max(0, Math.floor(camY / TILE) - 1);
+    const r1 = Math.min(this.rows - 1, Math.ceil((camY + VIEW_H) / TILE) + 1);
+    const th = Scenery.THEMES[this.theme];
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) {
+        // derrière l'écorce des gros troncs, du bois : on ne voit pas le ciel entre deux cases
+        // (mais pas derrière la mousse du dessus, qui est arrondie)
+        if (th.bark && this.tiles[r][c] === '#') {
+          const more = (ch) => (ch === '#' ? 1 : 0);
+          const top = this.tileAt(c, r - 1) === '#' ? 0 : 14;
+          ctx.fillStyle = th.dirt;
+          ctx.fillRect(c * TILE, r * TILE + top, TILE + more(this.tileAt(c + 1, r)), TILE - top + more(this.tileAt(c, r + 1)));
+        }
+        if (!this.trunkAt(c, r)) continue;
+        const img = Scenery.trunkSprite(!this.trunkAt(c - 1, r), !this.trunkAt(c + 1, r), Math.floor(hash2(c, r) * 6));
+        // (un tout petit peu plus haut que la case : pas de trait de ciel entre deux cases)
+        ctx.drawImage(img, c * TILE, r * TILE, TILE, TILE + 1);
+      }
+    }
+  }
+
+  // Le feuillage en haut des troncs (devant les troncs, derrière les branches et derrière Malice).
+  drawCrowns(ctx) {
+    for (const k of this.crowns) {
+      if (k.x + 200 < this.cam.x || k.x - 200 > this.cam.x + VIEW_W) continue;
+      Scenery.crown(ctx, k.x, k.y, k.w, k.v, this.t);
+    }
+  }
+
   // Le noir de la grotte : on ne voit qu'autour de Malice et de ce qui brille.
   drawDarkness(ctx, camX, camY) {
     const p = this.player;
@@ -1159,6 +1304,31 @@ class World {
           ctx.fillStyle = q.color;
           ctx.fillText(q.text, q.x, q.y);
           break;
+        case 'seed':
+          // une graine de pissenlit qui se balance sous son parachute
+          ctx.globalAlpha = Math.min(1, a * 2.5);
+          Art.dandelionSeed(ctx, q.x + Math.sin(q.life * 3 + q.wob) * 6, q.y, q.size, Math.sin(q.life * 3 + q.wob) * 0.35);
+          break;
+        case 'leaf': {
+          // une feuille qui monte en tournoyant (courant d'air)
+          ctx.globalAlpha = Math.min(1, a * 3) * 0.85;
+          ctx.translate(q.x + Math.sin(q.life * 2.5 + q.wob) * 12, q.y);
+          ctx.rotate(q.rot);
+          ctx.scale(q.size, q.size * Math.cos(q.life * 4 + q.wob));
+          ctx.fillStyle = q.color;
+          ctx.beginPath();
+          ctx.moveTo(-8, 0);
+          ctx.quadraticCurveTo(0, -6, 8, 0);
+          ctx.quadraticCurveTo(0, 6, -8, 0);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(40,100,30,0.5)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-7, 0);
+          ctx.lineTo(7, 0);
+          ctx.stroke();
+          break;
+        }
         case 'wind': {
           ctx.globalAlpha = Math.min(1, a * 2) * 0.7;
           ctx.strokeStyle = '#ffffff';

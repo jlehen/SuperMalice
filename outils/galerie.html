@@ -41,7 +41,7 @@
     // &oiseau=1 : le bébé oiseau sur la tête, comme pendant le retour à la maison
     const withBird = P.has('oiseau');
     // poses communes, puis les poses spéciales des pouvoirs
-    const POSES = ['idle', 'walk', 'run', 'jump', 'fall', 'pound', 'crouch', 'throw', 'hang', 'hurt', 'win', 'hold',
+    const POSES = ['idle', 'walk', 'run', 'jump', 'fall', 'pound', 'crouch', 'throw', 'hang', 'hurt', 'win', 'hold', 'float',
       'ouch:butt', 'ouch:ko', 'ouch:soot', 'ouch:zap', 'star', 'power1', 'power2'];
     // les poses spéciales des pouvoirs (voir pouvoirs.js)
     const POWER_POSES = {
@@ -125,6 +125,17 @@
             Art.babyBird(g, 0, 0, t, { noNest: true });
             g.restore();
           };
+        }
+        if (c.p === 'float') {
+          // le pissenlit géant tenu au-dessus de la tête (comme Player.puffHead)
+          const [hx, hy] = HERO_HAT[heroOf(c.id)] || HERO_HAT.malice;
+          ctx.save();
+          ctx.translate(c.x, c.y);
+          ctx.scale(SC, SC);
+          const len = 40 - hy * 0.45;
+          Art.dandelionStem(ctx, hx + 12, hy * 0.55 + 4, hx + 12, hy * 0.55 - len + 8, Math.sin(t * 2.6) * 4);
+          Art.dandelion(ctx, hx + 12, hy * 0.55 - len, 28, t, {});
+          ctx.restore();
         }
         Heroes.draw(ctx, heroOf(c.id), c.x, c.y, o);
       }

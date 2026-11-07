@@ -22,8 +22,8 @@
 //   label(p)            le nom du pouvoir dans le HUD, s'il change (le Gremlin)
 // =====================================================================
 
-// Peut-on se servir de son pouvoir maintenant ?
-const canPower = (p) => p.hurtT <= 0 && !p.pound && !p.grap && !p.crouch;
+// Peut-on se servir de son pouvoir maintenant ? (pas en tenant un pissenlit géant : on a les mains prises)
+const canPower = (p) => p.hurtT <= 0 && !p.pound && !p.grap && !p.crouch && !p.puff;
 
 // La pose spéciale reste un petit moment (p.pw.poseT secondes).
 function powerPose(p, name, time) {
@@ -119,7 +119,7 @@ const POWERS = {
     bounce: 1.35,
     update(p, dt, I) {
       const pw = p.pw;
-      pw.ball = I.held.power && !p.grap && p.hurtT <= 0;
+      pw.ball = I.held.power && !p.grap && !p.puff && p.hurtT <= 0;
       pw.roll = (pw.roll || 0) + (p.vx * dt) / 24;
       if (pw.ball && Math.random() < dt * 12) {
         p.world.spawn({ type: 'spark', x: p.cx + rand(-14, 14), y: p.y + p.h - rand(0, 40), vy: -30, life: 0.4, size: rand(3, 5), color: i2c(Math.random()) });
@@ -193,7 +193,7 @@ const POWERS = {
     jump(p, v) { return v * 1.12; },
     fall(p) {
       const I = Input.held;
-      p.pw.gliding = p.vy > 0 && !p.onGround && (I.jump || I.power) && p.hurtT <= 0;
+      p.pw.gliding = p.vy > 0 && !p.onGround && (I.jump || I.power) && p.hurtT <= 0 && !p.puff;
       if (p.pw.gliding) {
         p.vy = Math.min(p.vy, 120);
         if (Math.random() < 0.15) {
@@ -323,7 +323,7 @@ const POWERS = {
           p.facing = side;
         }
       }
-      if ((pw.wall || pw.wallT > 0) && I.pressed.power) this.airJump(p);
+      if ((pw.wall || pw.wallT > 0) && I.pressed.power && !p.puff) this.airJump(p);
     },
     wall(p, side) {
       if (p.vy > -150 && p.hurtT <= 0) p.pw.wall = side;

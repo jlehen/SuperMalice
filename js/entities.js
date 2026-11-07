@@ -28,6 +28,12 @@ const PHYS = {
   // chocolat : on s'y enfonce doucement (pixels par seconde), et au bout de ce temps on perd une vie
   chocoSink: 36,
   chocoTime: 2.8,
+  // pissenlit géant : on descend tout doucement, on avance moins vite, il soulève un peu
+  // quand on l'attrape, et on remonte dans les courants d'air (pixels par seconde)
+  puffFall: 80,
+  puffRun: 250,
+  puffLift: 300,
+  puffRise: 140,
 };
 
 // Moustache-grappin : portée, vitesse de la moustache, vitesse de traction, longueur de la corde.
@@ -118,6 +124,8 @@ class Player {
     this.birdGone = false;
     this.chirpT = rand(4, 9);
     this.beakT = 0;
+    // le pissenlit géant qu'elle tient au-dessus de sa tête (les Grands Arbres)
+    this.puff = null;
     // le personnage choisi et son pouvoir (voir heroes.js et pouvoirs.js)
     this.hero = world.game.hero || 'malice';
     this.pow = POWERS[this.hero] || {};
@@ -147,6 +155,7 @@ class Player {
       return;
     }
     if (this.won) {
+      this.dropPuff();
       this.vx = approach(this.vx, 0, PHYS.decGround * dt);
       this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
       w.moveBody(this, dt);
@@ -230,6 +239,8 @@ class Player {
     }
     let top = this.inChoco ? 110 : this.running ? PHYS.sprint : PHYS.run;
     if (pow.top && !this.inChoco) top = pow.top(this, top);
+    // avec le pissenlit, on plane sans se presser
+    if (this.puff) top = PHYS.puffRun;
 
     if (this.pound) {
       this.vx = 0;
@@ -255,7 +266,7 @@ class Player {
     else this.jumpBuf -= dt;
     // dans le chocolat, on peut toujours sauter pour en sortir
     this.coyote = this.onGround || this.inChoco ? PHYS.coyote : this.coyote - dt;
-    if (this.jumpBuf > 0 && this.coyote > 0 && !this.pound) {
+    if (this.jumpBuf > 0 && this.coyote > 0 && !this.pound && !this.puff) {
       this.jumpBuf = 0;
       this.coyote = 0;
       this.onGround = false;
@@ -283,15 +294,17 @@ class Player {
       for (let i = 0; i < 5; i++) {
         w.spawn({ type: 'dust', x: this.cx + rand(-10, 10), y: this.y + this.h, vx: rand(-60, 60), vy: rand(-40, -10), life: 0.4, size: rand(4, 7) });
       }
-    } else if (I.pressed.jump && !this.onGround && !this.pound && pow.airJump && pow.airJump(this)) {
+    } else if (I.pressed.jump && !this.onGround && !this.pound && !this.puff && pow.airJump && pow.airJump(this)) {
       // double saut, battement d'ailes, saut de mur…
       this.jumpBuf = 0;
     }
     if (this.jumping && !I.held.jump && this.vy < -PHYS.jumpCut) this.vy = -PHYS.jumpCut;
     if (this.vy >= 0) this.jumping = false;
 
-    // écrasement (bas en l'air)
-    if (I.pressed.down && !this.onGround && !this.pound) {
+    // écrasement (bas en l'air) ; avec le pissenlit, bas le lâche
+    if (I.pressed.down && this.puff) {
+      this.dropPuff();
+    } else if (I.pressed.down && !this.onGround && !this.pound) {
       this.pound = 1;
       this.poundT = PHYS.poundHang;
       this.vx = 0;
@@ -309,6 +322,7 @@ class Player {
     } else {
       this.vy = Math.min(this.vy + PHYS.gravity * dt, this.pound === 2 ? PHYS.pound : PHYS.maxFall);
       if (pow.fall && !this.pound) pow.fall(this, dt);
+      if (this.puff) this.floatPuff(dt);
     }
     if (this.inChoco) {
       // on s'enfonce tout doucement ; tout au fond, on ne peut plus que sauter (pas glisser sous le sol)
@@ -335,8 +349,10 @@ class Player {
       if (pow.ceil) pow.ceil(this);
     }
     if (!res.landed) this.checkPlatforms();
+    // on lâche le pissenlit en atterrissant
+    if (this.puff && this.onGround) this.dropPuff();
     if (res.landed) this.springTile();
-    if (res.wall && !this.onGround && pow.wall) pow.wall(this, res.wall);
+    if (res.wall && !this.onGround && pow.wall && !this.puff) pow.wall(this, res.wall);
 
     if (this.onGround && !wasGround) {
       this.land = 0.12;
@@ -374,6 +390,7 @@ class Player {
     this.checkPuddle();
 
     if (w.inLava(this)) {
+      this.dropPuff();
       if (this.lavaProof()) this.lavaBounce();
       else if (w.choco) this.sinkInChoco(dt);
       else this.die('lava');
@@ -448,6 +465,57 @@ class Player {
       this.beakT = 0.3;
       Sound.sfx.chirp();
     }
+  }
+
+  // ---------- Pissenlit géant ----------
+  // On l'attrape en le touchant : il soulève un peu Malice, puis elle plane tout doucement.
+  // (on peut en attraper un autre en l'air : on lâche le premier)
+  grabPuff(d) {
+    this.dropPuff();
+    this.puff = d;
+    d.grab();
+    // la charge, la bulle, le nuage… s'arrêtent : elle a les mains prises
+    this.stopPower();
+    this.pound = 0;
+    // (et elle ne tourne plus sur elle-même, après un double saut ou un super saut)
+    this.superSpin = 0;
+    this.jumping = false;
+    this.coyote = 0;
+    this.crouch = false;
+    this.onGround = false;
+    this.platform = null;
+    // toujours le même petit élan vers le haut (même en sautant très haut dedans)
+    this.vy = -PHYS.puffLift;
+    Sound.sfx.puffGrab();
+  }
+
+  // Elle le lâche (en atterrissant, avec bas, ou quand elle a mal) : il s'envole en graines.
+  dropPuff() {
+    if (!this.puff) return;
+    this.puff.release(this);
+    this.puff = null;
+  }
+
+  // Avec le pissenlit : on descend tout doucement, et un courant d'air fait remonter
+  // jusqu'à sa hauteur (où l'on flotte sur place).
+  floatPuff(dt) {
+    const z = this.world.updraftAt(this);
+    if (z) {
+      const k = clamp((this.y + this.h - z.top) / 40, -0.7, 1);
+      this.vy = approach(this.vy, -PHYS.puffRise * k, 3200 * dt);
+    } else if (this.vy > PHYS.puffFall) {
+      this.vy = Math.max(PHYS.puffFall, this.vy - 2800 * dt);
+    }
+  }
+
+  // Où est la boule du pissenlit quand Malice le tient : au-dessus de sa tête, un peu devant.
+  // Elle penche en arrière quand on avance, et se balance doucement.
+  puffHead() {
+    const [hx, hy] = HERO_HAT[this.hero] || HERO_HAT.malice;
+    const hand = { x: this.cx + this.facing * (hx + 12), y: this.y + this.h + hy * 0.55 };
+    const len = 40 - hy * 0.45;
+    const tilt = clamp(-this.vx / PHYS.puffRun, -1, 1) * 0.18 + Math.sin(this.t * 2.6) * 0.06;
+    return { x: hand.x + Math.sin(tilt) * len, y: hand.y - Math.cos(tilt) * len, hand, tilt };
   }
 
   // Mode Bébé : avec l'étoile, la lave ne brûle pas (et jamais pour Bébé Dragon).
@@ -537,6 +605,7 @@ class Player {
     }
     this.grap = { phase: 'shoot', anchor: a, t: 0, tipX: m.x, tipY: m.y, ang: 0, angV: 0, len: GRAPPLE.len, stuckT: 0 };
     this.pound = 0;
+    this.dropPuff();
     this.stopPower();
   }
 
@@ -674,7 +743,8 @@ class Player {
 
   throwIt(kind) {
     const g = this.world.game;
-    if (this.throwT > 0 || this.pound || this.hurtT > 0) return;
+    // (pas en tenant un pissenlit géant : elle a les mains prises)
+    if (this.throwT > 0 || this.pound || this.hurtT > 0 || this.puff) return;
     if (g[kind] <= 0) return;
     g[kind]--;
     this.throwT = 0.28;
@@ -701,6 +771,7 @@ class Player {
   hurt(src, kind) {
     if (this.dead || this.won || this.invuln > 0 || this.star > 0) return false;
     const w = this.world;
+    this.dropPuff();
     if (!OUCH[kind]) kind = 'hit';
     const O = OUCH[kind];
     this.stopPower();
@@ -816,6 +887,7 @@ class Player {
 
   die(cause) {
     if (this.dead || this.won) return;
+    this.dropPuff();
     this.dead = true;
     this.cause = cause;
     if (cause !== 'hurt') this.ouch = null;
@@ -853,6 +925,8 @@ class Player {
     if (!this.dead && !this.won && !hanging && !ouching) {
       const sp = (this.pow.pose && this.pow.pose(this)) || (this.pw.poseT > 0 ? this.pw.pose : null);
       if (sp) pose = sp;
+      // le pissenlit tenu à bout de bras, au-dessus de la tête
+      if (this.puff) pose = 'float';
     }
 
     let sx = 1;
@@ -911,6 +985,7 @@ class Player {
     }
     const lava = this.dead && this.cause === 'lava';
     const choco = this.dead && this.cause === 'choco';
+    if (this.puff) this.puff.drawHeld(ctx);
     Heroes.draw(ctx, this.hero, this.cx, this.y + this.h + 1, {
       facing: this.dead ? 1 : this.facing,
       pose,
@@ -2832,6 +2907,127 @@ class Anchor {
       targeted: w.player.target === this && !w.player.dead,
       flash: Math.max(0, this.flash),
     });
+  }
+}
+
+// Pissenlit géant (les Grands Arbres) : planté sur une branche, ou qui flotte en l'air.
+// On l'attrape en le touchant : Malice le tient au-dessus de sa tête et descend tout doucement
+// (voir grabPuff dans Player). Quand elle le lâche, il s'envole en graines et repousse à sa place.
+const PUFF_REGROW = 4;
+const PUFF_R = 28;
+
+class Dandelion {
+  constructor(world, x, y, planted) {
+    this.world = world;
+    // planté : (x, y) est le pied de la tige ; en l'air : le milieu de sa case
+    this.x = x;
+    this.y = y;
+    this.planted = planted;
+    // 'ready' : on peut l'attraper, 'held' : Malice le tient, 'grow' : il repousse
+    this.state = 'ready';
+    this.growT = 0;
+    this.touched = false;
+    this.t = Math.random() * 6;
+    this.seedT = rand(0.5, 2);
+  }
+
+  ready() { return this.state === 'ready'; }
+
+  // La boule de graines : en haut de la tige, ou qui monte et descend doucement en l'air.
+  head() {
+    if (this.planted) return { x: this.x + Math.sin(this.t * 1.6) * 3, y: this.y - 82, tilt: Math.sin(this.t * 1.6) * 0.05 };
+    return { x: this.x + Math.sin(this.t * 1.1) * 3, y: this.y - 6 + Math.sin(this.t * 2) * 5, tilt: Math.sin(this.t * 1.3) * 0.08 };
+  }
+
+  // Là où on le touche : toute la tige (planté), ou la boule et le bout de tige (en l'air).
+  // Planté, on l'attrape aussi en sautant par-dessus (un saut monte plus haut que la boule).
+  box() {
+    const h = this.head();
+    if (this.planted) return { x: this.x - 20, y: h.y - PUFF_R - 2 * TILE, w: 40, h: this.y - h.y + PUFF_R + 2 * TILE };
+    return { x: h.x - 26, y: h.y - 26, w: 52, h: 62 };
+  }
+
+  grab() {
+    this.state = 'held';
+  }
+
+  // Malice le lâche : pfff ! il s'envole en graines, et repoussera à sa place.
+  release(p) {
+    const w = this.world;
+    const h = p.puffHead();
+    this.state = 'grow';
+    this.growT = 0;
+    Sound.sfx.puffRelease();
+    for (let i = 0; i < 20; i++) {
+      const a = rand(0, Math.PI * 2);
+      const d = rand(4, PUFF_R);
+      w.seed(h.x + Math.cos(a) * d, h.y + Math.sin(a) * d, Math.cos(a) * rand(30, 110) + p.vx * 0.3, Math.sin(a) * rand(20, 80) - rand(40, 110));
+    }
+  }
+
+  update(dt) {
+    const w = this.world;
+    this.t += dt;
+    if (this.state === 'grow') {
+      this.growT += dt;
+      if (this.growT >= PUFF_REGROW) {
+        this.state = 'ready';
+        const h = this.head();
+        if (w.onScreen(this.box())) Sound.sfx.puffGrow();
+        for (let i = 0; i < 8; i++) {
+          w.spawn({ type: 'spark', x: h.x + rand(-20, 20), y: h.y + rand(-20, 20), vx: rand(-60, 60), vy: rand(-80, 10), life: 0.5, size: rand(3, 5), color: i % 2 ? '#ffffff' : '#fff6a0' });
+        }
+      }
+      return;
+    }
+    // de temps en temps, une graine se détache et s'envole (bien plus souvent quand on vole avec)
+    this.seedT -= dt * (this.state === 'held' ? 5 : 1);
+    if (this.seedT <= 0) {
+      this.seedT = rand(0.8, 2.2);
+      const h = this.state === 'held' ? w.player.puffHead() : this.head();
+      if (w.onScreen({ x: h.x, y: h.y, w: 0, h: 0 }, 80)) {
+        const a = rand(-2.6, -0.5);
+        w.seed(h.x + Math.cos(a) * PUFF_R, h.y + Math.sin(a) * PUFF_R, rand(10, 50), rand(-50, -15));
+      }
+    }
+  }
+
+  draw(ctx) {
+    const t = this.t;
+    if (this.planted) Art.dandelionLeaves(ctx, this.x, this.y, t);
+    if (this.state === 'held') return;
+    const h = this.head();
+    if (this.state === 'ready') {
+      if (this.planted) Art.dandelionStem(ctx, this.x, this.y - 2, h.x, h.y + 6, -6);
+      else Art.dandelionStem(ctx, h.x, h.y + 6, h.x - 5 + Math.sin(t * 2.4) * 3, h.y + 34, 4);
+      Art.dandelion(ctx, h.x, h.y, PUFF_R, t, { tilt: h.tilt, glow: true });
+      return;
+    }
+    // il repousse : la tige pousse, un bouton s'ouvre en fleur jaune, puis devient une boule de graines
+    const k = this.growT / PUFF_REGROW;
+    if (this.planted) {
+      const up = 1 - Math.pow(1 - Math.min(1, k / 0.55), 2);
+      const top = { x: this.x + (h.x - this.x) * up, y: this.y - 10 - 72 * up };
+      Art.dandelionStem(ctx, this.x, this.y - 2, top.x, top.y + 6, -6 * up);
+      if (k < 0.7) {
+        Art.dandelionFlower(ctx, top.x, top.y, 13, Math.min(1, k / 0.5));
+        return;
+      }
+    } else if (k < 0.85) {
+      return;
+    }
+    // la boule de graines gonfle (avec un petit rebond)
+    const g = (k - (this.planted ? 0.7 : 0.85)) / (this.planted ? 0.3 : 0.15);
+    const s = g < 0.8 ? g / 0.8 * 1.1 : 1.1 - (g - 0.8) / 0.2 * 0.1;
+    if (this.planted && g < 0.5) Art.dandelionFlower(ctx, h.x, h.y, 13 * (1 - g * 2), 1);
+    Art.dandelion(ctx, h.x, h.y, PUFF_R * Math.max(0.05, s), t, { tilt: h.tilt, missing: Math.max(0, 0.6 - g) });
+  }
+
+  // Dans les mains de Malice (dessiné juste avant elle : sa main passe devant la tige).
+  drawHeld(ctx) {
+    const h = this.world.player.puffHead();
+    Art.dandelionStem(ctx, h.hand.x, h.hand.y + 4, h.x, h.y + 8, Math.sin(this.t * 2.6) * 4);
+    Art.dandelion(ctx, h.x, h.y, PUFF_R, this.t, { tilt: h.tilt });
   }
 }
 

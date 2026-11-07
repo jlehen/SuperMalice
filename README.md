@@ -11,9 +11,14 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, chaque monde a son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a deux niveaux, et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
+   - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
+     Les **pissenlits géants** : on les touche, Malice les tient au-dessus de sa tête et descend tout doucement
+     en planant (← → pour se diriger, ↓ pour lâcher ; on le lâche aussi en atterrissant). Le pissenlit s'envole
+     en graines, puis repousse. Là où des feuilles s'envolent, un courant d'air fait remonter le pissenlit.
+     Pendant qu'on tient un pissenlit, on a les mains prises : pas de pouvoir.
 2. **La Forêt** — 2-1 **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
@@ -167,7 +172,8 @@ sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 ## Inventer ses propres niveaux
 
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.
-La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile…).
+La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
+`*` = pissenlit géant, `|` = tronc d'arbre…).
 Il suffit de modifier les lettres et de recharger la page.
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
@@ -194,7 +200,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Monde | Variation |
   |---|---|
   | Écran titre et grande carte | la version d'origine, façon console 8 bits |
-  | La Prairie Fleurie | calypso au steel drum, basse 3+3+2 |
+  | La Prairie (la Prairie Fleurie, les Grands Arbres) | calypso au steel drum, basse 3+3+2 |
   | La Forêt des Épines | do mineur en 12/8, flûte et harpe, entrées en canon |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |

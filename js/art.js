@@ -1465,6 +1465,11 @@ const Art = (() => {
       case 'hold': armF = -1.0; armB = -0.8; break;
       case 'crouch': crouch = 7; legF = -1.25; legB = -0.85; legLen = 8; armF = -0.6; armB = 0.3; break;
       case 'hang': armF = 0.25; armB = -0.25; legF = 0.25; legB = -0.2; break;
+      // pendue à un pissenlit géant : les bras en l'air, les jambes qui se balancent
+      case 'float':
+        armF = -2.25 + Math.sin(t * 2.6) * 0.05; armB = -2.0;
+        legF = 0.3 + Math.sin(t * 2.2) * 0.18; legB = -0.1 - Math.sin(t * 2.2) * 0.18;
+        break;
       default:
         bob = Math.sin(t * 2.5) * 0.7;
         armF = -0.12 - Math.sin(t * 2.5) * 0.04;
@@ -3991,12 +3996,201 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // ---------------- Pissenlit géant (les Grands Arbres) ----------------
+  // La boule de graines, centrée en (x, y), de rayon r. Chaque graine part du cœur avec sa petite
+  // aigrette (son parachute) au bout. o : tilt (penché), glow (un halo : on peut l'attraper),
+  // missing (0..1 : les graines déjà parties).
+  function dandelion(ctx, x, y, r, t, o) {
+    o = o || {};
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(o.tilt || 0);
+    if (o.glow) {
+      const g = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r * 1.7);
+      g.addColorStop(0, `rgba(255,252,210,${0.4 + 0.12 * Math.sin(t * 3)})`);
+      g.addColorStop(1, 'rgba(255,252,210,0)');
+      ctx.fillStyle = g;
+      circlePath(ctx, 0, 0, r * 1.7);
+      ctx.fill();
+    }
+    // le duvet tout doux (un peu bleuté en bas, pour qu'on le voie bien sur le ciel)
+    const g = ctx.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
+    g.addColorStop(0, 'rgba(255,255,255,0.95)');
+    g.addColorStop(0.65, 'rgba(244,248,255,0.8)');
+    g.addColorStop(1, 'rgba(196,212,238,0.55)');
+    ctx.fillStyle = g;
+    circlePath(ctx, 0, 0, r * 0.9);
+    ctx.fill();
+    // les graines : un trait fin jusqu'à l'aigrette, qui tremble un peu dans le vent
+    const N = 26;
+    const rays = new Path2D();
+    const fluff = new Path2D();
+    const tips = [];
+    for (let i = 0; i < N; i++) {
+      if (o.missing && hash(i * 3.3 + 0.7) < o.missing) continue;
+      const a = (i / N) * TAU + Math.sin(t * 1.4 + i * 1.7) * 0.035;
+      const rr = r * (0.92 + hash(i * 1.9) * 0.1);
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+      rays.moveTo(ca * 3.5, sa * 3.5);
+      rays.lineTo(ca * rr * 0.8, sa * rr * 0.8);
+      for (let k = -2; k <= 2; k++) {
+        const b = a + k * 0.3;
+        fluff.moveTo(ca * rr * 0.8, sa * rr * 0.8);
+        fluff.lineTo(ca * rr * 0.8 + Math.cos(b) * r * 0.24, sa * rr * 0.8 + Math.sin(b) * r * 0.24);
+      }
+      tips.push([ca * rr * 0.8, sa * rr * 0.8]);
+    }
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(165,145,112,0.55)';
+    ctx.lineWidth = 0.9;
+    ctx.stroke(rays);
+    ctx.strokeStyle = 'rgba(96,120,168,0.6)';
+    ctx.lineWidth = 2.4;
+    ctx.stroke(fluff);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.2;
+    ctx.stroke(fluff);
+    ctx.fillStyle = '#ffffff';
+    for (const [tx, ty] of tips) {
+      circlePath(ctx, tx, ty, 1.3);
+      ctx.fill();
+    }
+    // le petit cœur, où sont accrochées les graines
+    ctx.fillStyle = '#b58a52';
+    circlePath(ctx, 0, 0, 4);
+    ctx.fill();
+    ctx.fillStyle = '#e2c48a';
+    circlePath(ctx, -1, -1.2, 1.8);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // La tige, du point (x0, y0) jusque sous la boule (x1, y1), un peu courbée (bend).
+  function dandelionStem(ctx, x0, y0, x1, y1, bend) {
+    const mx = (x0 + x1) / 2 + (bend || 0);
+    const my = (y0 + y1) / 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#3f8a2c';
+    ctx.lineWidth = 5.5;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.quadraticCurveTo(mx, my, x1, y1);
+    ctx.stroke();
+    ctx.strokeStyle = '#7ccf4f';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x0 - 1, y0);
+    ctx.quadraticCurveTo(mx - 1, my, x1 - 1, y1);
+    ctx.stroke();
+  }
+
+  // Les feuilles dentelées au pied (« dent-de-lion »), posées sur la branche.
+  function dandelionLeaves(ctx, x, y, t) {
+    ctx.save();
+    ctx.translate(x, y);
+    for (const [a, len] of [[-2.75, 24], [-0.4, 22], [-2.25, 17], [-0.9, 18]]) {
+      ctx.save();
+      ctx.rotate(a + Math.sin(t * 1.8 + a) * 0.04);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      // un bord tout en dents de scie, de chaque côté
+      for (let k = 1; k <= 4; k++) {
+        const px = (len * k) / 4;
+        const w = 5.5 * (1 - k / 5) + 1;
+        ctx.lineTo(px - len / 8, -w * 0.4);
+        ctx.lineTo(px, -w);
+      }
+      for (let k = 4; k >= 1; k--) {
+        const px = (len * k) / 4;
+        const w = 5.5 * (1 - k / 5) + 1;
+        ctx.lineTo(px, w * 0.7);
+        ctx.lineTo(px - len / 8, w * 0.3);
+      }
+      ctx.closePath();
+      paint(ctx, '#58b53c', '#2f7a24', 1);
+      ctx.strokeStyle = 'rgba(220,255,190,0.6)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(2, 0);
+      ctx.lineTo(len - 3, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // La fleur jaune, avant de devenir une boule de graines (quand le pissenlit repousse).
+  // k : de 0 (bouton vert tout fermé) à 1 (fleur bien ouverte).
+  function dandelionFlower(ctx, x, y, r, k) {
+    ctx.save();
+    ctx.translate(x, y);
+    if (k < 0.35) {
+      ellipsePath(ctx, 0, 0, r * 0.45, r * 0.7);
+      paint(ctx, '#6cc04a', '#2f7a24', 1);
+      ctx.fillStyle = '#ffd21f';
+      ellipsePath(ctx, 0, -r * 0.55, r * 0.22 * (k / 0.35), r * 0.25 * (k / 0.35));
+      ctx.fill();
+    } else {
+      const o = Math.min(1, (k - 0.35) / 0.5);
+      for (let ring = 0; ring < 2; ring++) {
+        const n = ring ? 10 : 14;
+        const rr = r * (ring ? 0.55 : 0.95) * (0.5 + 0.5 * o);
+        ctx.fillStyle = ring ? '#ffd21f' : '#ffb800';
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * TAU + ring * 0.3;
+          ellipsePath(ctx, Math.cos(a) * rr * 0.55, Math.sin(a) * rr * 0.55, rr * 0.5, rr * 0.16, a);
+          ctx.fill();
+        }
+      }
+      ctx.fillStyle = '#ffe680';
+      circlePath(ctx, 0, 0, r * 0.22);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Une graine qui s'envole : la graine, sa tige, et son parachute.
+  function dandelionSeed(ctx, x, y, s, rot) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot || 0);
+    ctx.scale(s, s);
+    const fluff = new Path2D();
+    for (let k = -3; k <= 3; k++) {
+      const a = -Math.PI / 2 + k * 0.32;
+      fluff.moveTo(0, -8);
+      fluff.lineTo(Math.cos(a) * 6.5, -8 + Math.sin(a) * 6.5);
+    }
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(110,132,172,0.5)';
+    ctx.lineWidth = 2.2;
+    ctx.stroke(fluff);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.1;
+    ctx.stroke(fluff);
+    ctx.strokeStyle = 'rgba(150,128,96,0.8)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(0, -8);
+    ctx.lineTo(0, 0);
+    ctx.stroke();
+    ctx.fillStyle = '#9a6a3a';
+    ellipsePath(ctx, 0, 1.5, 1.1, 2.4);
+    ctx.fill();
+    ctx.restore();
+  }
+
   return {
     MALICE, MIMIC_DUR, CUBE_COLORS, COUGHS, SCRAMBLE_BACK, MALICE_SPOTS, spotPop, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,
     eclair, sparks, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
     bat, grumpyBird, gummyBear, candyEye, gem, GEMS, bigBird, birdNest,
+    dandelion, dandelionStem, dandelionLeaves, dandelionFlower, dandelionSeed,
     // pour les autres personnages (heroes.js)
     paint, mixColor, ouchPose, koStars, spotsOverlay,
   };

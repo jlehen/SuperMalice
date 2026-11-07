@@ -88,8 +88,9 @@ const BADGE_INFO = {
   grappin: { name: 'Moustache-Grappin', desc: 'Accroche ta moustache aux anneaux dorés !' },
 };
 
-// La musique d'un niveau (voir music.js) : une par monde, une par stage d'entraînement.
-const levelSong = (lv) => (lv.badge ? 'badge-' + lv.badge : lv.theme);
+// La musique d'un niveau (voir music.js) : une par monde (celle de son monde, même si le niveau
+// a un autre décor, comme les Grands Arbres dans la Prairie), une par stage d'entraînement.
+const levelSong = (lv) => (lv.badge ? 'badge-' + lv.badge : WORLDS[lv.world - 1].theme);
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));

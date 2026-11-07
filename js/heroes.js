@@ -168,6 +168,12 @@ const Heroes = (() => {
       case 'hold': Object.assign(R, { armF: -1.0, armB: -0.8 }); break;
       case 'crouch': Object.assign(R, { crouch: 7, legF: -1.25, legB: -0.85, armF: -0.6, armB: 0.3 }); break;
       case 'hang': Object.assign(R, { armF: 0.25, armB: -0.25, legF: 0.25, legB: -0.2 }); break;
+      case 'float': {
+        // pendu à un pissenlit géant : les bras en l'air, les jambes qui se balancent
+        const s = Math.sin(t * 2.2) * 0.18;
+        Object.assign(R, { armF: -2.25 + Math.sin(t * 2.6) * 0.05, armB: -2.0, legF: 0.3 + s, legB: -0.1 - s });
+        break;
+      }
       default:
         R.bob = Math.sin(t * 2.5) * 0.7;
         R.armF = -0.12 - Math.sin(t * 2.5) * 0.04;
