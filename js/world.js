@@ -90,7 +90,14 @@ class World {
           case 'V': this.enemies.push(new Bat(this, mx - 20, y)); break;
           case 'Y': this.enemies.push(new GrumpyBird(this, mx - 22, y + 6)); break;
           case 'U': this.enemies.push(new GummyBear(this, mx - 17, by - 40)); break;
-          case 'Q': this.critters.push(new CandyEye(this, mx - 16, by - 34)); break;
+          case 'Q':
+            // un œil bonbon déjà attrapé dans ce niveau ne revient pas (pas de vies à l'infini)
+            if (!game.caughtEyes.has(c + ',' + r)) {
+              const ce = new CandyEye(this, mx - 16, by - 34);
+              ce.key = c + ',' + r;
+              this.critters.push(ce);
+            }
+            break;
           case 'A': this.hazards.push(new Stalactite(this, x, y)); break;
           default:
             if (GEM_CHARS.includes(ch)) {
@@ -489,6 +496,14 @@ class World {
     for (const it of this.items) it.update(dt);
     for (const ec of this.eclairs) ec.update(dt);
     for (const cp of this.checkpoints) cp.update(dt);
+    if (this.def.sequel) {
+      let best = null;
+      for (const f of this.flowers) {
+        f.active = false;
+        if (f.isNear() && (!best || Math.abs(p.cx - f.x) < Math.abs(p.cx - best.x))) best = f;
+      }
+      if (best) best.active = true;
+    }
     for (const f of this.flowers) f.update(dt);
     for (const ce of this.critters) ce.update(dt);
     for (const a of this.anchors) a.update(dt);
@@ -579,6 +594,7 @@ class World {
     const cx = ce.cx;
     const cy = ce.y;
     ce.dead = true;
+    this.game.caughtEyes.add(ce.key);
     p.heal(this.game.energyMax);
     this.game.extraLife(cx, cy - 10);
     Sound.sfx.eyeCatch();
@@ -933,9 +949,10 @@ class World {
   // Le noir de la grotte : on ne voit qu'autour de Malice et de ce qui brille.
   drawDarkness(ctx, camX, camY) {
     const p = this.player;
-    const s = this.game.scale;
-    const cw = ctx.canvas.width;
-    const chh = ctx.canvas.height;
+    // dessiné à moitié de la résolution (c'est flou de toute façon), puis agrandi : bien plus rapide sur tablette
+    const s = this.game.scale / 2;
+    const cw = Math.ceil(ctx.canvas.width / 2);
+    const chh = Math.ceil(ctx.canvas.height / 2);
     if (!this.darkCv) this.darkCv = document.createElement('canvas');
     const cv = this.darkCv;
     if (cv.width !== cw || cv.height !== chh) {
@@ -990,7 +1007,7 @@ class World {
     }
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(cv, 0, 0);
+    ctx.drawImage(cv, 0, 0, cw * 2, chh * 2);
     ctx.restore();
     // la lumière d'un minerai a sa couleur
     if (this.lightBoost > 0) {

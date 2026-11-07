@@ -310,9 +310,10 @@ class Player {
       if (pow.fall && !this.pound) pow.fall(this, dt);
     }
     if (this.inChoco) {
-      // on s'enfonce tout doucement
+      // on s'enfonce tout doucement ; tout au fond, on ne peut plus que sauter (pas glisser sous le sol)
       this.pound = 0;
       this.vy = Math.min(this.vy, PHYS.chocoSink);
+      if (this.y > w.height - 40) this.vx = 0;
     }
 
     if (I.pressed.caramel) this.throwIt('caramel');
@@ -1469,6 +1470,7 @@ class Bat extends Enemy {
     this.timer = 0;
     this.flap = Math.random() * 6;
     this.target = null;
+    this.ouch = 'head'; // elle fonce sur la tête de Malice (voir OUCH)
   }
 
   ai(dt) {
@@ -1559,6 +1561,7 @@ class GrumpyBird extends Enemy {
     this.ft = Math.random() * 6;
     this.flap = 0;
     this.squawkT = rand(2, 5);
+    this.ouch = 'ko'; // un grand coup de bec : bong !
   }
 
   ai(dt) {
@@ -1600,6 +1603,7 @@ class GummyBear extends Enemy {
     this.hue = choose([0, 30, 50, 120, 280]);
     this.hopT = rand(0.1, 0.6);
     this.squash = 0;
+    this.ouch = 'ko'; // il lui rebondit dessus : bong !
   }
 
   ai(dt) {
@@ -1703,11 +1707,16 @@ class CandyEye {
       this.state = 'walk';
       this.timer = 0.8;
     }
-    // il ne saute jamais dans le vide : coincé au bord, il tremble sur place
+    // il ne saute jamais dans le vide ni dans le chocolat (même en plein saut) :
+    // coincé au bord, il s'arrête tout essoufflé… c'est le moment de l'attraper !
     let vx = this.dir * speed;
-    if (this.onGround && vx && !w.groundAhead(this, 6)) {
-      if (this.state === 'walk') this.dir *= -1;
+    if (vx && !this.safeAhead()) {
       vx = 0;
+      if (this.state === 'walk') this.dir *= -1;
+      else if (this.state === 'flee') {
+        this.state = 'tired';
+        this.timer = 2.4;
+      }
     }
     this.vx = vx;
     if (Math.abs(vx) > 1) this.legPhase += dt * Math.abs(vx) * 0.12;
@@ -1717,6 +1726,20 @@ class CandyEye {
     const tx = this.state === 'flee' ? -this.dir : this.dir;
     this.look.x += (tx - this.look.x) * Math.min(1, dt * 8);
     if (this.y > w.height + 40 || w.inLava(this)) this.dead = true;
+  }
+
+  // Y a-t-il du sol (et pas du chocolat) juste devant, sous ses pieds ?
+  safeAhead() {
+    const w = this.world;
+    const fx = this.dir > 0 ? this.x + this.w + 6 : this.x - 6;
+    const c = Math.floor(fx / TILE);
+    const r0 = Math.floor((this.y + this.h - 2) / TILE);
+    for (let r = r0; r <= r0 + 2; r++) {
+      const ch = w.tileAt(c, r);
+      if (ch === '~') return false;
+      if (isSolidCh(ch) || isLedgeCh(ch)) return true;
+    }
+    return false;
   }
 
   draw(ctx) {
@@ -2584,9 +2607,15 @@ class BirdTip {
     this.said = false;
   }
 
-  update(dt) {
+  // Malice est assez près pour entendre ce conseil
+  isNear() {
     const p = this.world.player;
-    const near = !p.dead && !p.birdGone && Math.abs(p.cx - this.x) < 190 && Math.abs(p.cy - this.y) < 260;
+    return !p.dead && !p.birdGone && Math.abs(p.cx - this.x) < 190 && Math.abs(p.cy - this.y) < 260;
+  }
+
+  // active : le monde choisit le conseil le plus proche, pour ne jamais avoir deux bulles en même temps
+  update(dt) {
+    const near = this.active;
     this.show = approach(this.show, near ? 1 : 0, dt * 5);
     if (near && !this.said) {
       this.said = true;

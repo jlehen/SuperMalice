@@ -59,6 +59,8 @@ const Game = {
   caramel: 0,
   chips: 0,
   world: null,
+  // les gros yeux bonbons déjà attrapés dans le niveau en cours (« colonne,rangée »)
+  caughtEyes: new Set(),
   isTouch: false,
   diffKey: 'gentil',
   diff: DIFFS.gentil,
@@ -177,7 +179,7 @@ const Game = {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     $$('.screen').forEach((s) => s.classList.toggle('show', s.id === id));
     $('#screens').classList.toggle('active', !!id);
-    const first = id && $(`#${id} button:not([disabled])`);
+    const first = id && $(`#${id} button:not([disabled]):not(.hidden)`);
     if (first && !this.isTouch) setTimeout(() => first.focus({ preventScroll: true }), 30);
     this.updateTouchUI();
   },
@@ -192,7 +194,7 @@ const Game = {
     });
     document.addEventListener('keydown', (e) => {
       if (!$('#screens').classList.contains('active')) return;
-      const btns = $$('.screen.show button:not([disabled])');
+      const btns = $$('.screen.show button:not([disabled]):not(.hidden)');
       if (!btns.length) return;
       const i = btns.indexOf(document.activeElement);
       if (['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(e.key)) {
@@ -258,7 +260,11 @@ const Game = {
       case 'restart': this.checkpoint = -1; this.lives = Math.max(this.lives, 1); this.enterIntro(); break;
       case 'menu': this.toTitle(); break;
       case 'retry': this.retry(); break;
-      case 'sequel': this.startLevel(SEQUEL_START); break;
+      case 'sequel':
+        // le voyage de retour commence avec toutes ses vies
+        this.lives = Math.max(this.lives, this.diff.lives);
+        this.startLevel(SEQUEL_START);
+        break;
       case 'reset': this.showScreen('scr-reset'); break;
       case 'reset-no': this.showLevels(); break;
       case 'reset-yes':
@@ -402,6 +408,7 @@ const Game = {
   startLevel(i) {
     this.levelIndex = i;
     this.checkpoint = -1;
+    this.caughtEyes.clear();
     this.enterIntro();
   },
 
