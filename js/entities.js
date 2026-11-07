@@ -185,6 +185,7 @@ class Player {
     this.target = badgeGrappin && (!this.grap || this.grap.phase === 'swing') ? this.findAnchor(this.grap && this.grap.anchor) : null;
     if (this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing')) {
       this.updateHanging(dt);
+      this.checkPuddle();
       if (w.inLava(this) && !this.lavaProof() && !w.choco) this.die('lava');
       return;
     }
@@ -370,13 +371,7 @@ class Player {
     if (this.grap) this.updateMustacheTip(dt);
     this.updateMimic(dt, dir);
 
-    // une flaque d'eau : plouf ! (et Gizmo devient un Gremlin)
-    const wet = w.inPuddle(this);
-    if (wet && !this.wet) {
-      w.splash(this.cx, this.y + this.h);
-      if (pow.splash) pow.splash(this);
-    }
-    this.wet = wet;
+    this.checkPuddle();
 
     if (w.inLava(this)) {
       if (this.lavaProof()) this.lavaBounce();
@@ -388,6 +383,16 @@ class Player {
       if (this.y > w.height + 60) this.die('fall');
     }
     this.updateBird(dt);
+  }
+
+  // Une flaque d'eau : plouf ! (et Gizmo devient un Gremlin)
+  checkPuddle() {
+    const wet = this.world.inPuddle(this);
+    if (wet && !this.wet) {
+      this.world.splash(this.cx, this.y + this.h);
+      if (this.pow.splash) this.pow.splash(this);
+    }
+    this.wet = wet;
   }
 
   // Champignon (grotte) ou guimauve (bonbons) sous les pieds : ça rebondit !
@@ -679,6 +684,8 @@ class Player {
   }
 
   bounceOff() {
+    // (San Goku sur son nuage : le nuage s'en va, sinon il l'empêcherait de rebondir)
+    if (this.pw.cloud > 0) this.stopPower();
     this.pound = 0;
     this.vy = -(Input.held.jump ? PHYS.bounceHeld : PHYS.bounce) * (this.pow.bounce || 1);
     this.jumping = Input.held.jump;

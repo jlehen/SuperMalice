@@ -306,7 +306,8 @@ class World {
 
   // ---------- Blocs magiques du Lutin ----------
   addMagicBlock(c, r) {
-    if (r < 0 || r >= this.rows || c < 0 || c >= this.cols || this.tiles[r][c] !== '.') return false;
+    const under = r >= 0 && r < this.rows && c >= 0 && c < this.cols ? this.tiles[r][c] : '#';
+    if (under !== '.' && under !== 'w') return false;
     const box = { x: c * TILE, y: r * TILE, w: TILE, h: TILE };
     if (this.enemies.some((e) => !e.dying && overlap(e, box))) return false;
     if (this.items.some((it) => !it.dead && overlap(it, box))) return false;
@@ -323,7 +324,7 @@ class World {
     // pas plus de 4 à la fois : le plus vieux s'en va
     if (this.magic.length >= MAGIC_MAX) this.removeMagic(this.magic[0]);
     this.tiles[r][c] = 'u';
-    this.magic.push({ c, r, t: 0 });
+    this.magic.push({ c, r, t: 0, under });
     Sound.sfx.magic();
     for (let i = 0; i < 12; i++) {
       this.spawn({ type: 'spark', x: c * TILE + rand(0, TILE), y: r * TILE + rand(0, TILE), vx: rand(-90, 90), vy: rand(-140, -20), life: 0.5, size: rand(3, 6), color: i % 2 ? '#fff6a0' : '#7dff9a' });
@@ -333,7 +334,7 @@ class World {
 
   removeMagic(m) {
     this.magic = this.magic.filter((o) => o !== m);
-    if (this.tiles[m.r][m.c] === 'u') this.tiles[m.r][m.c] = '.';
+    if (this.tiles[m.r][m.c] === 'u') this.tiles[m.r][m.c] = m.under || '.';
     Sound.sfx.magicGone();
     this.puff(m.c * TILE + TILE / 2, m.r * TILE + TILE / 2, '#d8ffe0');
   }

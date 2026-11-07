@@ -338,7 +338,8 @@
     draw(ctx, o, R) {
       const pose = o.pose;
       let { legF, legB, armF, armB, bob, lean, crouch } = R;
-      const onCloud = pose === 'cloud' || (o.pw && o.pw.cloud > 0);
+      // (pendant un Kaméhaméha lancé debout sur le nuage, le nuage reste sous ses pieds)
+      const onCloud = pose === 'cloud' || (pose === 'kame' && o.pw && o.pw.cloud > 0);
       const kame = pose === 'kame';
       if (kame) {
         // les deux mains en avant, jambes bien écartées

@@ -289,6 +289,8 @@ const Game = {
   // ---------- Choix du personnage ----------
   showHeroes() {
     this.state = 'title';
+    clearTimeout(this.secretTimer);
+    this.secretTaps = 0;
     const box = $('#hero-list');
     box.innerHTML = '';
     const many = this.roster.length > 6;
@@ -349,6 +351,8 @@ const Game = {
   },
 
   chooseHero(id) {
+    clearTimeout(this.secretTimer);
+    this.secretTaps = 0;
     this.hero = id;
     this.showDifficulty();
   },
