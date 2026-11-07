@@ -19,6 +19,13 @@ class World {
     this.diff = game.diff;
     this.t = 0;
     this.tiles = def.map.map((row) => row.split(''));
+    // sans badges (tous sauf Malice), le niveau a des plateformes en plus (voir "sansBadges" dans levels.js)
+    const noBadge = !game.withBadges() && def.sansBadges;
+    if (noBadge) {
+      for (const [r, c, s] of noBadge.add || []) {
+        for (let i = 0; i < s.length; i++) this.tiles[r][c + i] = s[i];
+      }
+    }
     this.rows = this.tiles.length;
     this.cols = this.tiles[0].length;
     this.width = this.cols * TILE;
@@ -84,7 +91,7 @@ class World {
           case 'H': this.platforms.push(new MovingPlatform(this, x, y, 'h')); break;
           case 'I': this.platforms.push(new MovingPlatform(this, x, y, 'v')); break;
           case 'T': flowerSpots.push({ x: mx, y: by }); break;
-          case '@': this.anchors.push(new Anchor(this, mx, y + TILE / 2)); break;
+          case '@': if (game.withBadges()) this.anchors.push(new Anchor(this, mx, y + TILE / 2)); break;
           case 'Z': this.goal = new BadgeGoal(this, mx, by, def.badge); break;
           case 'X': this.goal = new FamilyGoal(this, mx, by); break;
           case 'V': this.enemies.push(new Bat(this, mx - 20, y)); break;
@@ -111,9 +118,10 @@ class World {
     }
     // les fleurs parlent dans l'ordre, de gauche à droite (pendant le retour, c'est le bébé oiseau)
     flowerSpots.sort((a, b) => a.x - b.x);
+    const talk = Object.assign((def.talk || []).slice(), noBadge ? noBadge.talk : null);
     flowerSpots.forEach((f, i) => {
       const Talker = def.sequel ? BirdTip : TalkFlower;
-      this.flowers.push(new Talker(this, f.x, f.y, game.textFor((def.talk || [])[i] || '')));
+      this.flowers.push(new Talker(this, f.x, f.y, game.textFor(talk[i] || '')));
     });
     if (checkpointIdx >= 0 && this.checkpoints[checkpointIdx]) {
       const cp = this.checkpoints[checkpointIdx];

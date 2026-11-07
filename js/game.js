@@ -414,10 +414,14 @@ const Game = {
   showLevels() {
     const box = $('#level-list');
     box.innerHTML = '';
+    // sans badges, un stage d'entraînement débloqué débloque aussi le niveau d'après
+    let reach = this.save.unlocked;
+    while (!this.withBadges() && reach < LEVELS.length && LEVELS[reach - 1].badge) reach++;
     LEVELS.forEach((lv, i) => {
+      if (lv.badge && !this.withBadges()) return;
       const b = document.createElement('button');
       b.className = 'lvl theme-' + lv.theme;
-      const locked = i + 1 > this.save.unlocked;
+      const locked = i + 1 > reach;
       b.disabled = locked;
       b.dataset.action = 'level';
       b.dataset.level = String(i);
@@ -548,7 +552,8 @@ const Game = {
     this.badgeWon = LEVELS[this.levelIndex].badge || null;
     Sound.playMusic(this.badgeWon ? 'badge' : 'clear');
     this.score += 1000;
-    this.unlock(this.levelIndex + 2);
+    const next = this.nextLevel(this.levelIndex);
+    this.unlock(next >= 0 ? next + 1 : LEVELS.length);
     for (let i = 0; i < 50; i++) {
       w.spawn({
         type: 'confetti', x: w.cam.x + rand(0, VIEW_W), y: w.cam.y - 20, vx: rand(-60, 60), vy: rand(50, 250),
@@ -675,7 +680,8 @@ const Game = {
           w.player.onGround = false;
         }
         if (this.stateT > (this.badgeWon ? 5.8 : 4.6) || (this.stateT > 1.5 && Input.pressed.jump)) {
-          if (this.levelIndex + 1 < LEVELS.length) this.startLevel(this.levelIndex + 1);
+          const next = this.nextLevel(this.levelIndex);
+          if (next >= 0) this.startLevel(next);
           else this.toTitle();
         }
         break;
@@ -1076,8 +1082,22 @@ const Game = {
     ctx.fillText(label, x, y + 1);
   },
 
+  // Seule Super Malice gagne les badges (super saut, moustache-grappin) :
+  // les autres personnages ont leur pouvoir, et ils passent les stages d'entraînement.
+  withBadges() {
+    return this.hero === 'malice';
+  },
+
   hasBadge(b) {
-    return BADGE_AT[b] !== undefined && this.levelIndex >= BADGE_AT[b];
+    return this.withBadges() && BADGE_AT[b] !== undefined && this.levelIndex >= BADGE_AT[b];
+  },
+
+  // Le niveau qui vient après i (-1 : c'était le dernier).
+  nextLevel(i) {
+    for (let j = i + 1; j < LEVELS.length; j++) {
+      if (this.withBadges() || !LEVELS[j].badge) return j;
+    }
+    return -1;
   },
 
   levelLabel(i) {

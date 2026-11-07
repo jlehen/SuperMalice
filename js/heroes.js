@@ -14,7 +14,7 @@
 //           sur l'écran de choix pour le faire apparaître (jusqu'au prochain chargement du jeu)
 // =====================================================================
 const HEROES = [
-  { id: 'malice', name: 'Super Malice', call: 'Malice', power: 'L\'héroïne', desc: 'Elle sait tout faire, avec sa grosse moustache\u00a0!', headY: -46 },
+  { id: 'malice', name: 'Super Malice', call: 'Malice', power: 'L\'héroïne', desc: 'Elle seule gagne les badges\u00a0: super saut et moustache-grappin\u00a0!', headY: -46 },
   { id: 'lutin', name: 'Le Lutin', call: 'Lutin', power: 'Bloc magique', desc: '{POUVOIR}\u00a0: un bloc lutin apparaît sous tes pieds, monte dessus\u00a0!', headY: -44 },
   { id: 'biche', name: 'La Biche', call: 'Biche', power: 'Double saut', desc: 'Saute une deuxième fois en l\'air\u00a0!', headY: -50 },
   { id: 'bonbon', name: 'Gros Bonbon', call: 'Gros Bonbon', power: 'Boule rebondissante', desc: 'Reste appuyé sur {POUVOIR}\u00a0: tu roules en boule et tu rebondis très haut\u00a0!', headY: -36 },

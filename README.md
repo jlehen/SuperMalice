@@ -16,7 +16,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 3. **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
 4. **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    - ⭐ **Stage d'entraînement : le Défi de la Moustache-Grappin** → on gagne le badge *Moustache-Grappin*
-5. **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (il faut utiliser les deux badges)
+5. **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (avec Malice, il faut utiliser les deux badges)
 
 **Le retour à la maison** (débloqué quand on a sauvé le bébé oiseau) : le bébé oiseau voyage sur la casquette
 de Malice, pépie de temps en temps, et c'est lui qui donne les conseils.
@@ -52,7 +52,7 @@ parmi 13 : on choisit son personnage après « Jouer ». Chacun a un pouvoir (to
 | La Sirène | une vague qui renverse les ennemis ; en l'air, une bulle l'emporte vers le haut |
 | Le Dinosaure | BOUM : le sol tremble (aussi en écrasant vers le bas) |
 
-Tous gardent le caramel, les chips et les badges.
+Tous gardent le caramel et les chips. Les **badges**, eux, ne sont que pour Super Malice (voir plus bas).
 
 **Les personnages secrets** : sur l'écran « Choisis ton personnage », toucher (ou cliquer) **3 fois de suite la carte
 de Super Malice** : **San Goku** et **Gizmo** arrivent (jusqu'à ce qu'on recharge le jeu). Ils ne sont jamais tirés au hasard.
@@ -78,6 +78,10 @@ La page [`outils/galerie.html`](outils/galerie.html) montre tous les personnages
 - **Super Saut** : rester appuyé sur ↓ pour s'accroupir, puis sauter → on saute deux fois plus haut.
 - **Moustache-Grappin** : près d'un anneau doré, appuyer sur **V** : la moustache de Malice s'y accroche.
   On se balance avec ← →, on saute pour se lancer, et on peut enchaîner les anneaux.
+
+Les badges ne sont que pour **Super Malice** : les autres personnages ont déjà leur pouvoir (et pas de moustache !).
+Avec eux, on passe directement par-dessus les stages d'entraînement, les anneaux dorés disparaissent, et le Cœur du
+Volcan a quelques plateformes en plus pour franchir le grand mur et la grande lave (voir `sansBadges` dans `js/levels.js`).
 
 ## Quand Malice a mal
 
