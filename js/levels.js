@@ -20,6 +20,9 @@
 //   n  nénuphar avec une fleur (solide)        c  nénuphar grignoté : il tremble, puis il coule
 //      (les nénuphars se mettent dans la rangée de la surface de l'eau)
 //   O  escargot (il laisse de la bave qui glisse)
+//   m  taupe (cachée sous l'herbe ; quand Malice passe, elle file sous ses pieds et jaillit du sol)
+//   i  lucioles (un petit groupe qui éclaire la nuit, et qui suit Malice un moment)
+//   j  grande fleur-lanterne qui brille (elle éclaire tout autour, la nuit)
 //   l  lapin (gentil ; sur l'herbe, il sort la tête de son trou ; dans un terrier, il parle : voir "lapins")
 //   L  bloc lutin : 5 bonbons    F  bloc lutin : fruit de la passion
 //   K  bloc lutin : caramel      C  bloc lutin : chips au vinaigre
@@ -49,6 +52,10 @@
 //             Un bloc lutin posé sur un trou qui descend au terrier le cache : on l'écrase pour y entrer.
 //  "lapins" : ce que disent les lapins du terrier, dans l'ordre, de gauche à droite.
 //  "dark" : il fait noir (on ne voit qu'autour de Malice et de ce qui brille).
+//             "nuit" : c'est la nuit, en plus doux (la lune, les lucioles et les fleurs éclairent).
+//  "clairDeLune" : [première colonne, dernière colonne] : la nuit, la lune éclaire ce grand champ
+//             (il y fait bien moins noir).
+//  "music" : la musique du niveau, si ce n'est pas celle de son monde (voir SONGS dans music.js).
 //  "sansBadges" : pour les personnages qui n'ont pas les badges (tous sauf Malice) :
 //             "add" : des cases en plus [ligne, colonne, "lettres"] (les anneaux dorés disparaissent),
 //             "talk" : d'autres phrases pour les fleurs { numéro de la phrase : "phrase" }.
@@ -181,6 +188,41 @@ const LEVELS = [
       '###########################################################################################################..................###......................................################################################',
       '###########################################################################################################.....l..ooooooooo.###................O....l......oooooo....################################################',
       '######################################################################################################################################################################################################################',
+    ],
+  },
+  {
+    world: 1,
+    name: "La Prairie la Nuit",
+    theme: "night",
+    dark: "nuit",
+    music: "meadow-night",
+    intro: "Les lucioles éclairent le chemin !",
+    storms: [],
+    updrafts: [[80, 82, 4]],
+    clairDeLune: [185, 211],
+    talk: [
+      "Bienvenue dans la Prairie la Nuit\u00a0! Il fait noir… mais les lucioles et les fleurs qui brillent éclairent le chemin. Approche-toi des lucioles\u00a0: elles vont te suivre\u00a0!",
+      "Tu vois le petit tas de terre qui bouge\u00a0? C'est une taupe\u00a0! Quand la terre tremble sous tes pieds, saute vite\u00a0! Et quand elle sort, saute-lui sur le casque\u00a0!",
+      "Le caramel colle les taupes\u00a0: elles ne peuvent plus rentrer sous terre\u00a0! Casse le bloc lutin pour en avoir.",
+      "Un pissenlit géant, tout là-haut\u00a0! Attrape-le et vole par-dessus le grand trou. Au milieu, le courant d'air te fera remonter\u00a0!",
+      "La rivière dort, elle aussi… Saute de nénuphar en nénuphar, mais ne reste pas sur ceux qui n'ont pas de fleur\u00a0!",
+      "Plein de taupes\u00a0! Sur les planches, elles ne peuvent pas t'attraper. Et avec les chips, elles deviennent trop grosses pour rentrer dans leur trou\u00a0!",
+      "Chut… Regarde comme la lune est belle. On dit qu'un épouvantail garde le grand champ, là-bas…",
+    ],
+    map: [
+      '....................................................................................................................................................................................................................',
+      '....................................................................................................................................................................................................................',
+      '....................................................................................................................................................................................................................',
+      '....................................................................................................................................................................................................................',
+      '........................................................................................................................................C...............S...........................................................',
+      '.................................................................................i.......................................i..........................................................................................',
+      '...............o......................................................y............................................................................i................................................................',
+      '.............................o.o.o.o......oio.........o.o.o.................*...............ooo....................o.o.o....o.o.o.........................................ooo.....o.o...............................',
+      '........i.....BLB................................BKB..-----..............####..o.o.o.o.................BFB..............................ooooo...o.y.o...ooooo.......................................................',
+      '.......................................................................######...........................................................-----...-----...-----.......................................................',
+      '..P..T..ooo.j.......E....T.......m....j..j....jT....E...m.......!..T.########..........j...........m.......!.T...........O.........jT......m...E....m..m........j...!..j.....m...j...j.T..!...................G.....',
+      '##########################################...################################.........########################__n__c__n_###__c__n_################################################...###############################',
+      '##########################################...################################.........########################__________###_______################################################...###############################',
     ],
   },
   {

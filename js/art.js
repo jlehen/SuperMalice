@@ -1156,6 +1156,7 @@ const Art = (() => {
   //   hypno : hypnotisée par un gros oeil            scramble : couleurs mélangées par un Rubik's cube
   //   soot : noircie par les morceaux de cube        spots : couverte des points de la coccinelle
   //   wet : tombée dans la rivière, elle grelotte     slime : couverte de bave d'escargot
+  //   dirt : projetée en l'air par une taupe, toute pleine de terre (avec un ver de terre sur la tête)
   const NO_FX = {};
   // Moments où Malice noircie tousse.
   const COUGHS = [0.35, 0.8, 1.25];
@@ -1214,6 +1215,12 @@ const Art = (() => {
   SLIMY.mustache = MALICE.mustache;
   SLIMY.eye = MALICE.eye;
 
+  // Toute pleine de terre.
+  const DIRTY = {};
+  for (const key in MALICE) DIRTY[key] = mixColor(MALICE[key], '#7a5232', 0.38);
+  DIRTY.mustache = MALICE.mustache;
+  DIRTY.eye = MALICE.eye;
+
   // Toute noire de suie (seuls les yeux restent blancs).
   const SOOT = {};
   for (const key in MALICE) SOOT[key] = mixColor(MALICE[key], '#2a2422', 0.8);
@@ -1245,6 +1252,7 @@ const Art = (() => {
       case 'scramble': return scramblePalette(C, k);
       case 'wet': return mixPalette(C, WET, clamp(left / 0.5, 0, 1));
       case 'slime': return mixPalette(C, SLIMY, clamp(left / 0.5, 0, 1));
+      case 'dirt': return mixPalette(C, DIRTY, clamp(left / 0.5, 0, 1));
       default: return C;
     }
   }
@@ -1266,6 +1274,11 @@ const Art = (() => {
       // les bras ballants, elle tangue
       const w = Math.sin(ot * 9);
       return { legF: 0.3 + w * 0.15, legB: -0.3, armF: 0.25 + w * 0.25, armB: -0.15, lean: w * 0.09 };
+    }
+    if (k.kind === 'dirt') {
+      // projetée en l'air : les bras qui moulinent, les jambes qui pédalent
+      const s = Math.sin(ot * 22);
+      return { legF: -0.5 + s * 0.35, legB: 0.6 - s * 0.35, armF: -2.4 + s * 0.4, armB: -2.0 - s * 0.4, lean: -0.1 };
     }
     if (k.kind === 'wet') {
       // elle se serre dans ses bras, les genoux qui s'entrechoquent
@@ -1318,6 +1331,11 @@ const Art = (() => {
         // beurk !
         fx.eye = 'squeeze';
         fx.mouth = 'tongue';
+        break;
+      case 'dirt':
+        // d'abord tout surprise, puis pouah ! de la terre plein la bouche
+        fx.eye = t < 0.45 ? 'wide' : 'squeeze';
+        fx.mouth = t < 0.45 ? 'wide' : 'tongue';
         break;
       case 'scramble':
       case 'spots':
@@ -1466,6 +1484,58 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // Pleine de terre : des mottes sur la tête et des taches partout, et un petit ver de terre rose
+  // sort d'une motte pour lui faire coucou (puis il y rentre).
+  // top : le haut de la tête (pour les autres personnages, qui n'ont pas la même taille).
+  function dirtOverlay(ctx, k, top) {
+    const t = k.t;
+    ctx.save();
+    ctx.globalAlpha *= clamp((k.dur - t) / 0.35, 0, 1);
+    // des taches de terre
+    ctx.fillStyle = 'rgba(110,70,36,0.75)';
+    for (const [x, y, r] of [[-6, -22, 3], [7, -30, 2.4], [-9, -40, 2.2], [3, -12, 2.6]]) {
+      ellipsePath(ctx, x, y, r * 1.3, r, 0.4);
+      ctx.fill();
+    }
+    // le ver de terre, dans la motte du dessus
+    const out = clamp(t / 0.3, 0, 1) * clamp((k.dur - 0.3 - t) / 0.3, 0, 1);
+    if (out > 0) {
+      const wave = Math.sin(t * 9);
+      ctx.save();
+      ctx.translate(3, top + 1);
+      ctx.strokeStyle = '#c4567a';
+      ctx.lineWidth = 4.6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(3 + wave * 2, -7 * out, wave * 4, -13 * out);
+      ctx.stroke();
+      ctx.strokeStyle = '#ff9ec0';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      // ses petits yeux
+      if (out > 0.6) {
+        ctx.fillStyle = '#2a1420';
+        circlePath(ctx, wave * 4 - 1, -13 * out - 0.5, 0.8);
+        ctx.fill();
+        circlePath(ctx, wave * 4 + 1.3, -13 * out - 0.5, 0.8);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    // les mottes sur la tête
+    for (const [x, y, r] of [[-5, top + 3, 5.5], [5, top + 2, 6], [12, top + 7, 3.6]]) {
+      ctx.beginPath();
+      ctx.arc(x, y + r * 0.4, r, Math.PI, 0);
+      ctx.closePath();
+      paint(ctx, '#9a6438', '#4a2a12', 1);
+      ctx.fillStyle = '#6a4024';
+      circlePath(ctx, x - r * 0.3, y - r * 0.1, r * 0.25);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // Électrocutée : des éclairs crépitent tout autour d'elle.
   function zapBolts(ctx, k) {
     const seed = Math.floor(k.t * 30) + k.seed;
@@ -1609,6 +1679,7 @@ const Art = (() => {
     if (kind === 'spots') spotsOverlay(ctx, k);
     if (kind === 'wet') wetOverlay(ctx, k, -62);
     if (kind === 'slime') slimeOverlay(ctx, k, -62);
+    if (kind === 'dirt') dirtOverlay(ctx, k, -62);
     if (o.holding) {
       o.holding(ctx);
       drawArm(ctx, C, 1.2, -27.8, armF, false);
@@ -4466,6 +4537,302 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // ---------------- La Prairie la Nuit ----------------
+  // Un halo de lumière qui s'ajoute (lampes, lucioles, fleurs qui brillent) : dessiné une fois par couleur,
+  // puis agrandi (bien plus rapide qu'un dégradé à chaque image). rgb : '255,240,150' ; a : sa force.
+  const GLOWS = new Map();
+  function glow(ctx, x, y, r, rgb, a) {
+    let c = GLOWS.get(rgb);
+    if (!c) {
+      c = document.createElement('canvas');
+      c.width = 64;
+      c.height = 64;
+      const g = c.getContext('2d');
+      const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, `rgba(${rgb},1)`);
+      gr.addColorStop(0.35, `rgba(${rgb},0.45)`);
+      gr.addColorStop(1, `rgba(${rgb},0)`);
+      g.fillStyle = gr;
+      g.fillRect(0, 0, 64, 64);
+      GLOWS.set(rgb, c);
+    }
+    const op = ctx.globalCompositeOperation;
+    const ga = ctx.globalAlpha;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = ga * clamp(a, 0, 1);
+    ctx.drawImage(c, x - r, y - r, r * 2, r * 2);
+    ctx.globalCompositeOperation = op;
+    ctx.globalAlpha = ga;
+  }
+
+  // Taupe, les pieds en (x, y) : une boule de velours, un casque de mineur avec sa lampe, de grosses lunettes
+  // rondes (elle ne voit pas bien), un gros nez rose et de grandes mains roses pour creuser.
+  // o : dir, t, look, fat, rest (essoufflée), popping (elle jaillit : les bras en l'air),
+  //     dizzy (assommée : des étoiles), squash (aplatie)
+  function mole(ctx, x, y, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const dir = o.dir || 1;
+    const fat = !!o.fat;
+    const rx = fat ? 22 : 17;
+    const ry = fat ? 19 : 18.5;
+    const fur = '#8a6e86';
+    const furDark = '#5a4256';
+    const line = '#3a2436';
+    const pink = '#ffa8c0';
+    const pinkLine = '#c4567a';
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    if (o.squash) ctx.scale(1 + o.squash, 1 - o.squash);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    // les petits pieds
+    for (const fx of [-8, 7]) {
+      ellipsePath(ctx, fx, -2, 6, 3.2);
+      paint(ctx, pink, pinkLine, 1);
+    }
+    // le corps tout rond, en velours
+    ellipsePath(ctx, 0, -19, rx, ry);
+    const g = ctx.createLinearGradient(0, -38, 0, 0);
+    g.addColorStop(0, '#a88ca4');
+    g.addColorStop(0.5, fur);
+    g.addColorStop(1, furDark);
+    paint(ctx, g, line, 1.4);
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 1.2;
+    for (const [hx, hy] of [[-10, -26], [-13, -18], [-8, -10]]) {
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(hx - 3, hy + 2);
+      ctx.stroke();
+    }
+    // le ventre
+    ellipsePath(ctx, 4, -12, fat ? 13 : 10, 8.5);
+    ctx.fillStyle = '#e6d0d6';
+    ctx.fill();
+    // le museau et le gros nez rose
+    ellipsePath(ctx, 13, -17, 8.5, 5.5, -0.1);
+    paint(ctx, '#f6c6d2', pinkLine, 1);
+    circlePath(ctx, 21, -18.5, 4.6);
+    paint(ctx, '#ff6f9e', '#b8406a', 1.1);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    circlePath(ctx, 19.6, -20, 1.5);
+    ctx.fill();
+    // les moustaches
+    ctx.strokeStyle = 'rgba(255,240,245,0.85)';
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    for (const [ex, ey] of [[28, -21], [29, -17], [27, -13]]) {
+      ctx.moveTo(16, -17);
+      ctx.lineTo(ex, ey + Math.sin(t * 4 + ex) * 0.6);
+    }
+    ctx.stroke();
+    // la bouche (essoufflée, c'est la langue qui pend : voir tiredFace)
+    if (!(fat && o.rest)) {
+      ctx.strokeStyle = '#7a2a3a';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(12, -13.5, 2.6, 0.2, Math.PI - 0.4);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,120,150,0.5)';
+    ellipsePath(ctx, 3, -18, 3.4, 2.2);
+    ctx.fill();
+    if (fat) chubbyCheeks(ctx, 6, -17, 4, 3.2, '#a88ca4', line);
+    // les grosses lunettes rondes (les petits yeux derrière suivent Malice)
+    const look = o.look || { x: 1, y: 0 };
+    const lx = clamp(look.x * dir, -1, 1);
+    const ly = clamp(look.y, -1, 1);
+    for (const [ex, ey, er] of [[5.5, -25, 5.6], [14.5, -24.5, 4.8]]) {
+      circlePath(ctx, ex, ey, er);
+      ctx.fillStyle = 'rgba(210,235,255,0.55)';
+      ctx.fill();
+      if (o.dizzy) {
+        // assommée : les yeux en croix
+        ctx.strokeStyle = '#2a1a24';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(ex - 1.8, ey - 1.8);
+        ctx.lineTo(ex + 1.8, ey + 1.8);
+        ctx.moveTo(ex + 1.8, ey - 1.8);
+        ctx.lineTo(ex - 1.8, ey + 1.8);
+        ctx.stroke();
+      } else {
+        const blink = (t + ex * 0.01) % 3.7 < 0.12;
+        ctx.fillStyle = '#1e1420';
+        if (blink || (fat && o.rest)) ctx.fillRect(ex - 2, ey - 0.4 + ly, 4, 1.2);
+        else {
+          circlePath(ctx, ex + lx * 1.6, ey + ly * 1.3, 1.7);
+          ctx.fill();
+        }
+      }
+      ctx.strokeStyle = '#3a2418';
+      ctx.lineWidth = 1.8;
+      circlePath(ctx, ex, ey, er);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.arc(ex, ey, er - 1.6, 3.6, 4.5);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#3a2418';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(10.2, -25.5);
+    ctx.lineTo(10.6, -25.2);
+    ctx.stroke();
+    // le casque de mineur, et sa lampe
+    ctx.beginPath();
+    ctx.arc(1, -31, 14, Math.PI, 0);
+    ctx.closePath();
+    const hg = ctx.createLinearGradient(0, -45, 0, -31);
+    hg.addColorStop(0, '#fff07a');
+    hg.addColorStop(1, '#ffc21f');
+    paint(ctx, hg, '#a86a00', 1.3);
+    ctx.strokeStyle = 'rgba(168,106,0,0.6)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(1, -45);
+    ctx.lineTo(1, -32);
+    ctx.stroke();
+    roundRectPath(ctx, -15, -33, 33, 4, 2);
+    paint(ctx, '#ffb000', '#a86a00', 1.1);
+    glow(ctx, 14, -39, 17, '255,248,180', 0.6 + 0.2 * Math.sin(t * 5));
+    circlePath(ctx, 14, -39, 4.2);
+    paint(ctx, '#fffbe0', '#a86a00', 1.1);
+    // les grandes mains pour creuser (en l'air quand elle jaillit, sinon devant elle)
+    const up = o.popping;
+    const hands = up ? [[-17, -40, -0.9], [21, -42, 0.9]] : [[-15, -14, -0.4 + Math.sin(t * 3) * 0.1], [16, -6, 0.5]];
+    for (const [hx, hy, a] of hands) {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(a);
+      ellipsePath(ctx, 0, 0, 6.5, 5.2);
+      paint(ctx, pink, pinkLine, 1.1);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#b89aa6';
+      ctx.lineWidth = 0.7;
+      for (let i = -1.5; i <= 1.5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 2.6 - 1.1, -4.6);
+        ctx.lineTo(i * 3.2, -9);
+        ctx.lineTo(i * 2.6 + 1.1, -4.6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // assommée : des étoiles tournent autour du casque
+    if (o.dizzy) {
+      for (let i = 0; i < 3; i++) {
+        const a = t * 8 + (i * TAU) / 3;
+        ctx.save();
+        ctx.translate(1 + Math.cos(a) * 15, -50 + Math.sin(a) * 4);
+        ctx.rotate(t * 5 + i);
+        starShape(ctx, 3.8, 0.45);
+        paint(ctx, '#ffe94a', '#b07800', 0.9);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+
+  // Le petit tas de terre au-dessus d'une taupe qui creuse, posé sur l'herbe en (x, y).
+  // La lumière de sa lampe passe entre les mottes. o : t, moving, dir, shake (de 0 à 1 : la terre tremble).
+  function moleHill(ctx, x, y, o) {
+    const t = o.t || 0;
+    const k = o.shake || 0;
+    ctx.save();
+    ctx.translate(x, y);
+    if (k > 0) ctx.translate(rand(-1, 1) * (1 + k * 3), rand(-0.5, 0.5) * (1 + k * 2));
+    const bob = o.moving ? Math.abs(Math.sin(t * 9)) * 2 : 0;
+    const s = 1 + k * 0.3;
+    ctx.scale((o.dir || 1) * s, s);
+    // la lumière qui passe à travers
+    glow(ctx, 4, -12, 22, '255,240,170', 0.4 + 0.2 * Math.sin(t * 5) + k * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(-24, 1);
+    ctx.quadraticCurveTo(-20, -8 - bob, -9, -13 - bob);
+    ctx.quadraticCurveTo(2, -19 - bob, 12, -12 - bob);
+    ctx.quadraticCurveTo(22, -6, 24, 1);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, -18, 0, 0);
+    g.addColorStop(0, '#c48a52');
+    g.addColorStop(1, '#7a4a24');
+    paint(ctx, g, '#4a2a12', 1.3);
+    // des mottes, des cailloux et un brin d'herbe arraché
+    for (const [px, py, r, c] of [[-12, -6, 3.4, '#9a6438'], [-2, -12, 3, '#a8703e'], [9, -7, 3.6, '#8a5a30'], [16, -2, 2.4, '#6a4024'], [-5, -3, 2, '#b8b0c0']]) {
+      circlePath(ctx, px, py - bob * 0.6, r);
+      ctx.fillStyle = c;
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#4fae6a';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(4, -15 - bob);
+    ctx.quadraticCurveTo(6, -22 - bob, 3 + Math.sin(t * 3) * 2, -26 - bob);
+    ctx.stroke();
+    // un rayon de lumière entre deux mottes
+    ctx.fillStyle = `rgba(255,248,200,${0.7 + 0.3 * Math.sin(t * 5)})`;
+    ellipsePath(ctx, 2, -13 - bob, 2.6, 1.3, -0.3);
+    ctx.fill();
+    // ça tremble : des petites fissures
+    if (k > 0.2) {
+      ctx.strokeStyle = 'rgba(40,20,8,0.8)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-16, -3);
+      ctx.lineTo(-11, -8);
+      ctx.lineTo(-13, -11);
+      ctx.moveTo(14, -4);
+      ctx.lineTo(10, -9);
+      ctx.lineTo(13, -12);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Le trou d'une taupe dans l'herbe, en (x, y) ; k : sa taille.
+  function moleHole(ctx, x, y, k) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(k, 1);
+    ellipsePath(ctx, 0, 0, 20, 5.5);
+    paint(ctx, '#2a160c', '#6a4024', 1.4);
+    for (const [px, r] of [[-22, 5], [21, 5.5], [-15, 3.4], [15, 3.2]]) {
+      ctx.beginPath();
+      ctx.arc(px, 2, r, Math.PI, 0);
+      ctx.closePath();
+      paint(ctx, '#9a6438', '#4a2a12', 1);
+    }
+    ctx.restore();
+  }
+
+  // Une luciole en (x, y) : un petit corps, des ailes qui frétillent, et le derrière qui brille
+  // (son halo : voir glow). k : de 0 à 1 (elle clignote), dir : vers où elle vole.
+  // (Dessinée par-dessus la nuit.)
+  function firefly(ctx, x, y, k, dir, t) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.fillStyle = 'rgba(230,240,255,0.55)';
+    const f = Math.sin(t * 40) * 0.6;
+    ellipsePath(ctx, -1, -3, 2.8, 1.4 + f, -0.6);
+    ctx.fill();
+    ellipsePath(ctx, 1, -3, 2.6, 1.3 - f * 0.5, 0.5);
+    ctx.fill();
+    ctx.fillStyle = '#3a2a40';
+    ellipsePath(ctx, 1.5, 0, 2.2, 1.6);
+    ctx.fill();
+    ctx.fillStyle = `rgb(${200 + k * 55},255,${110 + k * 60})`;
+    circlePath(ctx, -1.8, 0.4, 1.6 + k * 0.8);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // La bave d'un escargot (une goutte : elles se touchent et font une traînée qui brille).
   // age : depuis combien de temps elle est là ; elle sèche de wet à total (elle devient terne et s'efface).
   function slimeDrop(ctx, x, y, age, v, wet, total) {
@@ -4729,8 +5096,8 @@ const Art = (() => {
     eclair, sparks, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
     bat, grumpyBird, gummyBear, candyEye, gem, GEMS, bigBird, birdNest,
     dandelion, dandelionStem, dandelionLeaves, dandelionFlower, dandelionSeed,
-    snail, lilyPad, bunny, fish, slimeDrop,
+    snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow,
     // pour les autres personnages (heroes.js)
-    paint, mixColor, ouchPose, koStars, spotsOverlay, wetOverlay, slimeOverlay,
+    paint, mixColor, ouchPose, koStars, spotsOverlay, wetOverlay, slimeOverlay, dirtOverlay,
   };
 })();

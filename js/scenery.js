@@ -21,6 +21,14 @@ const Scenery = (() => {
       plat: '#a8784a', platDark: '#6e4a26', platLight: '#d2a06a', log: true,
       bramble: '#8a3f8a', brambleDark: '#3d1640', thorn: '#ffffff',
     },
+    // la prairie la nuit : de l'herbe bleu-vert sous la lune, et des planches lilas
+    night: {
+      dirt: '#8a6058', dirtDark: '#5e3c3c', dirtLight: '#a87a6a', stripe: 'rgba(40,20,40,0.2)',
+      top: '#3fae7a', topDark: '#22805e', topLight: '#8fe0b8', blades: true,
+      brick: '#b0708a', brickDark: '#7a4060', brickLight: '#e0a0bc',
+      plat: '#b88ae0', platDark: '#7c58b0', platLight: '#e6d0ff', platDots: '#ffffff',
+      bramble: '#6a3a8a', brambleDark: '#2a1040', thorn: '#ffffff',
+    },
     // le terrier secret (sous la rivière) : de la terre tassée, sans herbe, et des racines pour grimper
     burrow: {
       dirt: '#a8703e', dirtDark: '#7a4a24', dirtLight: '#c48a52', stripe: 'rgba(80,40,10,0.2)',
@@ -1613,7 +1621,110 @@ const Scenery = (() => {
     });
   }
 
+  // La lune de la Prairie la Nuit, à l'écran : elle glisse tout doucement vers la gauche à mesure qu'on avance,
+  // et elle arrive au-dessus du grand champ du bout du niveau.
+  function moonPos(cx, cy) {
+    return { x: 860 - cx * 0.035, y: 92 - cy * 0.05, r: 52 };
+  }
+
   const BG = {
+    // la prairie la nuit : un ciel plein d'étoiles, une grosse lune (des corbeaux passent devant de temps
+    // en temps), des collines bleu nuit avec des arbres tout ronds, des lucioles au loin, et des buissons
+    // avec des petites fleurs qui brillent
+    night(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#0a0f2e'], [0.5, '#1b2a5c'], [0.85, '#33508a'], [1, '#456aa0']]);
+      const SW = VIEW_W + 200;
+      for (let i = 0; i < 90; i++) {
+        const x = (((hash(i * 1.71) * SW - cx * 0.02) % SW) + SW) % SW - 100;
+        const y = hash(i * 3.13) * 340 - cy * 0.03;
+        const a = 0.4 + 0.6 * Math.abs(Math.sin(t * (0.5 + hash(i) * 1.5) + i));
+        ctx.fillStyle = `rgba(255,250,220,${a})`;
+        if (hash(i * 7.7) < 0.12) {
+          // une grosse étoile qui scintille
+          const s = 3 + a * 2.5;
+          ctx.beginPath();
+          ctx.moveTo(x, y - s);
+          ctx.quadraticCurveTo(x, y, x + s, y);
+          ctx.quadraticCurveTo(x, y, x, y + s);
+          ctx.quadraticCurveTo(x, y, x - s, y);
+          ctx.quadraticCurveTo(x, y, x, y - s);
+          ctx.fill();
+        } else {
+          circlePath(ctx, x, y, 1.1);
+          ctx.fill();
+        }
+      }
+      // la lune
+      const m = moonPos(cx, cy);
+      const hg = ctx.createRadialGradient(m.x, m.y, m.r * 0.8, m.x, m.y, m.r * 3.2);
+      hg.addColorStop(0, 'rgba(255,248,210,0.32)');
+      hg.addColorStop(1, 'rgba(255,248,210,0)');
+      ctx.fillStyle = hg;
+      circlePath(ctx, m.x, m.y, m.r * 3.2);
+      ctx.fill();
+      const mg = ctx.createRadialGradient(m.x - m.r * 0.3, m.y - m.r * 0.3, m.r * 0.1, m.x, m.y, m.r);
+      mg.addColorStop(0, '#fffef2');
+      mg.addColorStop(1, '#ffe9a8');
+      ctx.fillStyle = mg;
+      circlePath(ctx, m.x, m.y, m.r);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(220,196,140,0.45)';
+      for (const [dx, dy, r] of [[-0.35, -0.2, 0.18], [0.28, 0.18, 0.22], [0.05, -0.48, 0.1], [-0.12, 0.42, 0.13], [0.48, -0.22, 0.09]]) {
+        circlePath(ctx, m.x + dx * m.r, m.y + dy * m.r, r * m.r);
+        ctx.fill();
+      }
+      // trois corbeaux qui passent devant la lune, de temps en temps
+      const k = (t / 16) % 1;
+      if (k < 0.5) {
+        ctx.strokeStyle = '#141428';
+        ctx.lineWidth = 2.4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        for (let i = 0; i < 3; i++) {
+          const bx = m.x + 260 - k * 2 * 520 + i * 26;
+          const by = m.y - 10 + i * 9 + Math.sin(t * 2 + i) * 4;
+          const f = Math.sin(t * 9 + i * 2) * 5;
+          ctx.beginPath();
+          ctx.moveTo(bx - 8, by - f);
+          ctx.quadraticCurveTo(bx - 3, by - 2, bx, by + 1);
+          ctx.quadraticCurveTo(bx + 3, by - 2, bx + 8, by - f);
+          ctx.stroke();
+        }
+      }
+      // les collines au loin
+      const off1 = cx * 0.1;
+      hillPath(ctx, off1, 385 - cy * 0.08, 70, 0.004, 0.7);
+      ctx.fillStyle = '#22315f';
+      ctx.fill();
+      const off2 = cx * 0.3;
+      const b2 = 430 - cy * 0.2;
+      hillPath(ctx, off2, b2, 55, 0.006, 1.3);
+      stripedFill(ctx, '#1f4660', 'rgba(255,255,255,0.05)', off2);
+      forEachItem(off2, 160, 3, (x, i, h) => {
+        if (h < 0.55) roundTree(ctx, x, hillY(off2, x, b2, 55, 0.006, 1.3) + 4, 60 + h * 40, '#2a2a46', '#25506a', '#1c3e56');
+      });
+      // des lucioles, au loin
+      forEachItem(off2 - t * 6, 41, 9, (x, i, h) => {
+        const a = Math.max(0, Math.sin(t * (1 + h) + i * 1.7));
+        if (a < 0.05) return;
+        ctx.fillStyle = `rgba(230,255,140,${a * 0.85})`;
+        circlePath(ctx, x, b2 - 30 + h * 90 + Math.sin(t * 1.3 + i) * 6, 1.4 + a * 0.6);
+        ctx.fill();
+      });
+      // les buissons tout près, avec des petites fleurs qui brillent
+      const off3 = cx * 0.55;
+      const b3 = 480 - cy * 0.45;
+      hillPath(ctx, off3, b3, 30, 0.012, 4.2);
+      ctx.fillStyle = '#1d5a52';
+      ctx.fill();
+      forEachItem(off3, 70, 5, (x, i, h) => {
+        const a = 0.6 + 0.4 * Math.sin(t * 2 + i);
+        ctx.fillStyle = i & 1 ? `rgba(150,240,255,${a})` : `rgba(255,170,230,${a})`;
+        circlePath(ctx, x, hillY(off3, x, b3, 30, 0.012, 4.2) + 6 + h * 10, 3);
+        ctx.fill();
+      });
+    },
+
     // tout là-haut dans les arbres : le ciel, des nuages sous nos pieds, d'autres grands arbres au loin,
     // les cimes juste en dessous, et la prairie tout en bas
     treetops(ctx, cx, cy, t) {
@@ -2349,6 +2460,66 @@ const Scenery = (() => {
     },
   };
 
+  // Une grande fleur-lanterne (la Prairie la Nuit), plantée en (x, y) : sa clochette brille et éclaire
+  // tout autour (le cœur qui brille est dessiné par-dessus la nuit, voir glowFlowerShine).
+  function glowHead(x, y, v, t) {
+    return { x: x + 10 + Math.sin(t * 1.4 + v * 9) * 3, y: y - 60 };
+  }
+
+  function glowFlower(ctx, x, y, v, t) {
+    const h = glowHead(x, y, v, t);
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#2f8a5a';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x - 8, y - 52, h.x, h.y - 12);
+    ctx.stroke();
+    ctx.fillStyle = '#3fae7a';
+    ellipsePath(ctx, x - 9, y - 14, 11, 4, 0.6);
+    ctx.fill();
+    ellipsePath(ctx, x + 7, y - 26, 11, 4, -0.6);
+    ctx.fill();
+    // la clochette, la tête en bas, festonnée
+    const warm = v < 0.5;
+    const g = ctx.createLinearGradient(0, h.y - 12, 0, h.y + 8);
+    g.addColorStop(0, warm ? '#ffe680' : '#a8ecff');
+    g.addColorStop(1, warm ? '#fffbe0' : '#f0fcff');
+    ctx.beginPath();
+    ctx.moveTo(h.x - 3, h.y - 12);
+    ctx.quadraticCurveTo(h.x - 12, h.y - 8, h.x - 12, h.y + 6);
+    for (let i = 0; i < 4; i++) ctx.quadraticCurveTo(h.x - 12 + i * 6 + 3, h.y + 1, h.x - 6 + i * 6, h.y + 6);
+    ctx.quadraticCurveTo(h.x + 12, h.y - 8, h.x + 3, h.y - 12);
+    ctx.closePath();
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = warm ? '#d8a020' : '#4aa8d8';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function glowFlowerShine(ctx, x, y, v, t) {
+    const h = glowHead(x, y, v, t);
+    const a = 0.5 + 0.15 * Math.sin(t * 2.2 + v * 20);
+    const col = v < 0.5 ? '255,236,140' : '150,230,255';
+    Art.glow(ctx, h.x, h.y + 2, 40, col, a * 1.4);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // le pistil qui pend, et du pollen qui scintille en s'envolant
+    ctx.fillStyle = `rgba(${col},1)`;
+    circlePath(ctx, h.x, h.y + 10, 2.4);
+    ctx.fill();
+    for (let i = 0; i < 3; i++) {
+      const k = ((t * 0.5 + i / 3 + v) % 1);
+      ctx.globalAlpha = 1 - k;
+      circlePath(ctx, h.x + Math.sin(t * 2 + i * 2) * 8, h.y + 8 - k * 40, 1.3);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawBackground(ctx, theme, cx, cy, t, flash) {
     BG[theme](ctx, cx, cy, t, flash || 0);
   }
@@ -2382,6 +2553,41 @@ const Scenery = (() => {
       } else {
         // touffe d'herbe
         ctx.fillStyle = theme === 'mountain' ? '#9aa84a' : '#3fbf4a';
+        for (let k = -2; k <= 2; k++) {
+          ctx.beginPath();
+          ctx.moveTo(k * 4 - 2, 0);
+          ctx.quadraticCurveTo(k * 5 + sway * 20, -10, k * 6 + sway * 30, -13 + Math.abs(k) * 2);
+          ctx.lineTo(k * 4 + 2, 0);
+          ctx.fill();
+        }
+      }
+    } else if (theme === 'night') {
+      if (v < 0.4) {
+        // une petite clochette qui brille dans la nuit (bleue ou rose)
+        ctx.rotate(sway);
+        ctx.strokeStyle = '#2f8a5a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -15);
+        ctx.stroke();
+        const a = 0.75 + 0.25 * Math.sin(t * 2 + v * 30);
+        ctx.fillStyle = `rgba(${v < 0.2 ? '150,240,255' : '255,170,230'},${a})`;
+        ctx.beginPath();
+        ctx.moveTo(-5, -11);
+        ctx.quadraticCurveTo(-5, -21, 0, -21);
+        ctx.quadraticCurveTo(5, -21, 5, -11);
+        ctx.lineTo(2.5, -13);
+        ctx.lineTo(0, -11);
+        ctx.lineTo(-2.5, -13);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#fffbe0';
+        circlePath(ctx, 0, -10.5, 1.3);
+        ctx.fill();
+      } else {
+        // touffe d'herbe
+        ctx.fillStyle = '#2f9a6e';
         for (let k = -2; k <= 2; k++) {
           ctx.beginPath();
           ctx.moveTo(k * 4 - 2, 0);
@@ -2577,5 +2783,6 @@ const Scenery = (() => {
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
     rainbowSprite, bounceSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
     trunkSprite, crown, riverBed, drawWaterRun, reeds, burrowCell, burrowSunbeam, burrowLantern,
+    moonPos, glowFlower, glowFlowerShine,
   };
 })();

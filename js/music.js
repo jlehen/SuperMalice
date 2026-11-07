@@ -343,6 +343,28 @@ const Music = (() => {
     return S.out({ drumV: 0.8 });
   }
 
+  // 1-4. La Prairie la Nuit : la calypso de la Prairie, plus lente et tout doucement, comme une berceuse.
+  // La mélodie au vibraphone, la marimba en écho, la contrebasse et la guitare en sourdine, et des grillons.
+  function meadowNight() {
+    const S = new Song({ bpm: 116 });
+    const BASS = [[[0, 1.2, 'R'], [1.5, 1.2, 'F'], [3, 0.8, 'O']]];
+    const STRUM = [[[0.5, 0.3, 'C'], [1.5, 0.3, 'C'], [2.5, 0.3, 'C'], [3.5, 0.3, 'C']]];
+    const shaker = rep(8, (i) => [i * 0.5, 'x', i % 2 ? 0.25 : 0.4]);
+    const D = [[[0, 'k', 0.45], [2, 'k', 0.35], [1.25, 'g', 0.8], ...shaker], [[0, 'k', 0.45], [2, 'k', 0.35], [3.25, 'g', 0.6], ...shaker]];
+    const base = (p) => {
+      p.pattern('bass', 'upright', 0.13, BASS);
+      p.pattern('strum', 'guitar', 0.022, STRUM, { low: 57 });
+      p.drums(D);
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'vibes', 0.1); p.pattern('bass', 'upright', 0.13, BASS); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'vibes', 0.1); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'vibes', 0.1); p.melody('echo', 'marimba', 0.045, { delay: 0.75 }); base(p); });
+    S.part(SECT.B, (p) => { p.melody('lead', 'steel', 0.075); base(p); });
+    S.part(SECT.C2, (p) => { p.melody('lead', 'glock', 0.055, { top: true }); p.melody('low', 'vibes', 0.06, { oct: -1, top: true }); base(p); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'vibes', 0.1); p.melody('echo', 'marimba', 0.045, { delay: 0.75 }); base(p); });
+    return S.out({ drumV: 0.7 });
+  }
+
   // 2. La Forêt des Épines : do mineur, en 12/8, flûte et harpe, entrées en canon (fugato) à la clarinette.
   function forest() {
     const S = new Song({ bpm: 88, warp: swing(2 / 3), mode: MINOR });
@@ -644,6 +666,7 @@ const Music = (() => {
   const SONGS = {
     title: title(),
     meadow: meadow(),
+    'meadow-night': meadowNight(),
     forest: forest(),
     'badge-saut': bossa(),
     storm: storm(),

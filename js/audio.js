@@ -156,6 +156,10 @@ const Sound = (() => {
           noise({ filter: 'lowpass', f: 900, f2: 200, d: 0.3, v: 0.3 });
           tone({ type: 'sine', f: 300, f2: 120, d: 0.3, v: 0.18, vib: 12, vibDepth: 50 });
           break;
+        case 'dirt': // wouuuh ! elle s'envole (et la terre retombe en pluie)
+          tone({ type: 'triangle', f: 260, f2: 900, d: 0.35, v: 0.2 });
+          for (let i = 0; i < 4; i++) noise({ filter: 'bandpass', f: 1200 - i * 150, d: 0.05, v: 0.12, q: 2, delay: 0.3 + i * 0.08 });
+          break;
         default: break;
       }
     },
@@ -370,6 +374,34 @@ const Sound = (() => {
       tone({ type: 'sine', f: 1500, f2: 500, d: 0.16, v: 0.12 });
       tone({ type: 'triangle', f: 330, f2: 260, d: 0.18, v: 0.12, delay: 0.12 });
     },
+
+    // ---- La Prairie la Nuit ----
+    // la terre tremble au-dessus d'une taupe : un grondement, et des petits cailloux qui roulent
+    moleRumble() {
+      noise({ f: 260, f2: 120, d: 0.6, v: 0.22, a: 0.08 });
+      tone({ type: 'sine', f: 70, f2: 55, d: 0.55, v: 0.25, vib: 18, vibDepth: 8 });
+      for (let i = 0; i < 3; i++) noise({ filter: 'highpass', f: 2600, d: 0.04, v: 0.06, delay: 0.1 + i * 0.13 });
+    },
+    // elle jaillit : braoum ! et la terre qui retombe
+    molePop() {
+      noise({ f: 1500, f2: 180, d: 0.35, v: 0.4 });
+      tone({ type: 'square', f: 180, f2: 620, d: 0.14, v: 0.08 });
+      for (let i = 0; i < 4; i++) noise({ filter: 'bandpass', f: 900 + i * 200, d: 0.04, v: 0.1, q: 2, delay: 0.22 + i * 0.07 });
+    },
+    // elle replonge dans son trou : flop !
+    moleHide() {
+      tone({ type: 'sine', f: 600, f2: 160, d: 0.16, v: 0.14 });
+      noise({ filter: 'lowpass', f: 700, f2: 200, d: 0.18, v: 0.15 });
+    },
+    // un coup sur son casque : bonk !
+    moleBonk() {
+      tone({ type: 'triangle', f: 1300, f2: 900, d: 0.12, v: 0.2 });
+      tone({ type: 'sine', f: 2600, d: 0.3, v: 0.05, delay: 0.02 });
+    },
+    // les lucioles se mettent à suivre Malice : des petites clochettes qui scintillent
+    fireflies() {
+      arp([1568, 2093, 2349, 3136], { type: 'sine', d: 0.22, v: 0.045, gap: 0.08 });
+    },
   };
 
   // ---------- Instruments ----------
@@ -551,9 +583,11 @@ const Sound = (() => {
   }
 
   // k grosse caisse, s caisse claire, h charleston, o charleston ouvert, r clave, x shaker, c cymbale,
-  // y ride, m timbale, t tom, b balai, p claquement de mains, n tonnerre, d goutte d'eau, w wood-block
+  // y ride, m timbale, t tom, b balai, p claquement de mains, n tonnerre, d goutte d'eau, w wood-block,
+  // g grillon
   function playDrum(k, t, v) {
     switch (k) {
+      case 'g': [0, 0.035, 0.07].forEach((dt) => thump(t + dt, 4400, 4250, 0.025, 0.022 * v, 'square')); break;
       case 'd': thump(t, 1700, 520, 0.09, 0.14 * v); thump(t + 0.07, 2400, 1800, 0.05, 0.05 * v); break;
       case 'w': thump(t, 900, 850, 0.06, 0.25 * v, 'triangle'); noiseHit(t, 'bandpass', 1500, 4, 0.06 * v, 0.03); break;
       case 'k': thump(t, 150, 45, 0.14, 0.5 * v); break;

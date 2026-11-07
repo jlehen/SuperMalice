@@ -75,6 +75,9 @@ const OUCH = {
   wet: { dur: 1.8, pose: 1.1, lock: 0.45, vx: 0, vy: -330, hold: 0.6, text: 'Brrr, c\'est froid !', color: '#8fd8ff' },
   // l'escargot : toute gluante de bave verte qui dégouline, elle tire la langue
   slime: { dur: 1.7, pose: 0.45, lock: 0.25, vx: 240, vy: -420, hold: 0.4, text: 'Beurk, de la bave !', color: '#c8f59a' },
+  // la taupe qui jaillit du sol : projetée en l'air dans une gerbe de terre, elle retombe toute sale,
+  // des mottes sur la tête et un petit ver de terre qui lui fait coucou
+  dirt: { dur: 1.9, pose: 0.75, lock: 0.3, vx: 190, vy: -830, hold: 0.45, text: 'Pouah, de la terre !', color: '#e0a86a' },
   // n'importe quoi d'autre
   hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
 };
@@ -1083,6 +1086,13 @@ class Player {
           w.spawn({ type: 'dot', x: p.x, y: p.y, vx: rand(-10, 10), vy: rand(10, 50), g: 500, life: 0.7, size: rand(2, 3.2), color: '#b8f08a' });
         }
         break;
+      case 'dirt':
+        // des miettes de terre tombent de partout
+        if (Math.random() < dt * 14) {
+          const p = at(rand(-12, 12), rand(-64, -10));
+          w.spawn({ type: 'dot', x: p.x, y: p.y, vx: rand(-30, 30), vy: rand(0, 60), g: 1100, life: 0.6, size: rand(1.8, 3), color: choose(['#8a5a34', '#a8703e', '#6a4024']) });
+        }
+        break;
       case 'spots':
         Art.MALICE_SPOTS.forEach(([x, y], i) => {
           if (!passed(Art.spotPop(i))) return;
@@ -2067,6 +2077,333 @@ class Snail extends Enemy {
   }
 
   mouth() { return { x: this.dir * (this.fat ? 19 : 17), y: -13 }; }
+}
+
+// Taupe (la Prairie la Nuit) : elle creuse sous la prairie. On ne voit qu'un petit tas de terre qui avance
+// (et la lumière de sa lampe de mineur, qui passe à travers). Quand Malice arrive tout près, le tas file
+// sous ses pieds, la terre tremble… et la taupe jaillit d'un coup dans une gerbe de terre : si Malice est
+// juste dessus, elle est projetée en l'air ! La taupe regarde autour d'elle un moment, puis replonge.
+// Quand elle est dehors : on lui saute sur le casque (bonk !), le caramel la colle (elle ne peut plus
+// replonger), et avec les chips elle devient trop grosse pour rentrer dans son trou. Sous terre, rien ne
+// la touche… sauf le BOUM du Dinosaure, qui la fait sortir d'un coup (voir quake dans pouvoirs.js).
+const MOLE_RANGE = 6;
+// cachée, elle est assez loin sous l'herbe pour que rien ne la touche (ni Malice, ni le caramel, ni les tirs)
+const MOLE_DEEP = 14;
+const MOLE_DIVE = 0.35;
+
+class Mole extends Enemy {
+  // cx : le milieu de sa case, ground : le haut de l'herbe
+  constructor(world, cx, ground) {
+    super(world, cx - 18, ground + MOLE_DEEP, 36, 40);
+    this.ouch = 'dirt'; // elle projette Malice en l'air dans une gerbe de terre (voir OUCH)
+    this.groundY = ground;
+    this.state = 'under';
+    this.timer = 0;
+    // au début (et à la reprise d'un drapeau), elle attend un peu avant de chercher Malice
+    this.rest = 1.2;
+    this.dir = choose([-1, 1]);
+    this.look = { x: -1, y: 0 };
+    this.fatSpeed = 26;
+    this.holeX = cx;
+    this.range = null;
+  }
+
+  get under() { return this.state === 'under' || this.state === 'warn'; }
+
+  // Le bout de prairie où elle peut creuser (jusqu'à MOLE_RANGE cases de chez elle) : de l'herbe,
+  // sans rien de posé dessus (ni plateforme, ni ronces, ni flaque). Calculé une fois la carte lue.
+  findRange() {
+    const w = this.world;
+    const r = Math.round(this.groundY / TILE);
+    const c0 = Math.floor(this.cx / TILE);
+    const ok = (c) => w.tileAt(c, r) === '#' && w.tileAt(c, r - 1) === '.';
+    let a = c0;
+    let b = c0;
+    while (a > c0 - MOLE_RANGE && ok(a - 1)) a--;
+    while (b < c0 + MOLE_RANGE && ok(b + 1)) b++;
+    // (jamais à moins de 3 cases d'un trou ou de l'eau : en jaillissant, elle y jetterait Malice)
+    const hole = (c) => !isSolidCh(w.tileAt(c, r));
+    for (let k = 1; k <= 3; k++) {
+      if (hole(a - k)) {
+        a = Math.min(c0, a - k + 4);
+        break;
+      }
+    }
+    for (let k = 1; k <= 3; k++) {
+      if (hole(b + k)) {
+        b = Math.max(c0, b + k - 4);
+        break;
+      }
+    }
+    return [a * TILE + 20, (b + 1) * TILE - 20];
+  }
+
+  // Rien de solide juste au-dessus d'elle (un bloc magique du Lutin, par exemple), sur toute sa largeur ?
+  roomAbove() {
+    const w = this.world;
+    const r = Math.round(this.groundY / TILE) - 1;
+    for (let c = Math.floor(this.x / TILE); c <= Math.floor((this.x + this.w - 0.01) / TILE); c++) {
+      if (isSolidCh(w.tileAt(c, r))) return false;
+    }
+    return true;
+  }
+
+  // Elle vise les talons de Malice (juste derrière elle : on voit bien la taupe sortir, et Malice est
+  // projetée vers l'avant). Tout au bout de sa zone, elle vise devant elle : Malice est alors projetée
+  // vers le milieu du champ, jamais vers le trou d'à côté.
+  heels(p) {
+    const [a, b] = this.range;
+    const f = p.facing;
+    const end = f > 0 ? p.cx > b - 1.5 * TILE : p.cx < a + 1.5 * TILE;
+    return clamp(p.cx + (end ? f : -f) * 22, a, b);
+  }
+
+  harmful() {
+    return (this.state === 'pop' || this.state === 'out') && super.harmful();
+  }
+
+  // Elle est petite : dehors, le caramel, les chips et les tirs des pouvoirs la touchent un peu plus haut
+  // (sinon, ils passeraient par-dessus son casque). Cachée, rien ne la touche.
+  shotBox() {
+    if (this.under) return { x: this.x, y: this.groundY + 400, w: this.w, h: 1 };
+    return { x: this.x, y: this.y - 16, w: this.w, h: this.h + 16 };
+  }
+
+  update(dt) {
+    if (this.dying && this.deathType === 'bonk') {
+      // assommée, elle redescend dans son trou en voyant des étoiles… et pouf !
+      this.t += dt;
+      this.dieT += dt;
+      if (this.dieT > 0.9) {
+        this.dead = true;
+        this.world.puff(this.holeX, this.groundY - 6, '#d8b08a');
+      }
+      return;
+    }
+    super.update(dt);
+  }
+
+  ai(dt) {
+    const w = this.world;
+    const p = w.player;
+    if (!this.range) this.range = this.findRange();
+    const [a, b] = this.range;
+    this.timer -= dt;
+    this.rest -= dt;
+    const dx = p.cx - this.cx;
+    const feet = p.y + p.h;
+    // Malice marche (ou saute) au-dessus de son bout de prairie ?
+    const above = !p.dead && !p.won && this.rest <= 0 && feet > this.groundY - 2.5 * TILE && feet < this.groundY + 6 &&
+      p.cx > a - TILE && p.cx < b + TILE;
+    switch (this.state) {
+      case 'under': {
+        let want;
+        let speed;
+        const chase = above && Math.abs(dx) < 5 * TILE;
+        if (chase) {
+          // elle file sous ses talons
+          want = this.heels(p);
+          speed = w.diff.moleDig;
+        } else {
+          // elle se promène tout doucement
+          if (this.cx <= a + 1) this.dir = 1;
+          else if (this.cx >= b - 1) this.dir = -1;
+          want = this.cx + this.dir * 40;
+          speed = 26;
+        }
+        const move = clamp(want - this.cx, -speed * dt, speed * dt);
+        this.x = clamp(this.x + move, a - this.w / 2, b - this.w / 2);
+        this.vx = move / dt;
+        if (Math.abs(move) > 0.05) this.dir = Math.sign(move);
+        if (Math.abs(this.vx) > 20 && Math.random() < dt * 8) this.crumbs(1);
+        // juste sous ses talons : la terre tremble… (pas si Malice est posée sur quelque chose au-dessus
+        // de l'herbe, comme le bloc du Lutin)
+        const perched = p.onGround && feet < this.groundY - 4;
+        if (chase && Math.abs(want - this.cx) < 6 && Math.abs(dx) < 34 && p.cx > a + 12 && p.cx < b - 12 &&
+          feet > this.groundY - 2 * TILE && !perched && this.roomAbove()) {
+          this.state = 'warn';
+          this.timer = w.diff.moleWarn;
+          this.jumped = false;
+          this.x = want - this.w / 2;
+          this.vx = 0;
+          if (w.onScreen(this, 100)) Sound.sfx.moleRumble();
+        }
+        break;
+      }
+      case 'warn':
+        if (Math.random() < dt * 14) this.crumbs(1);
+        // Malice a sauté au-dessus du tas : la taupe jaillit juste sous elle dès qu'elle commence à redescendre
+        // (sauter, c'est toujours la bonne réponse : elle retombe sur son casque)
+        if (Math.abs(dx) < 40 && !p.onGround) {
+          if (p.vy < 0) this.jumped = true;
+          else if (this.jumped) {
+            this.x = clamp(p.cx, a, b) - this.w / 2;
+            this.timer = 0;
+          }
+        }
+        if (this.timer <= 0) {
+          if (this.roomAbove()) this.pop();
+          else {
+            this.state = 'under';
+            this.rest = 0.8;
+          }
+        }
+        break;
+      case 'pop':
+        // elle monte, puis retombe au bord de son trou
+        this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
+        this.y += this.vy * dt;
+        if (this.vy > 0 && this.y + this.h >= this.groundY) {
+          this.y = this.groundY - this.h;
+          this.vy = 0;
+          this.onGround = true;
+          this.state = 'out';
+          this.timer = w.diff.moleOut;
+        }
+        break;
+      case 'out':
+        // elle cherche Malice à travers ses grosses lunettes
+        if (Math.abs(dx) > 8) this.dir = Math.sign(dx);
+        if (this.timer <= 0) this.dive();
+        break;
+      case 'dive':
+        this.y = this.groundY - this.h + clamp(1 - this.timer / MOLE_DIVE, 0, 1) * (this.h + MOLE_DEEP);
+        if (this.timer <= 0) this.hide();
+        break;
+      default: break;
+    }
+    const d = Math.hypot(dx, p.cy - this.y) || 1;
+    const sees = !this.under && !p.dead && d < 400;
+    this.look.x += ((sees ? dx / d : this.dir) - this.look.x) * Math.min(1, dt * 6);
+    this.look.y += ((sees ? (p.cy - this.y) / d : 0) - this.look.y) * Math.min(1, dt * 6);
+  }
+
+  // des miettes de terre qui sautent du tas
+  crumbs(n) {
+    const w = this.world;
+    for (let i = 0; i < n; i++) {
+      w.spawn({ type: 'dot', x: this.cx + rand(-14, 14), y: this.groundY - rand(4, 12), vx: rand(-70, 70), vy: rand(-200, -80), g: 1200, life: 0.45, size: rand(1.8, 3.2), color: choose(['#8a5a34', '#a8703e', '#c48a52']) });
+    }
+  }
+
+  // Elle jaillit d'un coup, dans une gerbe de terre.
+  pop() {
+    const w = this.world;
+    this.state = 'pop';
+    this.holeX = this.cx;
+    this.y = this.groundY - this.h + 12;
+    this.vy = -560;
+    this.onGround = false;
+    if (w.onScreen(this, 100)) {
+      Sound.sfx.molePop();
+      w.shake(3);
+    }
+    for (let i = 0; i < 14; i++) {
+      w.spawn({
+        type: 'debris', x: this.cx + rand(-16, 16), y: this.groundY - 4, vx: rand(-220, 220), vy: rand(-620, -260), g: 1700,
+        life: 0.8, size: rand(5, 10), color: choose(['#8a5a34', '#a8703e', '#6a4024', '#4fae6a']), vr: rand(-10, 10),
+      });
+    }
+    for (let i = 0; i < 6; i++) {
+      w.spawn({ type: 'dust', x: this.cx + rand(-20, 20), y: this.groundY, vx: rand(-90, 90), vy: rand(-120, -30), life: 0.55, size: rand(6, 10), color: 'rgba(196,150,100,0.85)' });
+    }
+  }
+
+  // Elle replonge dans son trou.
+  dive() {
+    this.state = 'dive';
+    this.timer = MOLE_DIVE;
+    this.vx = 0;
+    this.vy = 0;
+    if (this.world.onScreen(this, 60)) Sound.sfx.moleHide();
+    this.crumbs(5);
+  }
+
+  hide() {
+    this.state = 'under';
+    this.y = this.groundY + MOLE_DEEP;
+    this.vx = 0;
+    this.vy = 0;
+    this.onGround = false;
+    this.rest = 1.8;
+  }
+
+  // Collée par le caramel, ou toute grosse avec les chips (elle ne rentre plus dans son trou, elle se promène
+  // en soufflant) : elle reste dehors, même si elle était en train de jaillir ou de replonger.
+  stayOut() {
+    if (this.state === 'dive') this.y = this.groundY - this.h;
+    this.state = 'out';
+  }
+
+  onStuck() { this.stayOut(); }
+  onFat() { this.stayOut(); }
+
+  onUnstuck() {
+    if (!this.fat) this.dive();
+  }
+
+  kill(type) {
+    // le BOUM du Dinosaure la fait sortir de sous terre
+    if (this.under) {
+      this.state = 'out';
+      this.holeX = this.cx;
+      this.y = this.groundY - this.h;
+    }
+    super.kill(type);
+  }
+
+  stomp() {
+    const w = this.world;
+    this.kill('stomp');
+    // bonk ! sur le casque : elle redescend dans son trou, assommée (sauf si elle s'en est éloignée,
+    // ou si elle est trop grosse pour y rentrer : elle est écrasée, comme les autres)
+    if (!this.fat && Math.abs(this.cx - this.holeX) < 24) this.deathType = 'bonk';
+    Sound.sfx.moleBonk();
+    w.popText(this.cx, this.y - 24, 'Bonk !', '#ffe27a', 22);
+  }
+
+  // Sa lampe de mineur brille dans la nuit : on la voit toujours, même sous terre.
+  light() {
+    if (this.under) return { x: this.cx, y: this.groundY - 6, r: this.state === 'warn' ? 70 : 54, a: 0.7 };
+    return { x: this.cx + this.dir * 6, y: this.y + 8, r: 90, a: 0.8 };
+  }
+
+  draw(ctx) {
+    const gy = this.groundY;
+    if (this.under) {
+      const shake = this.state === 'warn' ? clamp(1 - this.timer / this.world.diff.moleWarn, 0, 1) : 0;
+      Art.moleHill(ctx, this.cx, gy, { t: this.t, shake, moving: Math.abs(this.vx) > 5, dir: this.dir });
+      return;
+    }
+    // le trou, derrière elle
+    if (!this.dying || this.deathType === 'bonk') Art.moleHole(ctx, this.holeX, gy, this.state === 'pop' ? 1 : 0.8);
+    const sinking = this.state === 'dive' || (this.dying && this.deathType === 'bonk');
+    if (sinking) {
+      // elle disparaît sous l'herbe
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(this.cx - 120, gy - 400, 240, 400);
+      ctx.clip();
+    }
+    if (this.dying && this.deathType === 'bonk') {
+      const k = this.dieT;
+      const squash = k < 0.15 ? Math.sin((k / 0.15) * Math.PI) * 0.35 : 0;
+      const sink = clamp((k - 0.3) / 0.6, 0, 1) * (this.h + 10);
+      Art.mole(ctx, this.holeX, gy + sink, { dir: this.dir, t: this.t, look: this.look, dizzy: true, squash });
+    } else {
+      super.draw(ctx);
+    }
+    if (sinking) ctx.restore();
+  }
+
+  drawBody(ctx, x, y) {
+    Art.mole(ctx, x, y, {
+      dir: this.dir, t: this.t, look: this.look, fat: this.fat, rest: this.fatRest && this.stuck <= 0,
+      popping: this.state === 'pop', moving: Math.abs(this.vx) > 1,
+    });
+  }
+
+  mouth() { return { x: this.dir * (this.fat ? 12 : 10), y: -17 }; }
 }
 
 // Gros œil bonbon : il est gentil mais timide. Il s'enfuit quand Malice approche ;
@@ -3528,6 +3865,73 @@ class Bunny {
       t: this.t, dir: this.dir, hop: this.hop, peek: this.peek ? this.out : -1, v: this.v,
     });
     if (this.show > 0.05) this.world.bubble(this.x, this.y - 58, this.msg, this.show);
+  }
+}
+
+// Lucioles (la Prairie la Nuit) : un petit groupe qui danse au-dessus de l'herbe et éclaire tout autour.
+// Quand Malice passe tout près, elles la suivent un moment pour éclairer son chemin, puis rentrent chez elles.
+const FIREFLY_FOLLOW = 10;
+
+class Fireflies {
+  constructor(world, x, y) {
+    this.world = world;
+    this.homeX = x;
+    this.homeY = y;
+    this.x = x;
+    this.y = y;
+    this.t = rand(0, 6);
+    // le temps qu'elles suivent encore Malice, et le temps avant de pouvoir la suivre à nouveau
+    this.follow = 0;
+    this.rest = 0;
+    this.flies = Array.from({ length: 6 }, () => ({ ph: rand(0, 6), r: rand(10, 28), sp: rand(1.1, 2.1), blink: rand(0, 6) }));
+  }
+
+  update(dt) {
+    const p = this.world.player;
+    this.t += dt;
+    this.rest -= dt;
+    if (this.follow > 0) {
+      this.follow -= dt;
+      if (p.dead || p.dive > 0 || this.follow <= 0) {
+        this.follow = 0;
+        this.rest = 4;
+      }
+    } else if (this.rest <= 0 && !p.dead && Math.hypot(p.cx - this.x, p.cy - this.y) < 130) {
+      this.follow = FIREFLY_FOLLOW;
+      if (this.world.onScreen(this)) Sound.sfx.fireflies();
+    }
+    let tx;
+    let ty;
+    let k;
+    if (this.follow > 0) {
+      // juste derrière sa tête, en se balançant
+      tx = p.cx - p.facing * 30 + Math.sin(this.t * 1.7) * 14;
+      ty = p.y - 6 + Math.sin(this.t * 2.3) * 8;
+      k = dt * 3.5;
+    } else {
+      tx = this.homeX + Math.sin(this.t * 0.5) * 22;
+      ty = this.homeY + Math.sin(this.t * 0.8) * 10;
+      k = dt * 0.9;
+    }
+    this.x += (tx - this.x) * Math.min(1, k);
+    this.y += (ty - this.y) * Math.min(1, k);
+  }
+
+  light() {
+    return { x: this.x, y: this.y, r: this.follow > 0 ? 170 : 110, a: 0.85 };
+  }
+
+  // (dessinées par-dessus la nuit : elles brillent ; d'abord tous les halos, puis les lucioles)
+  draw(ctx) {
+    for (const f of this.flies) {
+      const a = this.t * f.sp + f.ph;
+      f.x = this.x + Math.cos(a) * f.r + Math.sin(a * 2.3) * 4;
+      f.y = this.y + Math.sin(a * 1.3) * f.r * 0.6;
+      f.k = 0.55 + 0.45 * Math.sin(this.t * 3 + f.blink);
+      f.dir = -Math.sin(a) >= 0 ? 1 : -1;
+      Art.glow(ctx, f.x, f.y, 16 + f.k * 4, '220,255,120', 0.35 + 0.6 * f.k);
+    }
+    for (const f of this.flies) Art.firefly(ctx, f.x, f.y, f.k, f.dir, this.t + f.ph);
   }
 }
 

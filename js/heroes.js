@@ -233,6 +233,7 @@ const Heroes = (() => {
       case 'hypno': return { color: '#b070ff', a: 0.25 * clamp(left / 0.5, 0, 1) };
       case 'wet': return { color: '#3a8ae8', a: 0.3 * clamp(left / 0.5, 0, 1) };
       case 'slime': return { color: '#8ee05a', a: 0.38 * clamp(left / 0.5, 0, 1) };
+      case 'dirt': return { color: '#7a4a24', a: 0.38 * clamp(left / 0.5, 0, 1) };
       default: return null;
     }
   }
@@ -298,6 +299,7 @@ const Heroes = (() => {
     if (k && k.kind === 'spots') Art.spotsOverlay(ctx, k);
     if (k && k.kind === 'wet') Art.wetOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'slime') Art.slimeOverlay(ctx, k, info.headY - 12);
+    if (k && k.kind === 'dirt') Art.dirtOverlay(ctx, k, info.headY - 12);
     // le bébé oiseau assis sur la tête
     if (o.onHead) {
       const [hx, hy] = (def.hat && def.hat(o)) || HERO_HAT[id] || HERO_HAT.malice;

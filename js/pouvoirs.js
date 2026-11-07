@@ -51,8 +51,11 @@ function quake(p, radius) {
   }
   for (const e of w.enemies) {
     if (e.dying || e.dead) continue;
-    const near = Math.abs(e.cx - p.cx) < radius && Math.abs(e.y + e.h - feet) < 60;
-    if (near && (e.onGround || Math.abs(e.y + e.h - feet) < 20)) knockEnemy(p, e, 'Boum !');
+    // (les taupes cachées sous terre aussi : le sol tremble, elles sortent d'un coup)
+    const under = e instanceof Mole && e.under;
+    const eFeet = under ? e.groundY : e.y + e.h;
+    const near = Math.abs(e.cx - p.cx) < radius && Math.abs(eFeet - feet) < 60;
+    if (near && (under || e.onGround || Math.abs(eFeet - feet) < 20)) knockEnemy(p, e, 'Boum !');
   }
 }
 

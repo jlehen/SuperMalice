@@ -14,6 +14,23 @@ const SLIME_TIME = 9;
 const GEM_CHARS = 'gretd';
 const MAGIC_TIME = 6;
 const MAGIC_MAX = 4;
+// Une tache de lumière (pour percer le noir) : dessinée une fois, puis agrandie à la taille de chaque lumière.
+let LIGHT_BLOB = null;
+function lightBlob() {
+  if (!LIGHT_BLOB) {
+    LIGHT_BLOB = document.createElement('canvas');
+    LIGHT_BLOB.width = 128;
+    LIGHT_BLOB.height = 128;
+    const g = LIGHT_BLOB.getContext('2d');
+    const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(0,0,0,1)');
+    gr.addColorStop(0.55, 'rgba(0,0,0,0.8)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr;
+    g.fillRect(0, 0, 128, 128);
+  }
+  return LIGHT_BLOB;
+}
 
 // Un niveau en cours de jeu : le décor, les personnages et tout ce qui bouge.
 class World {
@@ -60,8 +77,15 @@ class World {
     this.look = 60;
     // monde des bonbons : la lave est une rivière de chocolat
     this.choco = def.theme === 'candy';
-    // grotte : il fait noir, sauf autour de Malice et de ce qui brille
+    // grotte : il fait noir, sauf autour de Malice et de ce qui brille ;
+    // la nuit (dark: 'nuit'), c'est plus doux, et la lune, les lucioles et les fleurs qui brillent éclairent
     this.dark = !!def.dark;
+    this.night = def.dark === 'nuit';
+    this.fireflies = [];
+    this.glows = [];
+    this.glowsSeen = [];
+    // le grand champ du bout, sous la lune : [première colonne, dernière colonne]
+    this.moonlight = def.clairDeLune || null;
     this.lightT = 0;
     this.lightBoost = 0;
     this.lightColor = '#ffffff';
@@ -121,6 +145,9 @@ class World {
             break;
           case 'A': this.hazards.push(new Stalactite(this, x, y)); break;
           case 'O': this.enemies.push(new Snail(this, mx - 22, by - 30)); break;
+          case 'm': this.enemies.push(new Mole(this, mx, by)); break;
+          case 'i': this.fireflies.push(new Fireflies(this, mx, y + TILE / 2)); break;
+          case 'j': this.glows.push({ x: mx, y: by, v: hash2(c, r) }); break;
           case 'n':
           case 'c':
             // un nénuphar posé sur l'eau (sous lui, la rivière continue)
@@ -692,6 +719,7 @@ class World {
     for (const a of this.anchors) a.update(dt);
     for (const d of this.puffs) d.update(dt);
     for (const b of this.bunnies) b.update(dt);
+    for (const f of this.fireflies) f.update(dt);
     if (this.goal) this.goal.update(dt);
     if (this.def.sequel) p.birdTalk = this.flowers.reduce((m, f) => Math.max(m, f.show), 0);
     this.updateMagic(dt);
@@ -963,6 +991,9 @@ class World {
     this.drawBurrow(ctx, camX, camY);
     this.drawRiverBeds(ctx);
     this.drawDecor(ctx, camX);
+    // (les fleurs-lanternes qu'on voit : cherchées une fois par image)
+    this.glowsSeen = this.glows.filter((gl) => gl.x > camX - 150 && gl.x < camX + VIEW_W + 150);
+    for (const gl of this.glowsSeen) Scenery.glowFlower(ctx, gl.x, gl.y, gl.v, this.t);
     for (const f of this.flowers) f.draw(ctx);
     ctx.restore();
 
@@ -1008,6 +1039,11 @@ class World {
     }
     this.drawReeds(ctx, true);
     if (this.dark) this.drawDarkness(ctx, camX, camY);
+    // (par-dessus la nuit : le cœur des fleurs qui brillent, et les lucioles)
+    for (const gl of this.glowsSeen) Scenery.glowFlowerShine(ctx, gl.x, gl.y, gl.v, this.t);
+    for (const f of this.fireflies) {
+      if (this.onScreen(f, 60)) f.draw(ctx);
+    }
     this.drawParticles(ctx);
     this.drawBubbles(ctx);
     ctx.restore();
@@ -1125,8 +1161,8 @@ class World {
           const v = hash2(c, r + 9);
           const x = c * TILE + 10 + h * 50;
           Scenery.decor(ctx, this.theme, x, r * TILE + 2, v, this.t);
-          // les petits champignons de la grotte brillent dans le noir
-          if (this.dark && v < 0.5) this.lights.push({ x, y: r * TILE - 8, r: 46, a: 0.55 });
+          // les petits champignons de la grotte (et les petites fleurs de la nuit) brillent dans le noir
+          if (this.dark && v < (this.night ? 0.4 : 0.5)) this.lights.push({ x, y: r * TILE - 8, r: 46, a: 0.55 });
         }
         break;
       }
@@ -1432,6 +1468,8 @@ class World {
   }
 
   // Le noir de la grotte : on ne voit qu'autour de Malice et de ce qui brille.
+  // La nuit, c'est plus doux : le ciel reste un peu clair, et tout ce qui fait mal brille un peu
+  // (les yeux, les lampes des taupes…) : on le voit toujours venir.
   drawDarkness(ctx, camX, camY) {
     const p = this.player;
     // dessiné à moitié de la résolution (c'est flou de toute façon), puis agrandi : bien plus rapide sur tablette
@@ -1448,11 +1486,22 @@ class World {
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalCompositeOperation = 'source-over';
     g.clearRect(0, 0, cw, chh);
-    g.fillStyle = 'rgba(10,5,28,0.92)';
+    if (this.night) {
+      // (au bout, sous le clair de lune du grand champ, il fait moins noir)
+      const k = 1 - 0.55 * this.moonK(camX);
+      const sky = g.createLinearGradient(0, 0, 0, chh);
+      sky.addColorStop(0, `rgba(6,10,40,${0.42 * k})`);
+      sky.addColorStop(0.5, `rgba(6,10,40,${0.78 * k})`);
+      sky.addColorStop(1, `rgba(6,10,40,${0.9 * k})`);
+      g.fillStyle = sky;
+    } else {
+      g.fillStyle = 'rgba(10,5,28,0.92)';
+    }
     g.fillRect(0, 0, cw, chh);
     g.setTransform(s, 0, 0, s, -camX * s, -camY * s);
     g.globalCompositeOperation = 'destination-out';
-    const R = this.diff.darkR + this.lightBoost * 170 + Math.sin(this.t * 7) * 3;
+    // (la nuit, la lumière autour de Malice est plus petite : c'est la lune et les lucioles qui éclairent)
+    const R = this.diff.darkR * (this.night ? 0.6 : 1) + this.lightBoost * 170 + Math.sin(this.t * 7) * 3;
     const L = this.lights;
     L.push({ x: p.cx, y: p.cy - 6, r: R, a: 1 });
     const T = TILE;
@@ -1482,14 +1531,13 @@ class World {
       // les chauves-souris réveillées ont les yeux qui brillent un peu
       if (e instanceof Bat && e.state !== 'sleep' && !e.dying && this.onScreen(e)) L.push({ x: e.cx, y: e.cy, r: 42, a: 0.45 });
     }
+    if (this.night) this.nightLights(L, camX, camY);
+    const blob = lightBlob();
     for (const l of L) {
-      const gr = g.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r);
-      gr.addColorStop(0, `rgba(0,0,0,${l.a})`);
-      gr.addColorStop(0.55, `rgba(0,0,0,${l.a * 0.8})`);
-      gr.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = gr;
-      g.fillRect(l.x - l.r, l.y - l.r, l.r * 2, l.r * 2);
+      g.globalAlpha = l.a;
+      g.drawImage(blob, l.x - l.r, l.y - l.r, l.r * 2, l.r * 2);
     }
+    g.globalAlpha = 1;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(cv, 0, 0, cw * 2, chh * 2);
@@ -1506,6 +1554,47 @@ class World {
       ctx.fillRect(p.cx - R, p.cy - R, R * 2, R * 2);
       ctx.restore();
     }
+  }
+
+  // La nuit : ce qui éclaire en plus (la lune, les lucioles, les fleurs, l'eau de la rivière),
+  // et une petite lumière autour de chaque ennemi (la lampe des taupes, même sous terre).
+  nightLights(L, camX, camY) {
+    const m = Scenery.moonPos(camX, camY);
+    L.push({ x: camX + m.x, y: camY + m.y, r: m.r * 3.4, a: 0.9 });
+    for (const e of this.enemies) {
+      if (!this.onScreen(e, 80)) continue;
+      L.push(e.light ? e.light() : { x: e.cx, y: e.cy, r: 58, a: 0.6 });
+    }
+    for (const f of this.fireflies) {
+      if (this.onScreen(f, 200)) L.push(f.light());
+    }
+    for (const gl of this.glowsSeen) L.push({ x: gl.x + 8, y: gl.y - 50, r: 110, a: 0.85 });
+    for (const f of this.flowers) {
+      if (f.x > camX - 80 && f.x < camX + VIEW_W + 80) L.push({ x: f.x, y: f.y - 36, r: 62, a: 0.6 });
+    }
+    // les pissenlits géants sont tout blancs sous la lune : on les voit de loin
+    for (const d of this.puffs) {
+      if (d.x < camX - 100 || d.x > camX + VIEW_W + 100 || !d.ready()) continue;
+      const h = d.head();
+      L.push({ x: h.x, y: h.y, r: 78, a: 0.7 });
+    }
+    // la lune se reflète dans la rivière (seulement là où on la voit)
+    const c0 = Math.floor((camX - 80) / TILE);
+    const c1 = Math.ceil((camX + VIEW_W + 80) / TILE);
+    for (const w of this.runs) {
+      for (let c = Math.max(w.c0, c0); c <= Math.min(w.c1, c1); c += 2) L.push({ x: c * TILE + TILE, y: w.r * TILE + 18, r: 72, a: 0.38 });
+    }
+  }
+
+  // Combien on est sous le clair de lune du grand champ (de 0 à 1), d'après la caméra :
+  // la lumière arrive doucement en approchant de la première colonne, et repart après la dernière.
+  moonK(camX) {
+    if (!this.moonlight) return 0;
+    const x = camX + VIEW_W / 2;
+    const [a, b] = this.moonlight;
+    const into = (x - a * TILE + VIEW_W * 0.3) / (VIEW_W * 0.8);
+    const out = ((b + 1) * TILE + VIEW_W * 0.3 - x) / (VIEW_W * 0.8);
+    return clamp(Math.min(into, out), 0, 1);
   }
 
   drawParticles(ctx) {

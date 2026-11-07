@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a trois niveaux, et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux (son boss arrive bientôt), et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -30,6 +30,21 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a tro
      Il y a un **trou secret** : un lapin sort la tête de l'herbe à côté d'un bloc lutin posé dans le sol…
      en l'écrasant, on tombe dans le terrier des lapins, sous la rivière, plein de bonbons. On en ressort
      plus loin en grimpant sur les racines.
+   - 1-4 **La Prairie la Nuit** : le plus dur des quatre. Il fait nuit : on voit où l'on va, mais seulement
+     un peu autour de Malice. La grosse lune, les **lucioles** et les grandes **fleurs-lanternes** éclairent
+     le chemin (et tout ce qui fait mal brille un peu : on le voit toujours venir). Les lucioles volent en
+     petits groupes : quand on passe tout près, elles suivent Malice un moment et éclairent tout autour d'elle.
+     Les **taupes** creusent sous la prairie : on voit un petit tas de terre qui bouge, avec la lumière de leur
+     lampe de mineur. Quand Malice arrive, le tas file sous ses pieds, la terre tremble… et la taupe jaillit
+     d'un coup dans une gerbe de terre (si on est juste dessus, on est projeté en l'air !). Elle regarde
+     autour d'elle à travers ses grosses lunettes, puis replonge. Quand elle est dehors, on lui saute sur
+     le casque (bonk !) ; le caramel la colle (elle ne peut plus replonger) ; avec les chips, elle devient
+     trop grosse pour rentrer dans son trou. Les pouvoirs qui renversent les ennemis marchent aussi,
+     et le BOUM du **Dinosaure** fait même sortir celles qui sont cachées sous terre. Le bloc du **Lutin**
+     posé sur un tas de terre empêche la taupe de sortir. Sur les planches, deux cases au-dessus de l'herbe,
+     les taupes ne peuvent pas attraper Malice. On retrouve aussi les gros yeux, un pissenlit géant pour
+     passer le grand trou, et la rivière avec un escargot. Au bout, un grand champ tout plat sous la lune…
+     on dit qu'un épouvantail le garde.
 2. **La Forêt** — 2-1 **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
@@ -133,6 +148,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Coccinelle | couverte de points noirs, qui sautent un par un (le dernier sur le nez) |
 | Eau de la rivière | toute mouillée et un peu bleue, elle grelotte en claquant des dents, l'eau dégouline de sa casquette, et un petit poisson en saute pour retourner dans la rivière |
 | Escargot | couverte de bave verte qui dégouline, elle tire la langue : « Beurk ! » |
+| Taupe qui jaillit du sol | projetée en l'air dans une gerbe de terre, elle retombe toute sale, des mottes sur la tête, et un petit ver de terre rose en sort pour lui faire coucou |
 
 ## Commandes
 
@@ -187,7 +203,9 @@ sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
-`O` = escargot, `l` = lapin…). Un niveau peut avoir un terrier secret sous terre (`terrier` : voir la légende).
+`O` = escargot, `l` = lapin, `m` = taupe, `i` = lucioles, `j` = fleur-lanterne…). Un niveau peut avoir un terrier
+secret sous terre (`terrier` : voir la légende), ou se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
+par la lune : `clairDeLune`).
 Il suffit de modifier les lettres et de recharger la page.
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
@@ -215,6 +233,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   |---|---|
   | Écran titre et grande carte | la version d'origine, façon console 8 bits |
   | La Prairie (la Prairie Fleurie, les Grands Arbres, la Rivière aux Nénuphars) | calypso au steel drum, basse 3+3+2 |
+  | La Prairie la Nuit | la même calypso, plus lente et tout doucement, comme une berceuse : vibraphone, marimba en écho, contrebasse, et des grillons |
   | La Forêt des Épines | do mineur en 12/8, flûte et harpe, entrées en canon |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
