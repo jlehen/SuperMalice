@@ -33,6 +33,9 @@
 //  "storms" : les colonnes où tombent les éclairs au chocolat [début, fin].
 //  "winds" : les colonnes où souffle le vent [début, fin, sens] (1 = vers la droite, -1 = vers la gauche).
 //  "dark" : il fait noir (on ne voit qu'autour de Malice et de ce qui brille).
+//  "sansBadges" : pour les personnages qui n'ont pas les badges (tous sauf Malice) :
+//             "add" : des cases en plus [ligne, colonne, "lettres"] (les anneaux dorés disparaissent),
+//             "talk" : d'autres phrases pour les fleurs { numéro de la phrase : "phrase" }.
 //  "sequel" : le retour à la maison. Le bébé oiseau est sur la casquette de Malice,
 //             et c'est lui qui donne les conseils (les "T" ne font pas pousser de fleur).
 // =====================================================================
@@ -216,6 +219,13 @@ const LEVELS = [
       "Ce mur est très haut ! Accroupis-toi et fais un super saut.",
       "Pour traverser cette lave, accroche ta moustache aux anneaux dorés !",
     ],
+    sansBadges: {
+      add: [[8, 83, "---"], [9, 97, "--"], [9, 101, "--"], [9, 105, "---"]],
+      talk: {
+        1: "Ce mur est très haut ! Monte sur la petite plateforme pour sauter par-dessus.",
+        2: "Plein de lave ! Saute de plateforme en plateforme pour traverser.",
+      },
+    },
     map: [
       '............................................................................................................................................................................................................................',
       '............................................................................................................................................................................................................................',
@@ -278,6 +288,10 @@ const LEVELS = [
       "Accroche ta moustache aux anneaux dorés avec {GRAPPIN} pour traverser !",
       "Le vent souffle contre nous ! Attends qu'il se calme, puis saute !",
     ],
+    sansBadges: {
+      add: [[9, 102, "=="], [9, 110, "=="]],
+      talk: { 4: "Saute sur les petits arcs-en-ciel pour traverser !" },
+    },
     map: [
       '....................................................................................................................................................................................................................',
       '....................................................................................................................................................................................................................',
