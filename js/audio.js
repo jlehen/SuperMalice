@@ -218,6 +218,31 @@ const Sound = (() => {
     bubble() { [0, 0.07, 0.15].forEach((delay, i) => tone({ type: 'sine', f: 300 + i * 120, f2: 900 + i * 200, d: 0.08, v: 0.15, delay })); },
     bubblePop() { tone({ type: 'sine', f: 700, f2: 1500, d: 0.05, v: 0.2 }); noise({ filter: 'highpass', f: 3000, d: 0.04, v: 0.15 }); },
     wave() { noise({ filter: 'lowpass', f: 400, f2: 2200, d: 0.45, v: 0.4 }); },
+    // San Goku : « Kaméhaméha ! » (l'énergie qui grossit, puis le rayon qui part)
+    kame() {
+      tone({ type: 'sawtooth', f: 180, f2: 520, d: 0.22, v: 0.06, vib: 18, vibDepth: 25 });
+      noise({ filter: 'bandpass', f: 900, f2: 3200, d: 0.35, v: 0.3, q: 1.4, delay: 0.12 });
+      tone({ type: 'sine', f: 900, f2: 300, d: 0.3, v: 0.12, delay: 0.14 });
+    },
+    // le nuage magique arrive : un petit sifflet qui monte
+    cloud() { arp([784, 988, 1319], { type: 'sine', d: 0.12, v: 0.12, gap: 0.05 }); noise({ filter: 'bandpass', f: 1200, f2: 600, d: 0.3, v: 0.12 }); },
+    // la petite voiture de Gizmo : tut tut, vroum
+    car() {
+      tone({ type: 'square', f: 880, d: 0.08, v: 0.06 });
+      tone({ type: 'square', f: 880, d: 0.08, v: 0.06, delay: 0.12 });
+      tone({ type: 'sawtooth', f: 70, f2: 160, d: 0.45, v: 0.08, delay: 0.2, vib: 25, vibDepth: 12 });
+    },
+    // plouf dans une flaque
+    splash() { noise({ filter: 'bandpass', f: 1400, f2: 500, d: 0.25, v: 0.3, q: 1.2 }); tone({ type: 'sine', f: 600, f2: 1400, d: 0.08, v: 0.1 }); },
+    // Gizmo devient un Gremlin : pouf, puis un rire de farceur
+    gremlin() {
+      noise({ f: 2000, f2: 200, d: 0.3, v: 0.3 });
+      [0, 0.1, 0.2, 0.3].forEach((delay, i) => tone({ type: 'sawtooth', f: 700 - i * 40, f2: 500 - i * 40, d: 0.08, v: 0.05, delay: delay + 0.2 }));
+    },
+    // les petits Gremlins : hi hi hi, tout aigu
+    gremlins() { [0, 0.08, 0.16].forEach((delay, i) => tone({ type: 'square', f: 1300 + i * 120, f2: 1000 + i * 120, d: 0.06, v: 0.04, delay })); },
+    // le Gremlin redevient Gizmo : petite chanson douce
+    gizmoBack() { noise({ f: 1800, f2: 300, d: 0.25, v: 0.2 }); arp([659, 784, 988, 1319], { type: 'sine', d: 0.18, v: 0.1, gap: 0.08 }); },
     quake() { noise({ f: 300, f2: 50, d: 0.6, v: 0.6 }); tone({ type: 'sine', f: 90, f2: 35, d: 0.55, v: 0.5 }); },
     select() { tone({ type: 'triangle', f: 660, d: 0.07, v: 0.2 }); },
     confirm() { tone({ type: 'triangle', f: 660, d: 0.07, v: 0.2 }); tone({ type: 'triangle', f: 990, d: 0.12, v: 0.2, delay: 0.07 }); },

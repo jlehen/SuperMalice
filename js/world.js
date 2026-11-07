@@ -231,6 +231,27 @@ class World {
     return this.height + 200;
   }
 
+  // Les pieds dans une flaque d'eau (w) ?
+  inPuddle(b) {
+    const feet = b.y + b.h;
+    const r = Math.floor((feet - 4) / TILE);
+    const c0 = Math.floor((b.x + 6) / TILE);
+    const c1 = Math.floor((b.x + b.w - 6) / TILE);
+    for (let c = c0; c <= c1; c++) {
+      if (this.tileAt(c, r) === 'w' && feet > (r + 1) * TILE - 12) return true;
+    }
+    return false;
+  }
+
+  // Plouf ! des gouttes qui sautent et une petite vague.
+  splash(x, y) {
+    Sound.sfx.splash();
+    this.spawn({ type: 'ring', x, y: y - 2, life: 0.35, size: 34, color: 'rgba(170,225,255,0.9)' });
+    for (let i = 0; i < 12; i++) {
+      this.spawn({ type: 'dot', x: x + rand(-14, 14), y: y - 4, vx: rand(-170, 170), vy: rand(-380, -140), g: 1300, life: 0.55, size: rand(2.2, 4), color: i % 3 ? '#8fd8ff' : '#ffffff' });
+    }
+  }
+
   inLava(b) {
     const y = b.y + b.h - 4;
     // sous la dernière rangée, on est encore dedans (Malice s'enfonce dans le chocolat)
@@ -762,6 +783,7 @@ class World {
 
     ctx.save();
     ctx.translate(-camX, -camY);
+    this.drawPuddles(ctx, camX);
     this.drawLutinShine(ctx, camX, camY);
     this.drawMagic(ctx);
     for (const cp of this.checkpoints) cp.draw(ctx);
@@ -834,6 +856,23 @@ class World {
       }
     }
     ctx.restore();
+  }
+
+  // Les flaques d'eau, posées sur le sol (les cases w qui se touchent font une seule flaque).
+  drawPuddles(ctx, camX) {
+    const T = TILE;
+    const c0 = Math.max(0, Math.floor(camX / T) - 1);
+    const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / T) + 1);
+    for (let r = 0; r < this.rows; r++) {
+      let c = c0;
+      while (c <= c1) {
+        if (this.tiles[r][c] !== 'w') { c++; continue; }
+        let e = c;
+        while (e + 1 < this.cols && this.tiles[r][e + 1] === 'w') e++;
+        Scenery.puddle(ctx, c * T - 4, (e + 1) * T + 4, (r + 1) * T, this.t + c);
+        c = e + 1;
+      }
+    }
   }
 
   drawLutinShine(ctx, camX, camY) {

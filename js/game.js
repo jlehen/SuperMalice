@@ -106,8 +106,8 @@ const Game = {
     });
     this.drawIcons();
 
-    // À chaque chargement, 3 personnages tirés au hasard (Malice est toujours là).
-    const others = HEROES.map((h) => h.id).filter((id) => id !== 'malice');
+    // À chaque chargement, 3 personnages tirés au hasard (Malice est toujours là, les secrets jamais).
+    const others = HEROES.filter((h) => h.id !== 'malice' && !h.secret).map((h) => h.id);
     for (let i = others.length - 1; i > 0; i--) {
       const j = randInt(0, i);
       [others[i], others[j]] = [others[j], others[i]];
@@ -291,11 +291,13 @@ const Game = {
     this.state = 'title';
     const box = $('#hero-list');
     box.innerHTML = '';
-    const many = this.roster.length > 4;
+    const many = this.roster.length > 6;
     box.classList.toggle('many', many);
+    box.classList.toggle('secrets', !many && this.roster.length > 4);
     $('#hero-note').textContent = many
       ? 'Tous les personnages (pour tester) !'
-      : 'Les personnages changent à chaque fois qu\'on recharge le jeu !';
+      : this.hasSecrets() ? 'Les personnages secrets sont là\u00a0!'
+        : 'Les personnages changent à chaque fois qu\'on recharge le jeu !';
     for (const id of this.roster) {
       const h = HERO_BY_ID[id];
       const b = document.createElement('button');
@@ -316,8 +318,37 @@ const Game = {
     this.showHeroes();
   },
 
+  hasSecrets() { return this.roster.some((id) => HERO_BY_ID[id].secret); },
+
+  // Les personnages secrets arrivent (jusqu'au prochain chargement du jeu).
+  showSecretHeroes() {
+    this.roster = this.roster.concat(HEROES.filter((h) => h.secret).map((h) => h.id));
+    Sound.sfx.oneUp();
+    this.showHeroes();
+  },
+
   pickHero(id) {
     if (!HERO_BY_ID[id]) return;
+    // Personnages secrets : toucher 3 fois de suite la carte de Super Malice.
+    // On attend un tout petit peu avant de choisir Malice, pour laisser le temps de la retoucher.
+    if (id === 'malice' && !this.hasSecrets()) {
+      clearTimeout(this.secretTimer);
+      this.secretTaps = (this.secretTaps || 0) + 1;
+      if (this.secretTaps >= 3) {
+        this.secretTaps = 0;
+        this.showSecretHeroes();
+        return;
+      }
+      this.secretTimer = setTimeout(() => {
+        this.secretTaps = 0;
+        if ($('#scr-hero').classList.contains('show')) this.chooseHero('malice');
+      }, 450);
+      return;
+    }
+    this.chooseHero(id);
+  },
+
+  chooseHero(id) {
     this.hero = id;
     this.showDifficulty();
   },
@@ -971,16 +1002,17 @@ const Game = {
         ctx.fill();
       }
     }
-    Heroes.head(ctx, this.hero, 34, 70, 0.75);
+    Heroes.head(ctx, this.hero, 34, 70, 0.75, p.pw);
     drawOutlinedText(ctx, '×' + (this.lives === Infinity ? '∞' : this.lives), 52, 72, 20, '#ffffff', 'left');
     Art.candy(ctx, 112, 71, 0.8, t, 0);
     drawOutlinedText(ctx, String(this.candies), 130, 72, 20, '#fff3a0', 'left');
     let bx = 30;
     // le pouvoir du personnage (sur tablette, il y a un bouton)
     if (this.hero !== 'malice' && !this.isTouch) {
+      const power = (p.pow.label && p.pow.label(p)) || HERO_BY_ID[this.hero].power;
       this.keyCap(ctx, bx - 6, 112, 'B');
-      drawOutlinedText(ctx, HERO_BY_ID[this.hero].power, bx + 8, 113, 15, '#ffe680', 'left');
-      bx += 30 + ctx.measureText(HERO_BY_ID[this.hero].power).width;
+      drawOutlinedText(ctx, power, bx + 8, 113, 15, '#ffe680', 'left');
+      bx += 30 + ctx.measureText(power).width;
     }
     for (const b of ['saut', 'grappin']) {
       if (!this.hasBadge(b)) continue;

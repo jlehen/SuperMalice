@@ -10,6 +10,8 @@
 //  call : comment les fleurs l'appellent ("Bonjour Lutin !")
 //  power / desc : le nom de son pouvoir et comment s'en servir (écran de choix et aide)
 //  headY : la hauteur de sa tête (pour les étoiles quand il est sonné)
+//  secret : jamais tiré au hasard ; il faut toucher 3 fois de suite la carte de Super Malice
+//           sur l'écran de choix pour le faire apparaître (jusqu'au prochain chargement du jeu)
 // =====================================================================
 const HEROES = [
   { id: 'malice', name: 'Super Malice', call: 'Malice', power: 'L\'héroïne', desc: 'Elle sait tout faire, avec sa grosse moustache\u00a0!', headY: -46 },
@@ -26,6 +28,8 @@ const HEROES = [
   { id: 'chat', name: 'Le Chat Ninja', call: 'Chat Ninja', power: 'Saut de mur', desc: 'Il s\'accroche aux murs\u00a0: saute pour rebondir de mur en mur\u00a0!', headY: -46 },
   { id: 'sirene', name: 'La Sirène', call: 'Sirène', power: 'Bulle et vague', desc: '{POUVOIR}\u00a0: une vague pousse les ennemis. En l\'air\u00a0: une bulle t\'emporte\u00a0!', headY: -50 },
   { id: 'dino', name: 'Le Dinosaure', call: 'Dino', power: 'Tremblement de terre', desc: '{POUVOIR} ou écraser vers le bas\u00a0: BOUM ! Le sol tremble.', headY: -48 },
+  { id: 'goku', name: 'San Goku', call: 'San Goku', secret: true, power: 'Kaméhaméha et nuage', desc: '{POUVOIR}\u00a0: Kaméhaméha\u00a0! En l\'air\u00a0: son nuage magique l\'emporte.', headY: -46 },
+  { id: 'gizmo', name: 'Gizmo', call: 'Gizmo', secret: true, power: 'Petite voiture', desc: '{POUVOIR}\u00a0: vroum, sa petite voiture\u00a0! Dans l\'eau, il devient un Gremlin…', headY: -32 },
 ];
 const HERO_BY_ID = {};
 HEROES.forEach((h) => { HERO_BY_ID[h.id] = h; });
@@ -35,7 +39,7 @@ HEROES.forEach((h) => { HERO_BY_ID[h.id] = h; });
 const HERO_HAT = {
   malice: [0, -62], lutin: [0, -56], biche: [14, -58], bonbon: [0, -50], ronaxel: [0, -70], poussin: [0, -58],
   luisy: [0, -72], messi: [2, -60], licorne: [9, -50], dragon: [2, -57], pingouin: [0, -56], chat: [0, -62],
-  sirene: [0, -64], dino: [4, -60],
+  sirene: [0, -64], dino: [4, -60], goku: [0, -66], gizmo: [2, -43],
 };
 
 const Heroes = (() => {
@@ -46,7 +50,8 @@ const Heroes = (() => {
   //   draw(ctx, o, R) : dessine le personnage les pieds en (0, 0), tourné vers la droite.
   //                     o = { pose, t, ph, hurt, ouch, holding, pw, ... } (voir Heroes.draw)
   //                     R = { legF, legB, armF, armB, bob, lean, crouch } : angles des bras et des jambes
-  //   head(ctx)       : juste la tête, centrée en (0, 0), pour le HUD (environ 34 de large).
+  //   head(ctx, o)    : juste la tête, centrée en (0, 0), pour le HUD (environ 34 de large).
+  //   hat(o)          : (s'il change de forme) où se pose le bébé oiseau, à la place de HERO_HAT.
   function add(id, def) { DRAW[id] = def; }
 
   // ---------- Petits outils de dessin ----------
@@ -281,7 +286,7 @@ const Heroes = (() => {
     if (k && k.kind === 'spots') Art.spotsOverlay(ctx, k);
     // le bébé oiseau assis sur la tête
     if (o.onHead) {
-      const [hx, hy] = HERO_HAT[id] || HERO_HAT.malice;
+      const [hx, hy] = (def.hat && def.hat(o)) || HERO_HAT[id] || HERO_HAT.malice;
       ctx.save();
       ctx.translate(hx, hy - HERO_HAT.malice[1] + R.bob + R.crouch);
       o.onHead(ctx);
@@ -291,7 +296,8 @@ const Heroes = (() => {
   }
 
   // Juste la tête (HUD, écran du niveau), centrée en (x, y), s : la taille.
-  function head(ctx, id, x, y, s) {
+  // o : l'état du pouvoir (pw), pour un personnage qui change de forme (Gizmo en Gremlin).
+  function head(ctx, id, x, y, s, o) {
     if (id === 'malice' || !DRAW[id] || !DRAW[id].head) {
       Art.maliceHead(ctx, x, y, s);
       return;
@@ -299,7 +305,7 @@ const Heroes = (() => {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(s, s);
-    DRAW[id].head(ctx);
+    DRAW[id].head(ctx, o || {});
     ctx.restore();
   }
 

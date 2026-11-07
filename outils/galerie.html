@@ -31,6 +31,8 @@
   <script src="../js/persos/chat.js"></script>
   <script src="../js/persos/sirene.js"></script>
   <script src="../js/persos/dino.js"></script>
+  <script src="../js/persos/goku.js"></script>
+  <script src="../js/persos/gizmo.js"></script>
   <script>
     const P = new URLSearchParams(location.search);
     const only = P.get('perso');
@@ -45,9 +47,12 @@
     const POWER_POSES = {
       lutin: ['magic'], bonbon: ['ball'], ronaxel: ['kick', 'siu'], poussin: ['flap'], luisy: ['glide'],
       messi: ['dribble'], licorne: ['charge'], dragon: ['breathe'], pingouin: ['slide'], chat: ['wall'],
-      sirene: ['wave', 'bubble'], dino: ['stomp'],
+      sirene: ['wave', 'bubble'], dino: ['stomp'], goku: ['kame', 'cloud'], gizmo: ['car'], gremlin: ['summon'],
     };
-    const ids = HEROES.map((h) => h.id).filter((id) => !only || id === only);
+    // Gizmo a une deuxième ligne : le Gremlin (même dessin, avec pw.gremlin)
+    const ids = HEROES.map((h) => h.id).filter((id) => !only || id === only || (only === 'gremlin' && id === 'gizmo'))
+      .flatMap((id) => (id === 'gizmo' ? (only === 'gizmo' ? ['gizmo'] : only === 'gremlin' ? ['gremlin'] : ['gizmo', 'gremlin']) : [id]));
+    const heroOf = (id) => (id === 'gremlin' ? 'gizmo' : id);
     const poses = onlyPose ? [onlyPose] : POSES;
     // un seul personnage : en grand, sur plusieurs lignes (et une case de plus, tourné vers la gauche)
     const CELL = only ? 150 : 74;
@@ -86,8 +91,8 @@
           ctx.fillStyle = '#5a9a3a';
           ctx.fillRect(0, c.y, W, 4);
           ctx.fillStyle = '#123';
-          ctx.fillText(HERO_BY_ID[c.id].name, 4, c.y - CELL * 0.6);
-          Heroes.head(ctx, c.id, 40, c.y - CELL * 0.3, only ? 1.3 : 0.75);
+          ctx.fillText(c.id === 'gremlin' ? 'Gremlin' : HERO_BY_ID[c.id].name, 4, c.y - CELL * 0.6);
+          Heroes.head(ctx, heroOf(c.id), 40, c.y - CELL * 0.3, only ? 1.3 : 0.75, { gremlin: c.id === 'gremlin' });
         }
         if (only || c.y === cells[0].y) {
           ctx.fillStyle = '#123';
@@ -110,7 +115,7 @@
           o.facing = -1;
         }
         o.pose = pose;
-        o.pw = { t: t % 1, roll: t * 8 };
+        o.pw = { t: t % 1, roll: t * 8, gremlin: c.id === 'gremlin' };
         if (withBird) {
           // comme Player.drawHatBird : le bébé oiseau assis sur la tête (retour à la maison)
           o.onHead = (g) => {
@@ -121,7 +126,7 @@
             g.restore();
           };
         }
-        Heroes.draw(ctx, c.id, c.x, c.y, o);
+        Heroes.draw(ctx, heroOf(c.id), c.x, c.y, o);
       }
       if (frozen === null) requestAnimationFrame(frame);
       else window.drawn = true;

@@ -370,6 +370,14 @@ class Player {
     if (this.grap) this.updateMustacheTip(dt);
     this.updateMimic(dt, dir);
 
+    // une flaque d'eau : plouf ! (et Gizmo devient un Gremlin)
+    const wet = w.inPuddle(this);
+    if (wet && !this.wet) {
+      w.splash(this.cx, this.y + this.h);
+      if (pow.splash) pow.splash(this);
+    }
+    this.wet = wet;
+
     if (w.inLava(this)) {
       if (this.lavaProof()) this.lavaBounce();
       else if (w.choco) this.sinkInChoco(dt);
@@ -689,6 +697,20 @@ class Player {
     if (!OUCH[kind]) kind = 'hit';
     const O = OUCH[kind];
     this.stopPower();
+    // le Gremlin redevient Gizmo au lieu d'avoir mal
+    if (this.pow.shield && this.pow.shield(this)) {
+      this.invuln = 1.6;
+      this.hurtT = 0.25;
+      this.grap = null;
+      const sx = src ? src.x + (src.w || 0) / 2 : this.cx - this.facing;
+      this.vx = (Math.sign(this.cx - sx) || -this.facing) * 260;
+      this.vy = -380;
+      this.pound = 0;
+      this.platform = null;
+      this.onGround = false;
+      w.shake(4);
+      return true;
+    }
     this.energy -= 1;
     Sound.sfx.hurt();
     Sound.sfx.ouch(kind);

@@ -54,12 +54,24 @@ parmi 13 : on choisit son personnage après « Jouer ». Chacun a un pouvoir (to
 
 Tous gardent le caramel, les chips et les badges.
 
+**Les personnages secrets** : sur l'écran « Choisis ton personnage », toucher (ou cliquer) **3 fois de suite la carte
+de Super Malice** : **San Goku** et **Gizmo** arrivent (jusqu'à ce qu'on recharge le jeu). Ils ne sont jamais tirés au hasard.
+
+| Personnage | Pouvoir |
+|---|---|
+| San Goku | le Kaméhaméha, qui traverse tous les ennemis ; en l'air, son nuage magique l'emporte (on peut sauter de son nuage, ou lancer un Kaméhaméha dessus) |
+| Gizmo | sa petite voiture rose, qui renverse tout (B encore pour en descendre) |
+
+Il y a des **flaques d'eau** dans les niveaux : tout le monde fait « plouf », mais **Gizmo devient un Gremlin** !
+Le Gremlin saute plus haut, court plus vite, et B lance 3 petits Gremlins qui renversent les ennemis.
+Si un ennemi le touche, il redevient Gizmo… sans perdre de cœur.
+
 **Méthode cachée pour tester** : sur l'écran d'accueil, toucher (ou cliquer) **5 fois de suite le numéro de version**
 en bas à droite : tous les personnages apparaissent. On peut aussi mettre `?personnages=tous` dans l'adresse,
-ou `?perso=licorne` pour jouer directement avec un personnage (`index.html?niveau=2&perso=dino`).
+ou `?perso=licorne` pour jouer directement avec un personnage (`index.html?niveau=2&perso=dino`, et aussi `perso=goku` ou `perso=gizmo`).
 
 Les dessins sont dans [`js/persos/`](js/persos/) (un fichier par personnage), les pouvoirs dans [`js/pouvoirs.js`](js/pouvoirs.js).
-La page [`outils/galerie.html`](outils/galerie.html) montre tous les personnages dans toutes leurs poses.
+La page [`outils/galerie.html`](outils/galerie.html) montre tous les personnages dans toutes leurs poses (et le Gremlin : `galerie.html?perso=gremlin`).
 
 ## Les badges
 
@@ -131,7 +143,7 @@ La progression (niveaux débloqués) est gardée dans le navigateur. Pour tout e
 ## Inventer ses propres niveaux
 
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.
-La légende est en haut du fichier (`#` = sol, `~` = lave, `E` = gros œil, `S` = bloc lutin avec une étoile…).
+La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile…).
 Il suffit de modifier les lettres et de recharger la page.
 
 Pour tester directement un niveau : `index.html?niveau=3` (de 1 à 8), ou un stage d'entraînement : `index.html?stage=1`

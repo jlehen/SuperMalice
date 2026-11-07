@@ -16,6 +16,10 @@
 //   lavaProof           la lave ne brûle pas
 //   bounce              rebondit plus haut sur les ennemis
 //   pose(p)             une pose spéciale pour le dessin (voir js/persos/)
+//   stop(p)             le pouvoir s'arrête (grappin, ou quand on a mal)
+//   splash(p)           les pieds dans une flaque d'eau
+//   shield(p)           on va avoir mal : renvoie true s'il s'en protège (le Gremlin redevient Gizmo)
+//   label(p)            le nom du pouvoir dans le HUD, s'il change (le Gremlin)
 // =====================================================================
 
 // Peut-on se servir de son pouvoir maintenant ?
@@ -413,6 +417,148 @@ const POWERS = {
       if (pound) quake(p, 240);
     },
   },
+
+  // ---- San Goku : le Kaméhaméha ; en l'air, son nuage magique ----
+  goku: {
+    update(p, dt, I) {
+      const pw = p.pw;
+      pw.cd = Math.max(0, (pw.cd || 0) - dt);
+      if (p.onGround) pw.cloudUsed = false;
+      if (pw.cloud > 0) {
+        pw.cloud -= dt;
+        // en sautant, il saute de son nuage
+        if (p.onGround || p.hurtT > 0 || p.pound || I.pressed.jump) pw.cloud = 0;
+        if (pw.cloud <= 0) this.cloudOff(p);
+        else if (Math.random() < dt * 25) {
+          p.world.spawn({ type: 'spark', x: p.cx - p.facing * rand(14, 30), y: p.y + p.h + rand(-2, 6), vx: -p.facing * rand(20, 80), vy: rand(-10, 20), life: 0.45, size: rand(3, 5), color: '#ffe680' });
+        }
+      }
+      if (!I.pressed.power || pw.cd > 0 || !canPower(p)) return;
+      if (!p.onGround && !pw.cloudUsed && !(pw.cloud > 0)) {
+        // le nuage magique arrive sous ses pieds
+        pw.cloudUsed = true;
+        pw.cloud = 2.5;
+        p.vy = 0;
+        p.jumping = false;
+        Sound.sfx.cloud();
+        for (let i = 0; i < 8; i++) {
+          p.world.spawn({ type: 'smoke', x: p.cx + rand(-20, 20), y: p.y + p.h + rand(-4, 6), vx: rand(-60, 60), vy: rand(-30, 10), life: 0.45, size: rand(5, 8), color: '#ffe680' });
+        }
+        return;
+      }
+      // KAMÉHAMÉHA ! (aussi debout sur le nuage)
+      pw.cd = 0.55;
+      powerPose(p, 'kame', 0.35);
+      Sound.sfx.kame();
+      p.world.popText(p.cx, p.y - 20, 'Kaméhaméha !', '#bfeaff', 22);
+      p.world.projectiles.push(new PowerShot(p.world, 'kame', p.cx + p.facing * 26, p.y + p.h - 31, p.facing, p.vx));
+    },
+    cloudOff(p) {
+      p.pw.cloud = 0;
+      for (let i = 0; i < 6; i++) {
+        p.world.spawn({ type: 'smoke', x: p.cx + rand(-18, 18), y: p.y + p.h + rand(0, 6), vx: rand(-50, 50), vy: rand(-40, 0), life: 0.4, size: rand(4, 7), color: '#ffe680' });
+      }
+    },
+    stop(p) { if (p.pw.cloud > 0) this.cloudOff(p); },
+    fall(p) {
+      if (!(p.pw.cloud > 0)) return;
+      // il flotte, et peut toujours sauter comme s'il était par terre
+      p.vy = Math.sin(p.t * 4) * 15;
+      p.coyote = PHYS.coyote;
+    },
+    top(p, top) { return p.pw.cloud > 0 ? Math.max(top, 400) : top; },
+    pose(p) {
+      if (p.pw.poseT > 0 && p.pw.pose === 'kame') return 'kame';
+      return p.pw.cloud > 0 ? 'cloud' : null;
+    },
+  },
+
+  // ---- Gizmo : sa petite voiture. Dans l'eau, il devient un Gremlin (et fait des petits Gremlins) ----
+  gizmo: {
+    update(p, dt, I) {
+      const pw = p.pw;
+      pw.cd = Math.max(0, (pw.cd || 0) - dt);
+      pw.wheel = (pw.wheel || 0) + (p.vx * dt) / 5;
+      if (pw.car > 0) {
+        pw.car -= dt;
+        if (p.hurtT > 0 || pw.gremlin) pw.car = 0;
+        if (pw.car <= 0) this.carOff(p);
+        else if (Math.random() < dt * 14) {
+          p.world.spawn({ type: 'smoke', x: p.cx - p.facing * 24, y: p.y + p.h - 8, vx: -p.facing * rand(30, 80), vy: rand(-40, -10), life: 0.4, size: rand(3, 5), color: '#ffd0e4' });
+        }
+      }
+      if (!I.pressed.power || pw.cd > 0 || !canPower(p)) return;
+      if (pw.gremlin) {
+        // hi hi hi ! des petits Gremlins partent en courant
+        pw.cd = 0.9;
+        powerPose(p, 'summon', 0.5);
+        Sound.sfx.gremlins();
+        for (let i = 0; i < 3; i++) {
+          const g = new PowerShot(p.world, 'gremlin', p.cx + p.facing * (6 + i * 6), p.y + p.h, p.facing, p.vx);
+          g.vx = p.facing * (260 + i * 70);
+          g.vy = -(180 + i * 110);
+          p.world.projectiles.push(g);
+        }
+        return;
+      }
+      if (pw.car > 0) {
+        // il descend de sa voiture
+        this.carOff(p);
+        pw.cd = 0.3;
+        return;
+      }
+      pw.car = 2.5;
+      pw.cd = 0.3;
+      Sound.sfx.car();
+    },
+    carOff(p) {
+      p.pw.car = 0;
+      p.world.puff(p.cx, p.y + p.h - 10, '#ffc0dc');
+    },
+    stop(p) { if (p.pw.car > 0) this.carOff(p); },
+    move(p, dt, dir) {
+      if (!(p.pw.car > 0)) return false;
+      if (p.inChoco) {
+        this.carOff(p);
+        return false;
+      }
+      // vroum ! on peut tourner avec les flèches
+      if (dir) p.facing = dir;
+      p.vx = approach(p.vx, p.facing * 560, 2400 * dt);
+      return true;
+    },
+    knocks(p) { return p.pw.car > 0 && Math.abs(p.vx) > 200; },
+    knockWord: 'Tut tut !',
+    jump(p, v) { return p.pw.gremlin ? v * 1.06 : v; },
+    top(p, top) { return p.pw.gremlin ? top * 1.1 : top; },
+    pose(p) { return p.pw.car > 0 ? 'car' : null; },
+    // les pieds dans l'eau : Gizmo devient un Gremlin !
+    splash(p) {
+      const pw = p.pw;
+      if (pw.gremlin) return;
+      this.stop(p);
+      pw.gremlin = true;
+      Sound.sfx.gremlin();
+      p.world.shake(4);
+      p.world.popText(p.cx, p.y - 26, 'Gremlin !', '#9aff6a', 26);
+      for (let i = 0; i < 12; i++) {
+        p.world.spawn({ type: 'smoke', x: p.cx + rand(-18, 18), y: p.y + rand(0, p.h), vx: rand(-90, 90), vy: rand(-120, -20), life: 0.6, size: rand(5, 9), color: i % 2 ? '#8ad060' : '#d8f0c0' });
+      }
+    },
+    // touché en Gremlin : il redevient Gizmo, et ne perd pas de coeur
+    shield(p) {
+      const pw = p.pw;
+      if (!pw.gremlin) return false;
+      pw.gremlin = false;
+      Sound.sfx.gizmoBack();
+      p.world.popText(p.cx, p.y - 26, 'Gizmo !', '#ffd8a0', 24);
+      for (let i = 0; i < 10; i++) {
+        p.world.spawn({ type: 'smoke', x: p.cx + rand(-16, 16), y: p.y + rand(10, p.h), vx: rand(-80, 80), vy: rand(-100, -20), life: 0.5, size: rand(5, 8), color: i % 2 ? '#c8925a' : '#f6e8cc' });
+      }
+      return true;
+    },
+    label(p) { return p.pw.gremlin ? 'Petits Gremlins' : null; },
+  },
 };
 
 // Une couleur de bonbon (rose, blanc, jaune…), pour les étincelles du Gros Bonbon.
@@ -422,6 +568,7 @@ function i2c(k) {
 
 // ======================= CE QUE LANCENT LES PERSONNAGES =======================
 // ballon : Ronaxel (il rebondit)     feu : Bébé Dragon (tout droit)     vague : la Sirène (au ras du sol)
+// kame : San Goku (tout droit, il traverse tous les ennemis)     gremlin : un petit Gremlin qui court et saute
 class PowerShot {
   constructor(world, kind, x, y, dir, pvx) {
     this.world = world;
@@ -439,13 +586,22 @@ class PowerShot {
       this.w = 22; this.h = 22;
       this.vx = dir * 500 + pvx * 0.2;
       this.vy = 0;
+    } else if (kind === 'kame') {
+      this.w = 30; this.h = 26;
+      this.vx = dir * 620 + pvx * 0.2;
+      this.vy = 0;
+    } else if (kind === 'gremlin') {
+      this.w = 18; this.h = 26;
+      this.vx = dir * 300;
+      this.vy = -200;
     } else {
       this.w = 44; this.h = 36;
       this.vx = dir * 400;
       this.vy = 0;
     }
     this.x = x - this.w / 2;
-    this.y = kind === 'vague' ? y - this.h : y - this.h / 2;
+    this.y = kind === 'vague' || kind === 'gremlin' ? y - this.h : y - this.h / 2;
+    this.x0 = x;
     this.baseY = this.y;
   }
 
@@ -476,6 +632,23 @@ class PowerShot {
       if (Math.random() < dt * 30) {
         w.spawn({ type: 'spark', x: this.cx - this.dir * 8, y: this.cy + rand(-6, 6), vx: -this.dir * rand(20, 80), vy: rand(-60, 0), life: 0.3, size: rand(3, 6), color: Math.random() < 0.5 ? '#ffb02e' : '#ff5a1f' });
       }
+    } else if (this.kind === 'kame') {
+      this.x += this.vx * dt;
+      if (w.solidAt(this.cx + this.dir * 12, this.cy) || this.t > 1) this.poof();
+      if (Math.random() < dt * 40) {
+        w.spawn({ type: 'spark', x: this.cx - this.dir * rand(0, 20), y: this.cy + rand(-10, 10), vx: -this.dir * rand(20, 100), vy: rand(-40, 40), life: 0.35, size: rand(3, 5), color: Math.random() < 0.5 ? '#ffffff' : '#7fd8ff' });
+      }
+    } else if (this.kind === 'gremlin') {
+      // il court, saute par-dessus les murs, et fait des petits bonds en ricanant
+      this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
+      const res = w.moveBody(this, dt);
+      if (res.landed && Math.random() < 0.3) this.vy = -rand(200, 320);
+      if (res.wall) {
+        this.vx = this.dir * 300;
+        if (this.bounces++ > 2) this.poof();
+        else this.vy = -480;
+      }
+      if (this.t > 2.4) this.poof();
     } else {
       this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
       const res = w.moveBody(this, dt);
@@ -489,7 +662,7 @@ class PowerShot {
     for (const e of w.enemies) {
       if (e.dying || e.dead || this.hit.has(e) || !overlap(this, e)) continue;
       this.hit.add(e);
-      knockEnemy(w.player, e, this.kind === 'ballon' ? 'Goal !' : null);
+      knockEnemy(w.player, e, this.kind === 'ballon' ? 'Goal !' : this.kind === 'gremlin' ? 'Hi hi !' : null);
       if (this.kind === 'feu') {
         this.poof();
         return;
@@ -510,7 +683,7 @@ class PowerShot {
   poof() {
     const w = this.world;
     this.dead = true;
-    const col = this.kind === 'feu' ? '#ff8a2e' : this.kind === 'vague' ? '#bfefff' : '#ffffff';
+    const col = { feu: '#ff8a2e', vague: '#bfefff', kame: '#bfe8ff', gremlin: '#a8e080' }[this.kind] || '#ffffff';
     for (let i = 0; i < 6; i++) {
       w.spawn({ type: 'smoke', x: this.cx + rand(-8, 8), y: this.cy + rand(-8, 8), vx: rand(-60, 60), vy: rand(-80, -10), life: 0.4, size: rand(5, 9), color: col });
     }
@@ -524,6 +697,35 @@ class PowerShot {
     if (this.kind === 'ballon') {
       ctx.rotate(this.t * 12 * Math.sign(this.vx || 1));
       PowerShot.football(ctx, 9);
+    } else if (this.kind === 'kame') {
+      // le rayon qui part des mains de San Goku, et la grosse boule d'énergie au bout
+      const len = Math.abs(this.cx - this.x0);
+      const fade = Math.max(0, 1 - this.t / 0.6);
+      if (fade > 0) {
+        const g = ctx.createLinearGradient(-this.dir * len, 0, 0, 0);
+        g.addColorStop(0, 'rgba(127,216,255,0)');
+        g.addColorStop(1, `rgba(127,216,255,${0.8 * fade})`);
+        ctx.fillStyle = g;
+        ctx.fillRect(this.dir > 0 ? -len : 0, -7, len, 14);
+        ctx.fillStyle = `rgba(255,255,255,${0.8 * fade})`;
+        ctx.fillRect(this.dir > 0 ? -len * 0.7 : 0, -2.5, len * 0.7, 5);
+      }
+      const r = 13 + Math.sin(this.t * 30) * 1.2;
+      const g2 = ctx.createRadialGradient(0, 0, 1, 0, 0, r * 1.5);
+      g2.addColorStop(0, 'rgba(255,255,255,1)');
+      g2.addColorStop(0.35, 'rgba(190,240,255,0.95)');
+      g2.addColorStop(0.7, 'rgba(60,160,255,0.7)');
+      g2.addColorStop(1, 'rgba(42,120,255,0)');
+      ctx.fillStyle = g2;
+      circlePath(ctx, 0, 0, r * 1.5);
+      ctx.fill();
+    } else if (this.kind === 'gremlin') {
+      // un tout petit Gremlin (le même dessin que celui de Gizmo, en petit)
+      ctx.restore();
+      Heroes.draw(ctx, 'gizmo', x, this.y + this.h, {
+        pose: this.vy < -50 ? 'jump' : 'run', t: this.t + this.dir, ph: this.t * 16, facing: Math.sign(this.vx) || this.dir, scale: 0.55, pw: { gremlin: true },
+      });
+      return;
     } else if (this.kind === 'feu') {
       // une bulle orange avec une petite flamme dedans
       const r = 11 + Math.sin(this.t * 20) * 0.8;

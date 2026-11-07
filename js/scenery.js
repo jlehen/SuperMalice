@@ -753,6 +753,47 @@ const Scenery = (() => {
   }
 
   // ---------- Lave ----------
+  // Une flaque d'eau posée sur le sol, de x0 à x1 (y : le dessus du sol). Elle scintille un peu.
+  function puddle(ctx, x0, x1, y, t) {
+    const cx = (x0 + x1) / 2;
+    const rx = (x1 - x0) / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x0, y);
+    ctx.bezierCurveTo(x0 + 4, y - 7, x1 - 4, y - 7, x1, y);
+    ctx.bezierCurveTo(x1 - 6, y + 6, x0 + 6, y + 6, x0, y);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, y - 6, 0, y + 5);
+    g.addColorStop(0, '#bfeaff');
+    g.addColorStop(0.5, '#6cc4f0');
+    g.addColorStop(1, '#3a8ad0');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = '#2a6aa8';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.clip();
+    // les reflets qui bougent doucement
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < Math.max(1, Math.round(rx / 22)); i++) {
+      const x = x0 + 10 + ((i * 37 + t * 10) % Math.max(10, rx * 2 - 24));
+      ctx.moveTo(x, y - 3);
+      ctx.lineTo(x + 7, y - 3.6);
+    }
+    ctx.stroke();
+    // une petite onde de temps en temps
+    const k = (t * 0.7) % 1;
+    ctx.strokeStyle = `rgba(255,255,255,${0.6 * (1 - k)})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(cx + Math.sin(t) * rx * 0.3, y, 3 + k * 14, 1 + k * 3, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawLavaRun(ctx, x0, x1, y, surface, bottom, t) {
     const g = ctx.createLinearGradient(0, y, 0, bottom);
     g.addColorStop(0, '#ffe24a');
@@ -1783,6 +1824,6 @@ const Scenery = (() => {
 
   return {
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
-    rainbowSprite, bounceSprite, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
+    rainbowSprite, bounceSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
   };
 })();

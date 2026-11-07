@@ -254,6 +254,13 @@ button {
 .card.hero b { font-size: calc(var(--s) * 26px); line-height: 1.05; }
 .card.hero i { font-style: normal; font-size: calc(var(--s) * 17px); color: var(--yellow); }
 .card.hero small { font-size: calc(var(--s) * 15px); }
+/* avec les personnages secrets (6 cartes) : un peu plus petites, sur une seule rangée */
+.cards.heroes.secrets { max-width: calc(var(--s) * 960px); gap: calc(var(--s) * 6px); flex-wrap: nowrap; }
+.screen .cards.secrets .card.hero { width: calc(var(--s) * 148px); min-height: calc(var(--s) * 250px); padding: calc(var(--s) * 6px) calc(var(--s) * 6px) calc(var(--s) * 10px); border-width: calc(var(--s) * 3px); border-radius: calc(var(--s) * 20px); }
+.cards.secrets .card.hero canvas { width: calc(var(--s) * 120px); height: calc(var(--s) * 112px); }
+.cards.secrets .card.hero b { font-size: calc(var(--s) * 18px); }
+.cards.secrets .card.hero i { font-size: calc(var(--s) * 13px); }
+.cards.secrets .card.hero small { font-size: calc(var(--s) * 11.5px); }
 /* tous les personnages (méthode cachée) : des petites cartes */
 .cards.heroes.many { gap: calc(var(--s) * 8px); }
 .screen .cards.many .card.hero { width: calc(var(--s) * 118px); min-height: 0; padding: calc(var(--s) * 4px); border-width: calc(var(--s) * 3px); border-radius: calc(var(--s) * 18px); }
