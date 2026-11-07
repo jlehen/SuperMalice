@@ -365,6 +365,27 @@ const Music = (() => {
     return S.out({ drumV: 0.7 });
   }
 
+  // 1-4. Le combat contre l'Épouvantail : la calypso de la Prairie en do mineur et plus vite, comme une danse
+  // de squelettes : xylophone qui claque, orgue qui ricane sur les contretemps, pizzicati en 3+3+2, wood-blocks
+  // et timbales ; au refrain, les cuivres reprennent la mélodie (et le xylophone répond en écho).
+  function bossMeadow() {
+    const S = new Song({ bpm: 168, mode: MINOR });
+    const BASS = [[[0, 1.2, 'R'], [1.5, 1.2, 'F'], [3, 0.8, 'O']]];
+    const STAB = [[[0.5, 0.2, 'C'], [1.5, 0.2, 'C'], [2.5, 0.2, 'C'], [3.5, 0.2, 'C']]];
+    const D = [[[0, 'k'], [1.5, 'w', 0.8], [2, 'k'], [3, 'w'], [3.5, 'w', 0.7], ...rep(8, (i) => [i * 0.5, 'x', i % 2 ? 0.45 : 0.75])]];
+    const FILL = [[0, 'k'], [1, 't'], [1.5, 't', 0.8], [2, 'm', 0.7], [2.5, 'm', 0.8], [3, 'm', 0.9], [3.5, 'm']];
+    const base = (p) => {
+      p.pattern('bass', 'pizz', 0.24, BASS);
+      p.pattern('stab', 'organ', 0.03, STAB, { low: 55 });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'marimba', 0.17); p.pattern('bass', 'pizz', 0.24, BASS); p.drums([[[0, 'm'], [2, 'm', 0.7], [3, 'w'], [3.5, 'w']]], { crash: 0.5 }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'marimba', 0.17); p.melody('low', 'organ', 0.045, { oct: -1, top: true }); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'marimba', 0.17); p.melody('echo', 'glock', 0.04, { delay: 0.5, oct: 1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.B, (p) => { p.melody('lead', 'brass', 0.13); p.melody('echo', 'marimba', 0.08, { delay: 0.5 }); base(p); p.drums(D, { crash: 0.6, fill: FILL }); });
+    S.part(SECT.C2, (p) => { p.melody('lead', 'marimba', 0.17, { top: true }); p.melody('low', 'organ', 0.05, { oct: -1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    return S.out({ drumV: 0.75 });
+  }
+
   // 2. La Forêt des Épines : do mineur, en 12/8, flûte et harpe, entrées en canon (fugato) à la clarinette.
   function forest() {
     const S = new Song({ bpm: 88, warp: swing(2 / 3), mode: MINOR });
@@ -667,6 +688,7 @@ const Music = (() => {
     title: title(),
     meadow: meadow(),
     'meadow-night': meadowNight(),
+    'boss-prairie': bossMeadow(),
     forest: forest(),
     'badge-saut': bossa(),
     storm: storm(),

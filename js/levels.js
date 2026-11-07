@@ -42,6 +42,7 @@
 //   P  départ de Malice          !  drapeau (on y repart si on perd une vie)
 //   G  arrivée du niveau         N  le bébé oiseau (on le sauve dans le volcan)
 //   X  la famille du bébé oiseau (fin du jeu)
+//   &  le boss du niveau (voir "boss" ; ses pieds sur le sol de la case du dessous)
 //
 //  "storms" : les colonnes où tombent les éclairs au chocolat [début, fin].
 //  "winds" : les colonnes où souffle le vent [début, fin, sens] (1 = vers la droite, -1 = vers la gauche).
@@ -67,7 +68,11 @@
 //             il suffit d'écrire un niveau de plus avec son "world" : la carte suit toute seule.
 //  "badge" : c'est le stage d'entraînement du monde (une case étoile à côté du chemin, juste
 //             avant le monde suivant). Un seul stage par monde.
-//  "boss" : (plus tard) le niveau se termine par un boss : sa case devient le château du bout du monde.
+//  "boss" : le niveau se termine par un boss : son nom (voir js/boss/ : "epouvantail"…) ; il attend sur le "&"
+//             de la carte. Sur le dernier niveau d'un monde, sa case devient le château du bout du monde.
+//  "arene" : [première colonne, dernière colonne] : l'arène du boss (20 colonnes, la largeur de l'écran).
+//             Quand Malice y entre, le boss se réveille et on ne peut plus en sortir tant qu'il n'est pas battu ;
+//             l'arrivée (G) n'apparaît qu'après. Mettre un drapeau (!) juste avant : on y repart si on perd une vie.
 // =====================================================================
 
 // "sequel" : le retour à la maison (après avoir sauvé le bébé oiseau). Le bébé oiseau est sur
@@ -200,6 +205,9 @@ const LEVELS = [
     storms: [],
     updrafts: [[80, 82, 4]],
     clairDeLune: [185, 211],
+    // au bout, l'Épouvantail garde son champ (voir js/boss/epouvantail.js)
+    boss: "epouvantail",
+    arene: [192, 211],
     talk: [
       "Bienvenue dans la Prairie la Nuit\u00a0! Il fait noir… mais les lucioles et les fleurs qui brillent éclairent le chemin. Approche-toi des lucioles\u00a0: elles vont te suivre\u00a0!",
       "Tu vois le petit tas de terre qui bouge\u00a0? C'est une taupe\u00a0! Quand la terre tremble sous tes pieds, saute vite\u00a0! Et quand elle sort, saute-lui sur le casque\u00a0!",
@@ -207,7 +215,7 @@ const LEVELS = [
       "Un pissenlit géant, tout là-haut\u00a0! Attrape-le et vole par-dessus le grand trou. Au milieu, le courant d'air te fera remonter\u00a0!",
       "La rivière dort, elle aussi… Saute de nénuphar en nénuphar, mais ne reste pas sur ceux qui n'ont pas de fleur\u00a0!",
       "Plein de taupes\u00a0! Sur les planches, elles ne peuvent pas t'attraper. Et avec les chips, elles deviennent trop grosses pour rentrer dans leur trou\u00a0!",
-      "Chut… Regarde comme la lune est belle. On dit qu'un épouvantail garde le grand champ, là-bas…",
+      "Chut… Voici le champ de l'Épouvantail\u00a0! Saute par-dessus ses citrouilles. Le caramel colle ses bras\u00a0: alors, saute-lui sur le chapeau\u00a0!",
     ],
     map: [
       '....................................................................................................................................................................................................................',
@@ -220,7 +228,7 @@ const LEVELS = [
       '.............................o.o.o.o......oio.........o.o.o.................*...............ooo....................o.o.o....o.o.o.........................................ooo.....o.o...............................',
       '........i.....BLB................................BKB..-----..............####..o.o.o.o.................BFB..............................ooooo...o.y.o...ooooo.......................................................',
       '.......................................................................######...........................................................-----...-----...-----.......................................................',
-      '..P..T..ooo.j.......E....T.......m....j..j....jT....E...m.......!..T.########..........j...........m.......!.T...........O.........jT......m...E....m..m........j...!..j.....m...j...j.T..!...................G.....',
+      '..P..T..ooo.j.......E....T.......m....j..j....jT....E...m.......!..T.########..........j...........m.......!.T...........O.........jT......m...E....m..m........j...!..j.....m...j...j.T..!...................G..&..',
       '##########################################...################################.........########################__n__c__n_###__c__n_################################################...###############################',
       '##########################################...################################.........########################__________###_______################################################...###############################',
     ],

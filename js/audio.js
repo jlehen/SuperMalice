@@ -402,6 +402,60 @@ const Sound = (() => {
     fireflies() {
       arp([1568, 2093, 2349, 3136], { type: 'sine', d: 0.22, v: 0.045, gap: 0.08 });
     },
+
+    // ---- L'Épouvantail (le boss de la Prairie) ----
+    // il se réveille : son piquet grince, puis un petit rire qui fait « hou hou hou »
+    scareWake() {
+      noise({ filter: 'bandpass', f: 520, f2: 260, d: 0.55, v: 0.14, q: 7 });
+      tone({ type: 'sawtooth', f: 150, f2: 115, d: 0.5, v: 0.035, vib: 7, vibDepth: 10 });
+      [0.5, 0.72, 0.94].forEach((delay, i) => tone({ type: 'triangle', f: 340 - i * 34, f2: 250 - i * 30, d: 0.18, v: 0.13, delay, vib: 9, vibDepth: 18 }));
+    },
+    // les grandes tiges de maïs qui poussent et ferment le champ : frrrrr
+    cornRustle() {
+      noise({ filter: 'bandpass', f: 1600, f2: 2600, d: 0.7, v: 0.09, q: 0.8, a: 0.15 });
+      for (let i = 0; i < 4; i++) noise({ filter: 'highpass', f: 3000, d: 0.05, v: 0.05, delay: 0.1 + i * 0.12 });
+    },
+    // un corbeau croasse : croâ-croâ !
+    caw() {
+      [0, 0.17].forEach((delay) => {
+        tone({ type: 'sawtooth', f: 560, f2: 330, d: 0.14, v: 0.05, vib: 40, vibDepth: 70, delay });
+        noise({ filter: 'bandpass', f: 1400, f2: 900, d: 0.12, v: 0.08, q: 3, delay });
+      });
+    },
+    // il plonge : fffiou
+    swoosh() { noise({ filter: 'bandpass', f: 600, f2: 2200, d: 0.35, v: 0.12, q: 1.5, a: 0.08 }); },
+    // il arrache une citrouille du sol : plop !
+    pumpkinPull() {
+      tone({ type: 'sine', f: 260, f2: 720, d: 0.12, v: 0.2 });
+      noise({ f: 600, f2: 200, d: 0.15, v: 0.15 });
+    },
+    // il la lance : vlan !
+    pumpkinThrow() { noise({ filter: 'bandpass', f: 400, f2: 1500, d: 0.2, v: 0.25, q: 1.4 }); },
+    // une citrouille (ou l'Épouvantail) qui retombe par terre : boum
+    pumpkinThud() {
+      tone({ type: 'sine', f: 150, f2: 55, d: 0.2, v: 0.32 });
+      noise({ f: 380, f2: 120, d: 0.15, v: 0.18 });
+    },
+    // elle se casse : crac ! (et un petit bruit tout mouillé)
+    pumpkinCrack() {
+      noise({ filter: 'highpass', f: 1800, d: 0.07, v: 0.25 });
+      tone({ type: 'square', f: 380, f2: 110, d: 0.1, v: 0.06 });
+      noise({ f: 900, f2: 200, d: 0.2, v: 0.2, delay: 0.04 });
+    },
+    // un coup sur son chapeau : bonk ! et la paille qui vole
+    scareHit() {
+      tone({ type: 'triangle', f: 950, f2: 320, d: 0.22, v: 0.25 });
+      tone({ type: 'sine', f: 2100, d: 0.25, v: 0.05, delay: 0.03 });
+      noise({ filter: 'highpass', f: 3200, f2: 1300, d: 0.45, v: 0.14, delay: 0.05 });
+    },
+    // il s'effondre en tas de paille : ffffouf…
+    scareFall() {
+      noise({ f: 1800, f2: 160, d: 0.9, v: 0.32, delay: 0.85 });
+      tone({ type: 'sine', f: 330, f2: 70, d: 0.7, v: 0.2, delay: 0.85 });
+      tone({ type: 'triangle', f: 600, f2: 200, d: 0.7, v: 0.08, vib: 6, vibDepth: 30 });
+    },
+    // il redevient gentil : un petit air tout content
+    scareFriend() { arp([523, 659, 784, 1047, 784, 1047], { type: 'triangle', d: 0.14, v: 0.14, gap: 0.09 }); },
   };
 
   // ---------- Instruments ----------

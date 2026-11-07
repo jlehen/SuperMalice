@@ -3223,7 +3223,9 @@ class Goal {
     this.t += dt;
     const w = this.world;
     const p = w.player;
-    if (!this.reached && !p.dead && p.cx >= this.x - 10) {
+    // (touch : l'arrivée qui apparaît après un boss, il faut aller la toucher)
+    const at = this.touch ? Math.abs(p.cx - this.x - 10) < 34 && p.y + p.h > this.y - TILE * 5 : p.cx >= this.x - 10;
+    if (!this.reached && !p.dead && at) {
       this.reached = true;
       w.game.levelComplete();
     }

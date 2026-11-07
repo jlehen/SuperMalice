@@ -103,6 +103,9 @@ class World {
     this.bunnies = [];
     this.terrier = def.terrier || 0;
     const bunnySpots = [];
+    // le boss du bout du niveau (voir boss.js), et son arène quand on ne peut plus en sortir
+    this.boss = null;
+    this.arena = null;
 
     let start = { x: 3 * TILE, y: 11 * TILE };
     const flowerSpots = [];
@@ -146,6 +149,10 @@ class World {
           case 'A': this.hazards.push(new Stalactite(this, x, y)); break;
           case 'O': this.enemies.push(new Snail(this, mx - 22, by - 30)); break;
           case 'm': this.enemies.push(new Mole(this, mx, by)); break;
+          case '&':
+            this.boss = Boss.create(this, def.boss, mx, by);
+            if (this.boss) this.enemies.push(this.boss);
+            break;
           case 'i': this.fireflies.push(new Fireflies(this, mx, y + TILE / 2)); break;
           case 'j': this.glows.push({ x: mx, y: by, v: hash2(c, r) }); break;
           case 'n':
@@ -173,6 +180,8 @@ class World {
         if (!keep) this.tiles[r][c] = '.';
       }
     }
+    // (le boss cache l'arrivée jusqu'à ce qu'il soit battu, et appelle ses aides)
+    if (this.boss) this.boss.setup();
     // les fleurs parlent dans l'ordre, de gauche à droite (pendant le retour, c'est le bébé oiseau)
     flowerSpots.sort((a, b) => a.x - b.x);
     const talk = Object.assign((def.talk || []).slice(), noBadge ? noBadge.talk : null);
@@ -696,6 +705,7 @@ class World {
     const p = this.player;
     for (const pl of this.platforms) pl.update(dt);
     p.update(dt);
+    if (this.arena) this.keepInArena(p);
     const left = this.cam.x - 300;
     const right = this.cam.x + VIEW_W + 260;
     for (const e of this.enemies) {
@@ -742,6 +752,24 @@ class World {
     this.updateCamera(dt, false);
   }
 
+  // L'arène d'un boss : on n'en sort pas tant qu'il n'est pas battu (ni en marchant, ni en volant, ni en
+  // grimpant tout là-haut : on reste toujours sur l'écran).
+  keepInArena(b) {
+    const A = this.arena;
+    if (b.y < A.y0) {
+      b.y = A.y0;
+      if (b.vy < 0) b.vy = 0;
+    }
+    if (b.x < A.x0) {
+      b.x = A.x0;
+      if (b.vx < 0) b.vx = 0;
+    }
+    if (b.x + b.w > A.x1) {
+      b.x = A.x1 - b.w;
+      if (b.vx > 0) b.vx = 0;
+    }
+  }
+
   // Quand Malice est tombée : seuls Malice et les effets bougent.
   updateFrozen(dt) {
     this.t += dt;
@@ -771,7 +799,8 @@ class World {
         knockEnemy(p, e, p.pow.knockWord);
         continue;
       }
-      if (stomps(e.y + 18)) {
+      // (stompDepth : sur un grand boss tout affaissé, on compte qu'on lui saute dessus même en arrivant un peu bas)
+      if (stomps(e.y + (e.stompDepth || 18))) {
         e.stomp();
         p.bounceOff();
         continue;
@@ -945,6 +974,8 @@ class World {
     let tx = p.cx - VIEW_W * 0.45 + this.look;
     let ty = p.y + p.h / 2 - VIEW_H * 0.56;
     tx = clamp(tx, 0, Math.max(0, this.width - VIEW_W));
+    // pendant le combat contre un boss, l'écran reste sur son arène
+    if (this.arena) tx = clamp(tx, this.arena.x0, this.arena.x1 - VIEW_W);
     // le terrier secret : la caméra ne descend sous terre que quand Malice y est
     const under = this.terrier && p.y + p.h > (this.terrier - 1) * TILE;
     const bottom = this.terrier && !under ? this.terrier * TILE : this.height;
@@ -1023,6 +1054,8 @@ class World {
     for (const b of this.bunnies) {
       if (b.x > camX - 80 && b.x < camX + VIEW_W + 80) b.draw(ctx);
     }
+    // l'arène du boss : son décor et ses murs (même quand le boss n'est pas à l'écran)
+    if (this.boss) this.boss.drawArena(ctx);
     for (const e of this.enemies) {
       if (e.x + e.w > camX - 80 && e.x < camX + VIEW_W + 80) e.draw(ctx);
     }
@@ -1565,6 +1598,13 @@ class World {
       if (!this.onScreen(e, 80)) continue;
       L.push(e.light ? e.light() : { x: e.cx, y: e.cy, r: 58, a: 0.6 });
     }
+    // ce qui tombe ou ce qu'on lance brille un peu aussi : on le voit toujours venir
+    for (const h of this.hazards) {
+      if (this.onScreen(h, 80)) L.push(h.light ? h.light() : { x: h.x + h.w / 2, y: h.y + h.h / 2, r: 58, a: 0.6 });
+    }
+    for (const pr of this.projectiles) {
+      if (this.onScreen(pr, 60)) L.push(pr.light ? pr.light() : { x: pr.x + pr.w / 2, y: pr.y + pr.h / 2, r: 44, a: 0.55 });
+    }
     for (const f of this.fireflies) {
       if (this.onScreen(f, 200)) L.push(f.light());
     }
@@ -1705,6 +1745,33 @@ class World {
           ctx.stroke();
           break;
         }
+        case 'straw':
+          // un brin de paille qui vole en tournoyant (l'Épouvantail)
+          ctx.translate(q.x, q.y);
+          ctx.rotate(q.rot);
+          ctx.strokeStyle = q.color;
+          ctx.lineWidth = 2.4;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(-q.size / 2, 0);
+          ctx.lineTo(q.size / 2, 0);
+          ctx.stroke();
+          break;
+        case 'feather':
+          // une plume noire de corbeau qui se balance en tombant
+          ctx.translate(q.x + Math.sin(q.life * 5 + q.rot) * 6, q.y);
+          ctx.rotate(Math.sin(q.life * 4 + q.rot) * 0.6 + 0.4);
+          ctx.scale(q.size, q.size);
+          ctx.fillStyle = '#2a2444';
+          ellipsePath(ctx, 0, 0, 8, 2.6, 0);
+          ctx.fill();
+          ctx.strokeStyle = '#8a80b0';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(-9, 0);
+          ctx.lineTo(7, 0);
+          ctx.stroke();
+          break;
         case 'wind': {
           ctx.globalAlpha = Math.min(1, a * 2) * 0.7;
           ctx.strokeStyle = '#ffffff';

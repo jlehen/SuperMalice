@@ -9,30 +9,31 @@
 // snailSpeed : vitesse des escargots. padShake : combien de temps un nénuphar tremble avant de couler.
 // moleDig : vitesse d'une taupe qui file sous terre ; moleWarn : combien de temps la terre tremble avant
 // qu'elle jaillisse ; moleOut : combien de temps elle reste dehors avant de replonger.
+// bossK : la vitesse des boss (et de leurs attaques) ; plus petit, ils sont plus lents et attendent plus longtemps.
 const DIFFS = {
   bebe: {
     name: 'Bébé', lives: Infinity, eyeChase: 90, cubeFuse: 2.5, shootMin: 3.6, shootMax: 5,
     dotSpeed: 130, eclairMin: 2.4, eclairMax: 3.5, gameOver: null, forever: true, starTime: 30,
     starLava: true, batSpeed: 130, birdSpeed: 80, gummySpeed: 90, eyeFlee: 140, windK: 0.55, darkR: 280,
-    snailSpeed: 18, padShake: 1.5, moleDig: 90, moleWarn: 0.9, moleOut: 2.6,
+    snailSpeed: 18, padShake: 1.5, moleDig: 90, moleWarn: 0.9, moleOut: 2.6, bossK: 0.7,
   },
   gentil: {
     name: 'Gentil', lives: Infinity, eyeChase: 115, cubeFuse: 1.9, shootMin: 2.8, shootMax: 3.8,
     dotSpeed: 165, eclairMin: 1.8, eclairMax: 2.7, gameOver: null, forever: false, starTime: STAR_TIME,
     starLava: false, batSpeed: 160, birdSpeed: 100, gummySpeed: 115, eyeFlee: 175, windK: 0.8, darkR: 240,
-    snailSpeed: 24, padShake: 0.95, moleDig: 115, moleWarn: 0.7, moleOut: 1.9,
+    snailSpeed: 24, padShake: 0.95, moleDig: 115, moleWarn: 0.7, moleOut: 1.9, bossK: 1,
   },
   classique: {
     name: 'Classique', lives: 3, eyeChase: 135, cubeFuse: 1.55, shootMin: 2.2, shootMax: 3.2,
     dotSpeed: 200, eclairMin: 1.35, eclairMax: 2.1, gameOver: 'level', forever: false, starTime: STAR_TIME,
     starLava: false, batSpeed: 190, birdSpeed: 120, gummySpeed: 135, eyeFlee: 195, windK: 1, darkR: 215,
-    snailSpeed: 28, padShake: 0.8, moleDig: 135, moleWarn: 0.58, moleOut: 1.6,
+    snailSpeed: 28, padShake: 0.8, moleDig: 135, moleWarn: 0.58, moleOut: 1.6, bossK: 1.15,
   },
   difficile: {
     name: 'Difficile', lives: 3, eyeChase: 155, cubeFuse: 1.3, shootMin: 1.7, shootMax: 2.6,
     dotSpeed: 235, eclairMin: 1.0, eclairMax: 1.7, gameOver: 'game', forever: false, starTime: STAR_TIME,
     starLava: false, batSpeed: 220, birdSpeed: 140, gummySpeed: 155, eyeFlee: 215, windK: 1.15, darkR: 195,
-    snailSpeed: 32, padShake: 0.65, moleDig: 155, moleWarn: 0.48, moleOut: 1.35,
+    snailSpeed: 32, padShake: 0.65, moleDig: 155, moleWarn: 0.48, moleOut: 1.35, bossK: 1.3,
   },
 };
 
@@ -118,6 +119,8 @@ const Game = {
   world: null,
   // les gros yeux bonbons déjà attrapés dans le niveau en cours (« colonne,rangée »)
   caughtEyes: new Set(),
+  // les boss qu'on a déjà réveillés dans ce niveau (on revient après avoir perdu une vie : son réveil est plus court)
+  bossSeen: new Set(),
   isTouch: false,
   diffKey: 'gentil',
   diff: DIFFS.gentil,
@@ -329,7 +332,7 @@ const Game = {
       case 'back': this.toTitle(); break;
       case 'diff': this.pickDifficulty(data.diff); break;
       case 'resume': this.resume(); break;
-      case 'restart': this.checkpoint = -1; this.lives = Math.max(this.lives, 1); this.enterIntro(); break;
+      case 'restart': this.checkpoint = -1; this.lives = Math.max(this.lives, 1); this.bossSeen.clear(); this.enterIntro(); break;
       case 'map': this.showMap({ at: this.levelIndex }); break;
       case 'menu': this.toTitle(); break;
       case 'retry': this.retry(); break;
@@ -563,6 +566,7 @@ const Game = {
     this.mapAnim = null;
     this.checkpoint = -1;
     this.caughtEyes.clear();
+    this.bossSeen.clear();
     this.enterIntro();
   },
 
@@ -731,7 +735,30 @@ const Game = {
   },
 
   onStarEnd() {
-    if (this.state === 'play') Sound.playMusic(levelSong(LEVELS[this.levelIndex]));
+    if (this.state === 'play') Sound.playMusic(this.levelMusic());
+  },
+
+  // Jusqu'où le haut de l'écran est libre à droite (en pixels du jeu) : les petits boutons (pause, son…)
+  // sont plus gros sur un petit téléphone. Mesuré une fois par taille d'écran.
+  hudRight() {
+    const btns = $('#hudbtns');
+    const key = window.innerWidth + 'x' + window.innerHeight;
+    if (this.hudRightKey !== key && btns.classList.contains('show')) {
+      const r = btns.getBoundingClientRect();
+      const f = $('#frame').getBoundingClientRect();
+      if (r.width > 0 && f.width > 0) {
+        this.hudRightKey = key;
+        this.hudRightX = ((r.left - f.left) / f.width) * VIEW_W;
+      }
+    }
+    return this.hudRightX || VIEW_W - 190;
+  },
+
+  // La musique du niveau en cours (pendant le combat contre un boss, c'est la sienne).
+  levelMusic() {
+    const w = this.world;
+    if (w && w.boss && w.boss.fighting) return w.boss.song;
+    return levelSong(LEVELS[this.levelIndex]);
   },
 
   setCheckpoint(i) {
@@ -1194,6 +1221,8 @@ const Game = {
       Art.star(ctx, VIEW_W / 2 - 92, 73, 14, t);
       drawOutlinedText(ctx, String(Math.ceil(p.star)), VIEW_W / 2 + 98, 73, 18, '#fff27a', 'left');
     }
+    // les vies du boss
+    if (w.boss) w.boss.drawHUD(ctx, t);
     if (this.bannerT > 0 && this.state === 'play') {
       const a = Math.min(1, this.bannerT / 0.6, (3.2 - this.bannerT) / 0.3);
       ctx.globalAlpha = Math.max(0, a);
@@ -1246,6 +1275,7 @@ const Game = {
       .replace(/\{BAS\}/g, touch ? 'le bouton ▼' : 'la flèche ↓')
       .replace(/\{SAUT\}/g, touch ? 'le gros bouton rose' : 'Espace')
       .replace(/\{GRAPPIN\}/g, touch ? 'le bouton moustache' : 'la touche V')
+      .replace(/\{CARAMEL\}/g, touch ? 'le bouton caramel' : 'la touche X')
       .replace(/\{FLECHES\}/g, touch ? '◀ ▶' : '← →')
       .replace(/\{AVANCER\}/g, touch ? 'le bouton ▶' : 'la flèche →')
       .replace(/\{GAUCHE\}/g, touch ? 'le bouton ◀' : 'la flèche ←');

@@ -32,9 +32,10 @@ function powerPose(p, name, time) {
   p.pw.poseT = time;
 }
 
-// Les ennemis touchés sont renversés (avec un petit mot).
+// Les ennemis touchés sont renversés (avec un petit mot). Un boss qu'on ne peut pas toucher maintenant
+// répond false : pas de petit mot.
 function knockEnemy(p, e, word) {
-  e.kill('bump');
+  if (e.kill('bump') === false) return;
   if (word) p.world.popText(e.cx, e.y - 20, word, '#ffffff', 22);
 }
 

@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux (son boss arrive bientôt), et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux et son boss (l'Épouvantail), et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -44,7 +44,34 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      posé sur un tas de terre empêche la taupe de sortir. Sur les planches, deux cases au-dessus de l'herbe,
      les taupes ne peuvent pas attraper Malice. On retrouve aussi les gros yeux, un pissenlit géant pour
      passer le grand trou, et la rivière avec un escargot. Au bout, un grand champ tout plat sous la lune…
-     on dit qu'un épouvantail le garde.
+     gardé par l'Épouvantail.
+   - 🎃 **Le boss de la Prairie : l'Épouvantail** (au bout du 1-4). Il est perché sur son piquet au fond de son
+     champ de citrouilles, ses corbeaux endormis sur son chapeau pointu. Quand Malice arrive, ses yeux
+     s'allument, ses corbeaux s'envolent, et de grandes tiges de maïs poussent derrière Malice : on ne peut plus
+     repartir (ni en volant) tant qu'il n'est pas battu. Ses vies sont les chapeaux en haut de l'écran (il en a 3).
+     - **Les citrouilles qui roulent** : il arrache une citrouille du sol et la lève derrière lui (on la voit
+       briller)… puis il la lance, et elle roule vers Malice. On saute par-dessus, ou dessus (crac !). Une
+       citrouille fait « Bong ! » (comme les boulets des coccinelles).
+     - **Les corbeaux** tournent dans le ciel ; l'un d'eux s'arrête, croasse avec un « ! » rouge… puis plonge
+       là où est Malice. On s'écarte (ou on lui saute dessus : il s'enfuit, et revient plus tard). Un coup de bec
+       fait une bosse sous la casquette.
+     - **Le caramel colle ses bras** : il ne peut plus rien lancer, il s'affaisse… vite, on lui **saute sur le
+       chapeau** ! (Avec les chips, il a trop soif et s'affaisse aussi. Une fois collé, les pouvoirs qui renversent
+       le touchent aussi : charge, glissade, dribble, voiture, BOUM, ballon, bulle de feu, vague, Kaméhaméha.)
+       Il y a toujours du caramel sur la souche au bord du champ : il repousse quand on n'en a presque plus.
+       Quand il se fâche ou qu'il saute, ses bras battent l'air et le caramel ne colle pas (« Raté ! »).
+       Un corbeau collé tombe par terre, mais se décolle vite et s'envole (il n'arrête pas le caramel).
+     - On ne reste jamais dans lui ni coincé derrière lui contre le bord du champ : il repousse Malice d'un petit
+       bond vers le milieu, sans lui faire mal. S'il reste collé un moment, un conseil dit de lui sauter sur le chapeau.
+     - À chaque coup : bonk, la paille vole, son chapeau saute et s'abîme… Puis il se fâche, saute plus loin
+       sur son piquet, et lance deux citrouilles à la fois ; ses corbeaux plongent plus souvent.
+     - Au troisième coup, son chapeau s'envole et il s'effondre en un gros tas de paille. Il redevient gentil,
+       le chapeau lui retombe sur la tête, il fait coucou, et ses citrouilles sont pleines de bonbons ! Puis
+       l'arrivée apparaît : on va la toucher, et le monde 2 s'ouvre sur la carte.
+     - Si on perd une vie pendant le combat, on repart du drapeau juste avant le champ, et il est tout neuf
+       (il se réveille plus vite). En Bébé, il est plus lent, il attend plus longtemps entre deux attaques, et le
+       caramel le colle jusqu'à ce qu'on lui saute dessus ; en Difficile, il est plus rapide.
+       Si on ne pense pas au caramel, un petit conseil apparaît au bout d'un moment.
 2. **La Forêt** — 2-1 **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
@@ -68,7 +95,7 @@ de Malice, pépie de temps en temps, et c'est lui qui donne les conseils.
 **La grande carte** : tous les mondes sont dessinés à la suite sur un seul grand chemin, de la maison de Malice
 jusqu'au gâteau de la famille oiseau. Il y a une case par niveau (avec son numéro), une case étoile pour chaque stage
 d'entraînement (sur une petite branche à côté du chemin), un panneau au début de chaque monde, et au bout de chaque
-monde la place du château du boss (vide tant que le monde n'a pas de boss). Malice marche de case en case avec ← →
+monde le château du boss (une place vide tant que le monde n'a pas de boss) : c'est la case du dernier niveau. Malice marche de case en case avec ← →
 (ou la manette), et le saut ou Entrée lance le niveau. Sur tablette : toucher à gauche ou à droite pour marcher
 (on continue tant que le doigt reste posé), toucher une case pour y aller, et la toucher encore (ou « ▶ Jouer ») pour la lancer.
 Les cases pas encore débloquées sont grises, avec un cadenas : on ne peut pas aller plus loin. Tant que le bébé oiseau
@@ -212,8 +239,31 @@ Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la li
 au-dessus des niveaux). Pour **ajouter un niveau à un monde**, il suffit d'écrire un niveau de plus avec son `world` :
 dans un monde, les niveaux se suivent dans l'ordre où ils sont écrits (le premier est le 1-1, le suivant le 1-2…),
 et la carte, les numéros et la progression suivent tout seuls. Un niveau avec `badge` est le stage d'entraînement
-de son monde, et le **dernier** niveau d'un monde, s'il a `boss: true` (plus tard), prend la place du château
-au bout du monde (un `boss` sur un autre niveau ne change rien : c'est une case normale).
+de son monde, et le **dernier** niveau d'un monde, s'il a un `boss`, prend la place du château
+au bout du monde (sur un autre niveau, sa case reste une case normale).
+
+**Mettre un boss au bout d'un monde** (pour les grands) : ce que tous les boss ont en commun est dans
+[`js/boss.js`](js/boss.js) (le réveil quand on entre dans l'arène, la caméra et les murs de l'arène, les vies en
+haut de l'écran, les coups, la victoire, l'arrivée qui apparaît, la reprise au drapeau), et chaque boss a son
+propre fichier dans [`js/boss/`](js/boss/) (l'Épouvantail : [`js/boss/epouvantail.js`](js/boss/epouvantail.js)),
+avec ses attaques, ses aides et ses dessins. Dans le niveau (`levels.js`) :
+- `boss: "epouvantail"` : le nom du boss (celui de `BOSSES.epouvantail = …` à la fin de son fichier) ;
+- `arene: [192, 211]` : la première et la dernière colonne de son arène (20 colonnes : la largeur de l'écran) ;
+- la lettre `&` dans la carte : là où il attend (sur le sol de la case du dessous) ;
+- un drapeau `!` juste avant l'arène (on y repart si on perd une vie), et l'arrivée `G` dans l'arène :
+  elle n'apparaît que quand le boss est battu.
+
+Un nouveau boss s'écrit `class Truc extends Boss` : il dit comment il se réveille (`wake`), ses attaques (`fight`,
+avec `this.phase` qui passe de 0 à 1 puis 2 à chaque coup), quand on peut le toucher (`takes`), ce que font le
+caramel et les chips (`shot`), ce qui se passe à chaque coup (`onHit`) et à la fin (`onBeaten`, `outro`), et dessine
+son corps (`drawBody`), le décor de son arène (`drawDecor`), ses vies (`drawLife`) et le mur de son arène
+(`drawWall`, dessiné de chaque côté qui n'est pas le bout du niveau). La base lui donne de quoi parler (`speak`),
+donner un conseil (`hint`), faire repousser du caramel (`addSource`), et elle pousse toute seule Malice hors de lui
+(sans lui faire mal) à la fin du réveil et quand elle est coincée entre lui et un bord. Ses aides (comme les
+corbeaux et les citrouilles) sont des ennemis avec `boss` : ils s'en vont tout seuls quand il est battu ; leurs
+classes commencent par le nom du boss (`ScareCrow`, `ScarePumpkin`), pour ne jamais se mélanger avec celles d'un
+autre boss. Sa vitesse suit la difficulté (`bossK` dans `DIFFS`, en haut de `js/game.js`). Ajouter son fichier dans
+`index.html`, après `js/boss.js`.
 Un **nouveau monde** s'ajoute **à la fin** de `WORLDS` (sinon les numéros des mondes d'après changeraient).
 Si un niveau a un `world` qui n'est pas dans `WORLDS`, il n'apparaît pas et la console du navigateur le dit.
 
@@ -234,6 +284,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Écran titre et grande carte | la version d'origine, façon console 8 bits |
   | La Prairie (la Prairie Fleurie, les Grands Arbres, la Rivière aux Nénuphars) | calypso au steel drum, basse 3+3+2 |
   | La Prairie la Nuit | la même calypso, plus lente et tout doucement, comme une berceuse : vibraphone, marimba en écho, contrebasse, et des grillons |
+  | Le combat contre l'Épouvantail | la calypso en do mineur et plus vite, comme une danse de squelettes : xylophone, orgue qui ricane sur les contretemps, pizzicati, wood-blocks et timbales ; au refrain, les cuivres |
   | La Forêt des Épines | do mineur en 12/8, flûte et harpe, entrées en canon |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
@@ -248,7 +299,10 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Étoile (invincible) | disco arc-en-ciel : la mélodie ne bouge pas, les accords changent sous elle, puis tout monte d'un ton |
 - Polices : Fredoka et Luckiest Guy (Google Fonts).
 - Le site est publié automatiquement sur GitHub Pages à chaque `git push` sur `main`
-  (voir [`.github/workflows/pages.yml`](.github/workflows/pages.yml)).
+  (voir [`.github/workflows/pages.yml`](.github/workflows/pages.yml)). À chaque publication, le numéro de version
+  est ajouté au nom des scripts dans `index.html`, pour que le navigateur recharge les nouveaux : les fichiers de
+  `js/` (et de ses sous-dossiers) doivent donc avoir un nom en lettres minuscules sans accent, chiffres, `-` ou `_`
+  (comme `js/boss/epouvantail.js`), sinon ils ne seraient pas rechargés.
 - Le numéro de version (en bas à droite de l'écran d'accueil) est calculé à la publication :
   `1.<nombre de commits> · <date>`. Il augmente à chaque mise à jour ; en local, il affiche « dev ».
 - Pour jouer en local : ouvrir `index.html` dans un navigateur (double-clic), ou lancer
@@ -263,6 +317,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
 | `js/heroes.js` | La liste des personnages, et ce qu'ils ont tous en commun pour les dessiner |
 | `js/persos/` | Le dessin de chaque personnage |
 | `js/pouvoirs.js` | Les pouvoirs des personnages |
+| `js/boss.js`, `js/boss/` | Ce que tous les boss ont en commun, puis chaque boss (ses attaques, ses aides, ses dessins) |
 | `js/art.js` | Dessins des personnages et objets |
 | `js/scenery.js` | Dessins des décors de tous les mondes |
 | `js/audio.js` | Sons, instruments et lecteur de musique |
