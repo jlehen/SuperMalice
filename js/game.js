@@ -92,7 +92,9 @@ function keyPos(key) {
   const w = WORLD_LEVELS[parseInt(key, 10) - 1];
   return w && w.levels.length ? ORDER_POS[w.levels[w.levels.length - 1]] : 0;
 }
+// desc : dite sur l'écran du badge gagné (avec les mots de l'appareil : voir textFor).
 const BADGE_INFO = {
+  roulade: { name: 'Roulade', desc: 'Pour rouler, {ROULADE} !' },
   saut: { name: 'Super Saut', desc: 'Accroupis-toi, puis saute deux fois plus haut !' },
   grappin: { name: 'Moustache-Grappin', desc: 'Accroche ta moustache aux anneaux dorés !' },
 };
@@ -127,6 +129,8 @@ const Game = {
   // le personnage choisi, et ceux qu'on peut choisir (Malice + 3 tirés au hasard)
   hero: 'malice',
   roster: ['malice'],
+  // les badges prêtés par un raccourci pour tester (voir hasBadge)
+  lent: [],
 
   init() {
     this.canvas = $('#game');
@@ -146,6 +150,12 @@ const Game = {
     }
     // le bébé oiseau est déjà sauvé si on est arrivé au retour à la maison
     if (SEQUEL_START !== undefined && keyPos(this.save.reach) >= ORDER_POS[SEQUEL_START]) this.save.rescued = true;
+    // Les badges gagnés par Super Malice (« badges »). Une sauvegarde d'avant les badges gardés reçoit,
+    // une seule fois, les badges de tous les stages d'avant sa case la plus loin (même ceux ajoutés depuis,
+    // comme la Roulade) : on n'est jamais bloqué.
+    if (!Array.isArray(this.save.badges)) {
+      this.save.badges = TRAINING_LEVELS.filter((i) => ORDER_POS[i] < keyPos(this.save.reach)).map((i) => LEVELS[i].badge);
+    }
     this.setReach(this.save.reach);
     this.diffKey = DIFFS[this.save.difficulty] ? this.save.difficulty : 'gentil';
     this.diff = DIFFS[this.diffKey];
@@ -195,7 +205,8 @@ const Game = {
 
     // Raccourcis pour tester : ?niveau=1-2 lance le niveau 2 du monde 1, ?niveau=3 le 1er niveau
     // du monde 3 (c'est aussi l'ancien niveau 3), ?stage=1 le 1er stage d'entraînement sur le chemin
-    // (ou ?stage=saut, ?stage=grappin), ?perso=licorne joue avec la licorne.
+    // (la Roulade ; ?stage=2 le Super Saut… ou par son nom : ?stage=roulade, ?stage=saut, ?stage=grappin),
+    // ?perso=licorne joue avec la licorne.
     const params = new URLSearchParams(location.search);
     if (params.get('personnages') === 'tous') this.roster = HEROES.map((h) => h.id);
     const perso = params.get('perso');
@@ -211,6 +222,8 @@ const Game = {
     if (typeof li === 'number') start = li;
     const si = st && (BADGE_AT[st] !== undefined ? BADGE_AT[st] : TRAINING_LEVELS[parseInt(st, 10) - 1]);
     if (typeof si === 'number') start = si;
+    // (pour tester, Malice a aussi les badges des stages d'avant ce niveau, sans les gagner pour de vrai)
+    if (start >= 0) this.lent = TRAINING_LEVELS.filter((i) => ORDER_POS[i] < ORDER_POS[start]).map((i) => LEVELS[i].badge);
     if (start >= 0) {
       const d = params.get('difficulte');
       if (DIFFS[d]) { this.diffKey = d; this.diff = DIFFS[d]; }
@@ -351,6 +364,7 @@ const Game = {
       case 'reset-yes':
         // on garde la difficulté et le réglage du son, on efface les niveaux débloqués
         this.save.rescued = false;
+        this.save.badges = [];
         this.setReach(LEVELS[ORDER[0]].key);
         this.showMap();
         break;
@@ -527,6 +541,12 @@ const Game = {
     // un stage d'entraînement qu'on ne voit pas : le niveau d'après est débloqué aussi
     const vis = this.visibleOrder();
     while (p < ORDER.length - 1 && !vis.includes(ORDER[p])) p++;
+    // Super Malice, elle, doit faire chaque stage : le chemin s'arrête au premier stage dont elle n'a pas
+    // le badge (même si un autre personnage est déjà allé plus loin)
+    if (this.withBadges()) {
+      const st = TRAINING_LEVELS.find((i) => !this.save.badges.includes(LEVELS[i].badge));
+      if (st !== undefined) p = Math.min(p, ORDER_POS[st]);
+    }
     // le retour à la maison reste fermé tant que le bébé oiseau n'est pas sauvé
     if (!this.save.rescued && SEQUEL_START !== undefined) p = Math.min(p, Math.max(0, ORDER_POS[SEQUEL_START] - 1));
     return p;
@@ -665,7 +685,12 @@ const Game = {
     w.player.won = true;
     w.player.star = 0;
     w.player.grap = null;
-    this.badgeWon = LEVELS[this.levelIndex].badge || null;
+    // un badge ne se gagne qu'en finissant son stage avec Super Malice
+    this.badgeWon = (this.withBadges() && LEVELS[this.levelIndex].badge) || null;
+    if (this.badgeWon && !this.save.badges.includes(this.badgeWon)) {
+      this.save.badges.push(this.badgeWon);
+      Save.save(this.save);
+    }
     Sound.playMusic(this.badgeWon ? 'badge' : 'clear');
     this.score += 1000;
     this.openNext(false);
@@ -1149,7 +1174,7 @@ const Game = {
     ctx.restore();
     drawOutlinedText(ctx, 'Badge obtenu !', VIEW_W / 2, 95, 50, '#ffd84a');
     drawOutlinedText(ctx, info.name, VIEW_W / 2, 400, 36, '#7ff0ff');
-    drawOutlinedText(ctx, info.desc, VIEW_W / 2, 445, 22, '#ffffff');
+    drawOutlinedText(ctx, this.textFor(info.desc), VIEW_W / 2, 445, 22, '#ffffff');
     ctx.restore();
   },
 
@@ -1183,7 +1208,7 @@ const Game = {
       drawOutlinedText(ctx, power, bx + 8, 113, 15, '#ffe680', 'left');
       bx += 30 + ctx.measureText(power).width;
     }
-    for (const b of ['saut', 'grappin']) {
+    for (const b of ['roulade', 'saut', 'grappin']) {
       if (!this.hasBadge(b)) continue;
       Art.badge(ctx, bx, 114, 14, b, t);
       if (b === 'grappin' && !this.isTouch) this.keyCap(ctx, bx + 26, 112, 'V');
@@ -1243,14 +1268,19 @@ const Game = {
     ctx.fillText(label, x, y + 1);
   },
 
-  // Seule Super Malice gagne les badges (super saut, moustache-grappin) :
+  // Seule Super Malice gagne les badges (roulade, super saut, moustache-grappin) :
   // les autres personnages ont leur pouvoir, et ils passent les stages d'entraînement.
   withBadges() {
     return this.hero === 'malice';
   },
 
+  // Un badge sert dans son stage (pour l'apprendre), puis, une fois gagné (save.badges), sur tout le chemin
+  // après lui (les niveaux d'avant restent comme ils ont été pensés). lent : les badges prêtés par un
+  // raccourci pour tester (?niveau=…), jamais gardés.
   hasBadge(b) {
-    return this.withBadges() && BADGE_AT[b] !== undefined && ORDER_POS[this.levelIndex] >= ORDER_POS[BADGE_AT[b]];
+    const at = BADGE_AT[b];
+    if (!this.withBadges() || at === undefined || ORDER_POS[this.levelIndex] < ORDER_POS[at]) return false;
+    return this.levelIndex === at || this.save.badges.includes(b) || this.lent.includes(b);
   },
 
   // Le niveau qui vient après i sur le chemin de la carte (-1 : c'était le dernier).
@@ -1273,6 +1303,7 @@ const Game = {
       .replace(/Malice/g, HERO_BY_ID[this.hero].call)
       .replace(/\{POUVOIR\}/g, touch ? 'le bouton pouvoir' : 'la touche B')
       .replace(/\{BAS\}/g, touch ? 'le bouton ▼' : 'la flèche ↓')
+      .replace(/\{ROULADE\}/g, touch ? 'en marchant avec ▶, glisse ton pouce jusqu\'à ▼' : 'garde la flèche → appuyée et appuie sur ↓')
       .replace(/\{SAUT\}/g, touch ? 'le gros bouton rose' : 'Espace')
       .replace(/\{GRAPPIN\}/g, touch ? 'le bouton moustache' : 'la touche V')
       .replace(/\{CARAMEL\}/g, touch ? 'le bouton caramel' : 'la touche X')
@@ -1355,6 +1386,7 @@ const Game = {
         case 'heart': Art.heart(g, c, c + 2, 3, '#ff3d7f', '#ffffff'); break;
         case 'badge-saut': Art.badge(g, c, c - 4, 17, 'saut', 0); break;
         case 'badge-grappin': Art.badge(g, c, c - 4, 17, 'grappin', 0); break;
+        case 'badge-roulade': Art.badge(g, c, c - 4, 17, 'roulade', 0); break;
         case 'mustache':
           Art.anchorRing(g, c, 16, 0, {});
           Art.mustacheRope(g, c, 44, c, 16, 0, true);

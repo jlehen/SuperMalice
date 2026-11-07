@@ -53,17 +53,28 @@ function ellipsePath(ctx, x, y, rx, ry, rot) {
 }
 
 // Sauvegarde dans le navigateur (niveaux débloqués, difficulté, son).
+// Les badges gagnés sont aussi gardés à part (badgeKey) : une ancienne version du jeu restée ouverte
+// dans un vieil onglet réécrit la sauvegarde sans eux, mais ne touche pas à celle-là.
 const Save = {
   key: 'superMalice.v1',
+  badgeKey: 'superMalice.badges',
   load() {
     try {
-      return Object.assign({ unlocked: 1, difficulty: 'gentil', muted: false },
+      const data = Object.assign({ unlocked: 1, difficulty: 'gentil', muted: false },
         JSON.parse(localStorage.getItem(this.key) || '{}'));
+      if (!Array.isArray(data.badges)) {
+        const b = JSON.parse(localStorage.getItem(this.badgeKey) || 'null');
+        if (Array.isArray(b)) data.badges = b;
+      }
+      return data;
     } catch (e) {
       return { unlocked: 1, difficulty: 'gentil', muted: false };
     }
   },
   save(data) {
-    try { localStorage.setItem(this.key, JSON.stringify(data)); } catch (e) { /* navigation privée */ }
+    try {
+      localStorage.setItem(this.key, JSON.stringify(data));
+      if (Array.isArray(data.badges)) localStorage.setItem(this.badgeKey, JSON.stringify(data.badges));
+    } catch (e) { /* navigation privée */ }
   },
 };

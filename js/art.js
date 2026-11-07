@@ -1630,6 +1630,8 @@ const Art = (() => {
       case 'ouch': ({ legF, legB, armF, armB, lean } = ouchPose(k)); break;
       case 'hold': armF = -1.0; armB = -0.8; break;
       case 'crouch': crouch = 7; legF = -1.25; legB = -0.85; legLen = 8; armF = -0.6; armB = 0.3; break;
+      // en boule (la roulade) : les genoux contre le ventre, les bras autour, la tête rentrée
+      case 'roll': crouch = 9; legF = -1.95; legB = -1.7; legLen = 7; armF = -1.05; armB = -0.8; lean = 0.32; break;
       case 'hang': armF = 0.25; armB = -0.25; legF = 0.25; legB = -0.2; break;
       // elle glisse sur la bave : les bras qui moulinent, penchée en arrière
       case 'slip':
@@ -3090,7 +3092,7 @@ const Art = (() => {
     ctx.restore();
   }
 
-  const BADGE_COLORS = { saut: ['#7fd0ff', '#2a7de0'], grappin: ['#d6a6ff', '#7a3ad8'] };
+  const BADGE_COLORS = { saut: ['#7fd0ff', '#2a7de0'], grappin: ['#d6a6ff', '#7a3ad8'], roulade: ['#b8f07a', '#3fa84a'] };
 
   // Médaille de badge avec ses rubans.
   function badge(ctx, x, y, r, kind, t) {
@@ -3137,7 +3139,43 @@ const Art = (() => {
     ctx.stroke();
     ctx.save();
     ctx.scale(r / 30, r / 30);
-    if (kind === 'grappin') {
+    if (kind === 'roulade') {
+      // une boule rose qui roule (une flèche tourne autour), et des traits de vitesse derrière
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      for (const yy of [-6, 1, 8]) {
+        ctx.beginPath();
+        ctx.moveTo(-19, yy);
+        ctx.lineTo(-12 + Math.abs(yy) * 0.3, yy);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(3, 1, 13, -2.6, 1.9);
+      ctx.stroke();
+      const ax = 3 + Math.cos(1.9) * 13;
+      const ay = 1 + Math.sin(1.9) * 13;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(ax - 7, ay - 1);
+      ctx.lineTo(ax + 4, ay - 6);
+      ctx.lineTo(ax + 3, ay + 6);
+      ctx.closePath();
+      ctx.fill();
+      const bg = ctx.createRadialGradient(0, -2, 1, 3, 1, 8);
+      bg.addColorStop(0, '#ffd0e6');
+      bg.addColorStop(1, '#ff3d8f');
+      ctx.fillStyle = bg;
+      circlePath(ctx, 3, 1, 7.5);
+      ctx.fill();
+      ctx.strokeStyle = '#a0145a';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      circlePath(ctx, 0.5, -2, 2);
+      ctx.fill();
+    } else if (kind === 'grappin') {
       // une moustache accrochée à un anneau
       ctx.strokeStyle = '#ffc21f';
       ctx.lineWidth = 4;

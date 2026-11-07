@@ -2,7 +2,8 @@
 
 // Regroupe clavier, écran tactile et manette en une seule liste d'actions.
 const Input = (() => {
-  const ACTIONS = ['left', 'right', 'down', 'jump', 'caramel', 'chips', 'grapple', 'power', 'pause'];
+  // roll : la roulade (voir plus bas, « askRoll »)
+  const ACTIONS = ['left', 'right', 'down', 'jump', 'caramel', 'chips', 'grapple', 'power', 'pause', 'roll'];
   const keys = {};
   const touch = {};
   const pad = {};
@@ -11,6 +12,19 @@ const Input = (() => {
   const prev = {};
   const pressed = {};
   let capture = false;
+
+  // La roulade (badge Roulade) : c'est ici qu'on décide qu'elle est demandée (pressed.roll),
+  // et dans quel sens (rollDir) :
+  //  - au clavier (ou avec deux doigts sur la tablette) : on appuie sur ↓ en tenant ← ou → ;
+  //  - sur la tablette : le pouce qui marche glisse de ◀ ou ▶ jusqu'à ▼ (il garde sa flèche) ;
+  //  - à la manette : bas et avant tenus ensemble un petit moment (PAD_ROLL secondes), et pas
+  //    seulement en passant par la diagonale entre → et ↓ (pour s'accroupir).
+  // Ce n'est pas « bas » : le pouce qui glisse jusqu'à ▼ ne fait pas écraser en l'air.
+  const PAD_ROLL = 0.12;
+  let rollAsk = 0;
+  let downWas = false;
+  let padDiag = 0;
+  let lastNow = 0;
 
   // Courir : un appui rapide sur une direction, puis on rappuie et on reste appuyé.
   const RUN_TAP = 0.35; // durée max de l'appui rapide (secondes)
@@ -61,19 +75,30 @@ const Input = (() => {
   let touchButtons = [];
   const B = {};
   const pointers = new Map();
+  // Le pouce qui glisse jusqu'à ▼ : il doit vraiment y entrer (ROLL_IN fois le rayon de ▼) en ayant bougé
+  // depuis là où il s'est posé (ROLL_MOVE fois le rayon d'une flèche), et vraiment en sortir (ROLL_OUT)
+  // pour recommencer : un pouce qui tremble au bord de ▼ ne fait pas plusieurs roulades.
+  const ROLL_IN = 0.9;
+  const ROLL_OUT = 1.4;
+  const ROLL_MOVE = 1;
+  const arrowDir = (el) => (el === B.left ? -1 : 1);
 
   function circle(el) {
     const r = el.getBoundingClientRect();
     return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2, r: r.width / 2 };
   }
 
+  // Le point (x, y) est-il dans le cercle du bouton el, agrandi k fois ? (jamais si le bouton est caché)
+  function near(el, x, y, k) {
+    if (!el || el.offsetParent === null) return false;
+    const c = circle(el);
+    return Math.hypot(x - c.x, y - c.y) <= c.r * k;
+  }
+
   function pick(x, y) {
     const left = x < window.innerWidth / 2;
     for (const name of left ? SMALL_LEFT : SMALL_RIGHT) {
-      const el = B[name];
-      if (el.offsetParent === null) continue;
-      const c = circle(el);
-      if (Math.hypot(x - c.x, y - c.y) <= c.r * 1.2) return { el };
+      if (near(B[name], x, y, 1.2)) return { el: B[name] };
     }
     if (!left) return { el: B.jump };
     const l = circle(B.left);
@@ -95,6 +120,7 @@ const Input = (() => {
     for (const p of pointers.values()) {
       touch[p.el.dataset.btn] = true;
       p.el.classList.add('on');
+      if (p.roll) touch.roll = true;
     }
     ACTIONS.forEach((a) => { if (touch[a] && !before[a]) tapped[a] = true; });
   }
@@ -110,7 +136,11 @@ const Input = (() => {
     layer.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       Sound.unlock();
-      pointers.set(e.pointerId, pick(e.clientX, e.clientY));
+      const p = pick(e.clientX, e.clientY);
+      // (là où il s'est posé : pour la roulade, il faut qu'il ait vraiment bougé)
+      p.x0 = e.clientX;
+      p.y0 = e.clientY;
+      pointers.set(e.pointerId, p);
       buzz();
       refreshTouch();
     });
@@ -118,6 +148,19 @@ const Input = (() => {
       const p = pointers.get(e.pointerId);
       if (!p || p.mid === undefined) return;
       e.preventDefault();
+      // le pouce glisse jusqu'à ▼ : une roulade (il garde sa flèche)
+      const x = e.clientX;
+      const y = e.clientY;
+      if (!p.roll && near(B.down, x, y, ROLL_IN) && Math.hypot(x - p.x0, y - p.y0) >= circle(p.el).r * ROLL_MOVE) {
+        p.roll = true;
+        api.rollDir = arrowDir(p.el);
+        buzz();
+        refreshTouch();
+      } else if (p.roll && !near(B.down, x, y, ROLL_OUT)) {
+        p.roll = false;
+        refreshTouch();
+      }
+      if (p.roll) return;
       let el = p.el;
       if (e.clientX < p.mid - p.slack) el = B.left;
       else if (e.clientX > p.mid + p.slack) el = B.right;
@@ -180,6 +223,21 @@ const Input = (() => {
   function update() {
     pollPad();
     const now = performance.now() / 1000;
+    // la roulade : ↓ appuyé en tenant ← ou → (clavier, deux doigts), ou bas et avant tenus à la manette
+    const side = (o) => (o.right ? 1 : 0) - (o.left ? 1 : 0);
+    const down = !!(keys.down || touch.down);
+    const dir = side({ right: keys.right || touch.right, left: keys.left || touch.left });
+    if (dir && ((down && !downWas) || tapped.down)) rollAsk = dir;
+    downWas = down;
+    const padDir = side(pad);
+    if (pad.down && padDir) {
+      const before = padDiag;
+      padDiag += Math.min(0.1, now - lastNow);
+      if (before < PAD_ROLL && padDiag >= PAD_ROLL) rollAsk = padDir;
+    } else {
+      padDiag = 0;
+    }
+    lastNow = now;
     ACTIONS.forEach((a) => {
       const h = !!(keys[a] || touch[a] || pad[a]);
       if (a === 'left' || a === 'right') updateRun(a, h, now);
@@ -188,6 +246,11 @@ const Input = (() => {
       held[a] = h;
       prev[a] = h;
     });
+    if (rollAsk) {
+      api.rollDir = rollAsk;
+      pressed.roll = true;
+      rollAsk = 0;
+    }
   }
 
   function consume() {
@@ -202,12 +265,17 @@ const Input = (() => {
       tapped[a] = false;
       prev[a] = !!(keys[a] || touch[a] || pad[a]);
     });
+    // (pareil pour la roulade : ↓ ou la diagonale de la manette déjà tenus ne comptent pas)
+    rollAsk = 0;
+    downWas = !!(keys.down || touch.down);
+    padDiag = PAD_ROLL;
   }
 
-  return {
+  const api = {
     held,
     pressed,
     run,
+    rollDir: 1,
     update,
     consume,
     reset,
@@ -215,4 +283,5 @@ const Input = (() => {
     clearTouch,
     setCapture(v) { capture = v; },
   };
+  return api;
 })();

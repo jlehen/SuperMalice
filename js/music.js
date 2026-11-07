@@ -386,6 +386,30 @@ const Music = (() => {
     return S.out({ drumV: 0.75 });
   }
 
+  // Stage de la Roulade : ska, ça roule ! La guitare et l'orgue tapent sur les contretemps (« skank »),
+  // la contrebasse court en sautillant, les cuivres jouent la mélodie (le trombone en dessous),
+  // la caisse claire claque sur le 2e et le 4e temps, et au milieu, le saxophone prend un solo.
+  function ska() {
+    const S = new Song({ bpm: 176, chordMap: { G7: 'G7', Ab: 'Ab', Bb: 'Bb7' } });
+    const SKANK = [[[0.5, 0.16, 'C'], [1.5, 0.16, 'C'], [2.5, 0.16, 'C'], [3.5, 0.16, 'C']]];
+    const BASS = [[[0, 0.45, 'R'], [1, 0.45, 'F'], [1.5, 0.4, 'O'], [2, 0.45, 'R'], [3, 0.45, 'F'], [3.5, 0.4, 'A']]];
+    const hats = rep(4, (i) => [i + 0.5, 'h', 0.7]);
+    const D = [[[0, 'k'], [1, 's', 0.7], [2, 'k', 0.8], [3, 's'], [3.5, 'k', 0.5], ...hats]];
+    const FILL = [[0, 'k'], [1, 's', 0.7], [2, 's', 0.6], [2.5, 's', 0.7], [3, 't'], [3.5, 't', 0.9]];
+    const base = (p) => {
+      p.pattern('bass', 'upright', 0.16, BASS);
+      p.pattern('skank', 'guitar', 0.05, SKANK, { low: 60 });
+      p.pattern('organ', 'organ', 0.022, SKANK, { low: 55 });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'brass', 0.2); base(p); p.drums(D, { crash: 0.6 }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.2); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.2); p.melody('bone', 'brass', 0.09, { oct: -1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.B, (p) => { p.melody('sax', 'reed', 0.12, { top: true }); base(p); p.drums(D, { crash: 0.5 }); });
+    S.part(SECT.C2, (p) => { p.melody('lead', 'brass', 0.2, { top: true }); p.melody('bone', 'brass', 0.09, { oct: -1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'brass', 0.2); p.melody('sax', 'reed', 0.05, { oct: -1, top: true }); base(p); p.drums(D, { crash: 0.6, fill: FILL }); });
+    return S.out({ drumV: 0.85 });
+  }
+
   // 2. La Forêt des Épines : do mineur, en 12/8, flûte et harpe, entrées en canon (fugato) à la clarinette.
   function forest() {
     const S = new Song({ bpm: 88, warp: swing(2 / 3), mode: MINOR });
@@ -689,6 +713,7 @@ const Music = (() => {
     meadow: meadow(),
     'meadow-night': meadowNight(),
     'boss-prairie': bossMeadow(),
+    'badge-roulade': ska(),
     forest: forest(),
     'badge-saut': bossa(),
     storm: storm(),

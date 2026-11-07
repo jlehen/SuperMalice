@@ -763,10 +763,13 @@ class World {
     if (b.x < A.x0) {
       b.x = A.x0;
       if (b.vx < 0) b.vx = 0;
+      // (en boule, le bord de l'arène est comme un mur : elle se relève, ou repart dans l'autre sens)
+      if (b.ball && b.rollDir < 0) b.rollBump(-1);
     }
     if (b.x + b.w > A.x1) {
       b.x = A.x1 - b.w;
       if (b.vx > 0) b.vx = 0;
+      if (b.ball && b.rollDir > 0) b.rollBump(1);
     }
   }
 
@@ -799,6 +802,8 @@ class World {
         knockEnemy(p, e, p.pow.knockWord);
         continue;
       }
+      // en boule (la roulade), Malice passe sous les ennemis ou à travers : ni elle ni eux n'ont mal
+      if (p.ball) continue;
       // (stompDepth : sur un grand boss tout affaissé, on compte qu'on lui saute dessus même en arrivant un peu bas)
       if (stomps(e.y + (e.stompDepth || 18))) {
         e.stomp();
@@ -1020,6 +1025,7 @@ class World {
     this.drawUpdrafts(ctx);
     this.runs = this.waterRuns(camX);
     this.drawBurrow(ctx, camX, camY);
+    this.drawTunnels(ctx, camX, camY);
     this.drawRiverBeds(ctx);
     this.drawDecor(ctx, camX);
     // (les fleurs-lanternes qu'on voit : cherchées une fois par image)
@@ -1396,6 +1402,40 @@ class World {
       for (const k of cols[c].cells) {
         if (k.open && k.lantern >= 0 && seen(k)) Scenery.burrowLantern(ctx, c * T + T / 2, (k.r + 1) * T, k.lantern, this.t);
       }
+    }
+  }
+
+  // "galeries" (voir levels.js) : les passages bas sous un plafond (une ou deux cases vides entre deux cases
+  // solides, dessus et dessous, comme les tunnels du Défi de la Roulade) sont des galeries de terre, comme
+  // celles du terrier : une butte se lit comme une colline percée d'un tunnel. (Le terrier, c'est drawBurrow.)
+  drawTunnels(ctx, camX, camY) {
+    if (!this.def.galeries) return;
+    const T = TILE;
+    const solid = (c, r) => isSolidCh(this.tileAt(c, r));
+    const open = (c, r) => !solid(c, r) && this.tileAt(c, r) !== WATER;
+    const c0 = Math.max(0, Math.floor(camX / T) - 1);
+    const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / T) + 1);
+    const r0 = Math.max(1, Math.floor(camY / T) - 1);
+    const r1 = Math.min(this.rows - 2, Math.ceil((camY + VIEW_H) / T) + 1);
+    const cells = [];
+    for (let r = r0; r <= r1; r++) {
+      if (this.terrier && r >= this.terrier - 2) break;
+      for (let c = c0; c <= c1; c++) {
+        if (!open(c, r)) continue;
+        const low = solid(c, r - 1) && solid(c, r + 1);
+        const tall = (solid(c, r - 1) && open(c, r + 1) && solid(c, r + 2)) || (solid(c, r - 2) && open(c, r - 1) && solid(c, r + 1));
+        if (low || tall) cells.push({ c, r, ceil: solid(c, r - 1) });
+      }
+    }
+    if (!cells.length) return;
+    // la terre derrière (et derrière les bords arrondis des cases du dessus et du dessous : pas de ciel entre elles)
+    ctx.fillStyle = '#5c3c22';
+    ctx.beginPath();
+    for (const k of cells) ctx.rect(k.c * T - 0.5, k.r * T - T / 2, T + 1, T * 2);
+    ctx.fill();
+    for (const k of cells) {
+      const floor = this.tiles[k.r + 1][k.c] === '#';
+      Scenery.burrowCell(ctx, k.c * T, k.r * T, hash2(k.c * 1.3, k.r * 2.1), this.t, { ceil: k.ceil, floor, surface: false });
     }
   }
 

@@ -1649,8 +1649,10 @@ const Carte = (() => {
     } else {
       drawLock(ctx, 0, 0);
     }
-    // la dernière case ouverte (pas encore finie) : des petites étoiles autour
-    if (opened && pos(i) === limit && i !== at && !lv.badge) {
+    // la dernière case ouverte (pas encore finie), et un stage dont Malice n'a pas encore le badge
+    // (il y a quelque chose à gagner) : des petites étoiles autour
+    const todo = lv.badge ? !Game.save.badges.includes(lv.badge) : pos(i) === limit && i !== at;
+    if (opened && todo) {
       for (let s = 0; s < 3; s++) {
         const a = t * 1.6 + (s * TAU) / 3;
         ctx.save();

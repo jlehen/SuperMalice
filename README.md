@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux et son boss (l'Épouvantail), et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -67,11 +67,19 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
        sur son piquet, et lance deux citrouilles à la fois ; ses corbeaux plongent plus souvent.
      - Au troisième coup, son chapeau s'envole et il s'effondre en un gros tas de paille. Il redevient gentil,
        le chapeau lui retombe sur la tête, il fait coucou, et ses citrouilles sont pleines de bonbons ! Puis
-       l'arrivée apparaît : on va la toucher, et le monde 2 s'ouvre sur la carte.
+       l'arrivée apparaît : on va la toucher, et la case d'après s'ouvre sur la carte (le stage de la Roulade avec
+       Malice, le monde 2 avec les autres personnages).
      - Si on perd une vie pendant le combat, on repart du drapeau juste avant le champ, et il est tout neuf
        (il se réveille plus vite). En Bébé, il est plus lent, il attend plus longtemps entre deux attaques, et le
        caramel le colle jusqu'à ce qu'on lui saute dessus ; en Difficile, il est plus rapide.
        Si on ne pense pas au caramel, un petit conseil apparaît au bout d'un moment.
+   - ⭐ **Stage d'entraînement : le Défi de la Roulade** → on gagne le badge *Roulade* (l'idée d'Alice : passer sous
+     les obstacles et sous les ennemis). Dans la prairie, des fleurs expliquent : une butte percée d'un petit tunnel,
+     un gros œil enfermé sous un plafond trop bas pour sauter par-dessus (entre deux tunnels : il ne sort pas), un
+     escargot au début d'un très long tunnel (il part de l'autre côté, tout doucement), des taupes (loin de la fleur),
+     des petits tunnels à la suite et un très long tunnel, puis le final (un tunnel, un gros œil enfermé et un tunnel
+     juste derrière lui) avant le trophée. Les tunnels sont dessinés comme des galeries de terre (`galeries` dans
+     `js/levels.js`).
 2. **La Forêt** — 2-1 **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
@@ -151,12 +159,33 @@ La page [`outils/galerie.html`](outils/galerie.html) montre tous les personnages
 
 ## Les badges
 
+- **Roulade** : garder **→** (ou ←) appuyé et appuyer sur **↓** : Malice fait une roulade dans ce sens. En boule,
+  elle tient dans un trou d'une case de haut et file sur quatre ou cinq cases, puis se relève. Si elle est encore
+  sous un plafond bas, elle continue de rouler jusqu'à avoir la place (contre un mur, elle repart dans l'autre sens :
+  elle ne reste jamais coincée). La boule ne quitte jamais le sol toute seule : au bord d'un trou (ou d'une marche),
+  elle s'arrête et se relève (sous un plafond, elle repart en arrière). En boule, elle passe sous les ennemis ou à
+  travers (gros yeux, escargots, taupes, corbeaux qui plongent…) sans avoir mal, mais sans les renverser : ils sont
+  toujours là quand elle se relève (et tant qu'un ennemi est sur elle ou tout à côté, elle roule encore un peu).
+  La lave, les ronces, l'eau, les éclairs et les points noirs des coccinelles font mal comme d'habitude. On peut
+  sauter pour sortir de la roulade (s'il y a la place au-dessus). Après une roulade, il faut attendre un tout petit
+  moment avant la suivante. Une roulade demandée juste avant d'atterrir part à l'atterrissage.
+  À l'arrêt, au bord d'un trou ou le nez contre un mur, ↓ accroupit toujours (pour le Super Saut), et en l'air,
+  ↓ écrase toujours vers le bas (en boule, elle se relève pour écraser), sauf tout près du sol en tenant → :
+  c'est alors la roulade, à l'atterrissage.
+  Sur tablette : en marchant, glisser le pouce de ▶ (ou ◀) jusqu'à ▼ (ou garder ▶ avec un doigt et toucher ▼ avec
+  un autre). À la manette : bas et avant tenus ensemble un petit moment (passer par la diagonale pour s'accroupir
+  ne fait pas rouler).
 - **Super Saut** : rester appuyé sur ↓ pour s'accroupir, puis sauter → on saute deux fois plus haut.
 - **Moustache-Grappin** : près d'un anneau doré, appuyer sur **V** : la moustache de Malice s'y accroche.
   On se balance avec ← →, on saute pour se lancer, et on peut enchaîner les anneaux.
 
+Un badge se gagne en finissant son stage avec **Super Malice**, et il est gardé dans la sauvegarde (`badges`, et
+aussi à part, pour qu'un vieil onglet d'une ancienne version du jeu ne le fasse pas perdre). Il sert dans son stage,
+puis, une fois gagné, dans tous les niveaux d'après sur la carte. Avec Malice, la carte s'arrête au premier stage dont
+elle n'a pas le badge : il faut le faire pour aller plus loin (même si un autre personnage est déjà passé). Sur la
+carte, l'étoile d'un stage dont Malice n'a pas encore le badge scintille.
 Les badges ne sont que pour **Super Malice** : les autres personnages ont déjà leur pouvoir (et pas de moustache !).
-Avec eux, on passe directement par-dessus les stages d'entraînement, les anneaux dorés disparaissent, et le Cœur du
+Avec eux, on passe directement par-dessus les stages d'entraînement (la carte ne les montre pas), les anneaux dorés disparaissent, et le Cœur du
 Volcan a quelques plateformes en plus pour franchir le grand mur et la grande lave (voir `sansBadges` dans `js/levels.js`).
 
 ## Quand Malice a mal
@@ -185,6 +214,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | → une fois vite, puis → sans lâcher | Courir (marche aussi vers la gauche) |
 | Espace, ↑ ou Z | Sauter (garder appuyé pour sauter plus haut) |
 | ↓ ou S en l'air | Écraser vers le bas (casse les blocs lutin) |
+| → (ou ←) gardé, puis ↓ ou S | Roulade (avec le badge Roulade) |
 | X | Lancer du caramel |
 | C | Lancer des chips |
 | V | Moustache-grappin (avec le badge) |
@@ -200,6 +230,10 @@ jusqu'à ce qu'on le lève : on ne lance plus des chips en voulant sauter. Sur A
 un tout petit peu à chaque appui.
 Pour courir, c'est pareil avec le bouton ◀ ou ▶ (ou la manette) : un appui rapide, puis on rappuie
 et on reste appuyé. En courant, on saute beaucoup plus loin.
+Pour la roulade (badge Roulade), le pouce qui marche glisse de ▶ (ou ◀) jusqu'à ▼ : il garde sa flèche, et ça
+ne compte pas comme ▼ en l'air (on ne s'écrase pas sans le vouloir). Il faut vraiment entrer dans ▼ (et en ressortir
+franchement pour recommencer) : un pouce qui tremble au bord ne fait pas rouler. Lâcher ▶ puis toucher ▼, c'est
+s'accroupir, comme avant (pour le Super Saut).
 
 Quand Malice touche un drapeau, il se transforme en papillon : si elle perd une vie, elle repartira de là
 (le papillon l'attend, posé en haut du mât). Le drapeau de l'arrivée devient un grand papillon étoilé qui lui tourne autour.
@@ -222,7 +256,10 @@ Les ennemis sont aussi un peu plus rapides en Classique et en Difficile.
 
 La progression (jusqu'où on est arrivé sur la carte) est gardée dans le navigateur, sous le nom de la case
 la plus loin (« 3-1 », « 2-stage »…) : si on ajoute des niveaux à un monde, on ne perd rien, et les anciennes
-sauvegardes (d'avant les mondes) sont reprises telles quelles (et le jeu écrit toujours l'ancien « unlocked », pour un vieil onglet). Pour tout effacer :
+sauvegardes (d'avant les mondes) sont reprises telles quelles (et le jeu écrit toujours l'ancien « unlocked », pour un vieil onglet).
+Une sauvegarde d'avant les badges gardés reçoit, une seule fois, les badges de tous les stages d'avant sa case la
+plus loin (la Roulade comprise, pour quelqu'un qui était déjà dans le monde 2) : elle n'est jamais bloquée. Pour tout
+effacer (badges compris) :
 sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 
 ## Inventer ses propres niveaux
@@ -269,7 +306,10 @@ Si un niveau a un `world` qui n'est pas dans `WORLDS`, il n'apparaît pas et la 
 
 Pour tester directement un niveau : `index.html?niveau=1-2` (monde 1, niveau 2), ou `index.html?niveau=3`
 (le premier niveau du monde 3 : c'est aussi l'ancien « niveau 3 »), ou un stage d'entraînement : `index.html?stage=1`
-(le 1er stage sur le chemin de la carte ; aussi `?stage=saut` ou `?stage=grappin`).
+(le 1er stage sur le chemin de la carte : maintenant la Roulade ; `?stage=2` le Super Saut, `?stage=3` la
+Moustache-Grappin), ou par le nom de son badge : `?stage=roulade`, `?stage=saut`, `?stage=grappin`.
+Avec ces raccourcis, Malice a, pour l'essai, les badges des stages d'avant ce niveau (ils ne sont pas gardés : un
+badge ne se gagne qu'en finissant son stage avec Malice, jamais avec un autre personnage).
 On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=difficile`.
 
 ## Pour les grands : comment c'est fait
@@ -285,6 +325,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | La Prairie (la Prairie Fleurie, les Grands Arbres, la Rivière aux Nénuphars) | calypso au steel drum, basse 3+3+2 |
   | La Prairie la Nuit | la même calypso, plus lente et tout doucement, comme une berceuse : vibraphone, marimba en écho, contrebasse, et des grillons |
   | Le combat contre l'Épouvantail | la calypso en do mineur et plus vite, comme une danse de squelettes : xylophone, orgue qui ricane sur les contretemps, pizzicati, wood-blocks et timbales ; au refrain, les cuivres |
+  | Stage de la Roulade | ska : guitare et orgue sur les contretemps, contrebasse qui sautille, la mélodie aux cuivres (le trombone en dessous), solo de saxophone au milieu |
   | La Forêt des Épines | do mineur en 12/8, flûte et harpe, entrées en canon |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |

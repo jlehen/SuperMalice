@@ -21,6 +21,12 @@ const PHYS = {
   pound: 1150,
   superJump: 1250,
   crouchCharge: 0.12,
+  // roulade (badge Roulade) : en boule, Malice ne fait plus que rollH de haut (elle passe dans un trou
+  // d'une case), elle file à rollSpeed pendant rollTime secondes, puis attend rollWait avant de recommencer
+  rollH: 30,
+  rollSpeed: 560,
+  rollTime: 0.42,
+  rollWait: 0.35,
   // champignons et guimauves : rebond normal, en gardant le saut appuyé, après un écrasement
   spring: 1150,
   springHeld: 1380,
@@ -122,6 +128,17 @@ class Player {
     this.crouchT = 0;
     this.superT = 0;
     this.superSpin = 0;
+    // la roulade : en boule (ball), le temps qu'il reste à rouler (roll), dans quel sens (rollDir),
+    // l'attente avant la suivante (rollWait), et comment elle tourne sur elle-même (rollA)
+    this.standH = this.h;
+    this.ball = false;
+    this.roll = 0;
+    this.rollDir = 1;
+    this.rollWait = 0;
+    this.rollA = 0;
+    // une roulade demandée juste avant d'atterrir (comme jumpBuf pour le saut)
+    this.rollBuf = 0;
+    this.rollBufDir = 1;
     this.grap = null;
     this.target = null;
     this.boostT = 0;
@@ -179,6 +196,7 @@ class Player {
     }
     if (this.won) {
       this.dropPuff();
+      if (this.ball && this.roomToStand()) this.standUp();
       this.vx = approach(this.vx, 0, PHYS.decGround * dt);
       this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
       w.moveBody(this, dt);
@@ -217,6 +235,7 @@ class Player {
     const game = w.game;
     const badgeSaut = game.hasBadge('saut');
     const badgeGrappin = game.hasBadge('grappin');
+    const badgeRoulade = game.hasBadge('roulade');
 
     // ---- Moustache-grappin : accrochée à un anneau ----
     this.target = badgeGrappin && (!this.grap || this.grap.phase === 'swing') ? this.findAnchor(this.grap && this.grap.anchor) : null;
@@ -226,7 +245,7 @@ class Player {
       if (w.inLava(this) && !this.lavaProof() && !w.choco) this.die('lava');
       return;
     }
-    if (I.pressed.grapple && badgeGrappin && !this.pound && this.hurtT <= 0) this.startGrapple();
+    if (I.pressed.grapple && badgeGrappin && !this.pound && !this.ball && this.hurtT <= 0) this.startGrapple();
     // la bave d'escargot sous les pieds : ça glisse ! (pas sur un nénuphar)
     this.slick = this.onGround && !this.platform && !this.swim && w.slimeUnder(this);
     const pow = this.pow;
@@ -241,8 +260,22 @@ class Player {
     let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0);
     if (this.hurtT > 0) dir = 0;
 
+    // ---- La roulade (badge Roulade) : ↓ en tenant ← ou → ----
+    // (sur tablette : le pouce qui glisse de ▶ jusqu'à ▼ ; à la manette : bas et avant ; voir input.js)
+    // À l'arrêt, ↓ accroupit toujours (le super saut) ; en l'air, ↓ écrase toujours.
+    if (this.rollWait > 0) this.rollWait -= dt;
+    if (I.pressed.roll) {
+      this.rollBuf = PHYS.buffer;
+      this.rollBufDir = I.rollDir;
+    } else if (this.rollBuf > 0) {
+      this.rollBuf -= dt;
+    }
+    if (this.rollBuf > 0 && badgeRoulade && this.onGround && !this.ball && this.rollWait <= 0 && this.hurtT <= 0 &&
+      !this.pound && !this.puff && !this.grap && !this.inChoco && !this.swim && this.startRoll(this.rollBufDir)) this.rollBuf = 0;
+    if (this.ball) this.updateRoll(dt);
+
     // ---- S'accroupir (et préparer le super saut) ----
-    const wantCrouch = this.onGround && I.held.down && !this.pound;
+    const wantCrouch = this.onGround && I.held.down && !this.pound && !this.ball;
     if (wantCrouch) {
       this.crouchT += dt;
       if (badgeSaut && this.crouchT - dt < PHYS.crouchCharge && this.crouchT >= PHYS.crouchCharge) Sound.sfx.charge();
@@ -274,6 +307,10 @@ class Player {
 
     if (this.pound) {
       this.vx = 0;
+    } else if (this.ball && this.hurtT <= 0) {
+      // en boule, elle file tout droit (voir updateRoll)
+      this.vx = this.rollDir * PHYS.rollSpeed;
+      this.facing = this.rollDir;
     } else if (pow.move && pow.move(this, dt, dir)) {
       // le pouvoir s'occupe de la vitesse (charge, glissade…)
     } else if (this.boostT > 0 && Math.abs(this.vx) > top && (dir === 0 || dir === Math.sign(this.vx))) {
@@ -300,7 +337,9 @@ class Player {
     else this.jumpBuf -= dt;
     // dans le chocolat, on peut toujours sauter pour en sortir
     this.coyote = this.onGround || this.inChoco ? PHYS.coyote : this.coyote - dt;
-    if (this.jumpBuf > 0 && this.coyote > 0 && !this.pound && !this.puff) {
+    // en boule, on saute en se relevant (s'il y a la place au-dessus)
+    if (this.ball && this.jumpBuf > 0 && this.coyote > 0 && this.roomToStand()) this.standUp();
+    if (this.jumpBuf > 0 && this.coyote > 0 && !this.pound && !this.puff && !this.ball) {
       this.jumpBuf = 0;
       this.coyote = 0;
       this.onGround = false;
@@ -338,7 +377,11 @@ class Player {
     // écrasement (bas en l'air) ; avec le pissenlit, bas le lâche
     if (I.pressed.down && this.puff) {
       this.dropPuff();
-    } else if (I.pressed.down && !this.onGround && !this.pound) {
+    } else if (I.pressed.down && !this.onGround && !this.pound && (!this.ball || this.roomToStand()) &&
+      !(I.pressed.roll && badgeRoulade && this.nearGround())) {
+      // (en boule, elle se relève pour écraser ; tout près du sol, ↓ en marchant, c'est la roulade
+      // qu'on voulait : elle partira en atterrissant)
+      this.standUp();
       this.pound = 1;
       this.poundT = PHYS.poundHang;
       this.vx = 0;
@@ -377,6 +420,7 @@ class Player {
     const pounded = this.pound === 2;
     const res = w.moveBody(this, dt, this.pound === 2 ? (tiles) => w.poundTiles(this, tiles) : null);
     if (!res.wall) this.vx -= push;
+    if (res.wall && this.ball) this.rollBump(res.wall);
     if (res.landed) this.platform = null;
     if (res.ceil) {
       w.headBump(this, res.ceil);
@@ -668,6 +712,9 @@ class Player {
   // On l'attrape en le touchant : il soulève un peu Malice, puis elle plane tout doucement.
   // (on peut en attraper un autre en l'air : on lâche le premier)
   grabPuff(d) {
+    // (en boule, sous un plafond bas, on ne l'attrape pas)
+    if (this.ball && !this.roomToStand()) return;
+    this.standUp();
     this.dropPuff();
     this.puff = d;
     d.grab();
@@ -762,6 +809,132 @@ class Player {
         this.lastMimic = kind;
         this.mimic = { kind, t: 0, dur: Art.MIMIC_DUR[kind] };
       }
+    }
+  }
+
+  // ---------- La roulade (badge Roulade) ----------
+  // Malice se met en boule : elle ne fait plus que PHYS.rollH de haut (elle passe dans un trou d'une case),
+  // et elle file droit devant. En boule, les ennemis ne lui font rien (elle passe dessous ou à travers,
+  // sans les renverser) ; la lave, les ronces, l'eau et le reste font mal comme d'habitude.
+  // Renvoie false si elle ne peut pas rouler : le nez contre un mur, ou au bord d'un trou (alors ↓ accroupit,
+  // comme avant : c'est là qu'on prépare le super saut).
+  startRoll(dir) {
+    const w = this.world;
+    if (w.boxSolid(this.x + dir * 6, this.y + this.h - PHYS.rollH, this.w, PHYS.rollH)) return false;
+    if (!this.floorAt(this.x + dir * 6)) return false;
+    this.ball = true;
+    this.roll = PHYS.rollTime;
+    this.rollDir = dir;
+    this.facing = dir;
+    this.rollA = 0;
+    this.y += this.h - PHYS.rollH;
+    this.h = PHYS.rollH;
+    this.prevBottom = this.y + this.h;
+    this.crouch = false;
+    this.crouchT = 0;
+    this.superT = 0;
+    this.jumping = false;
+    Sound.sfx.roll();
+    w.spawn({ type: 'ring', x: this.cx - dir * 8, y: this.y + this.h, life: 0.3, size: 40, color: 'rgba(255,255,255,0.8)' });
+    for (let i = 0; i < 8; i++) {
+      w.spawn({ type: 'dust', x: this.cx - dir * 10, y: this.y + this.h, vx: -dir * rand(60, 200), vy: rand(-90, -10), life: 0.4, size: rand(4, 8) });
+    }
+    return true;
+  }
+
+  // En boule : elle roule tant que la roulade dure, puis se relève dès qu'elle a la place.
+  // Sous un plafond bas (ou au milieu d'un ennemi), elle continue de rouler jusqu'à pouvoir se relever.
+  updateRoll(dt) {
+    const w = this.world;
+    // (dans le chocolat, on ne roule pas : on s'y enfonce, comme d'habitude)
+    if (this.inChoco && this.roomToStand()) {
+      this.standUp();
+      return;
+    }
+    this.roll -= dt;
+    this.rollA += this.rollDir * dt * 22;
+    if (this.onGround && Math.random() < dt * 30) {
+      w.spawn({ type: 'dust', x: this.cx - this.rollDir * 12, y: this.y + this.h, vx: -this.rollDir * rand(30, 120), vy: rand(-60, -10), life: 0.35, size: rand(3, 6) });
+    }
+    if (Math.random() < dt * 9) {
+      w.spawn({ type: 'spark', x: this.cx + rand(-14, 14), y: this.y + rand(-4, this.h), vx: -this.rollDir * rand(20, 80), vy: rand(-80, -20), life: 0.45, size: rand(3, 5), color: choose(['#fff27a', '#ffffff', '#ff9fd8']) });
+    }
+    if (this.roll <= 0 && this.roomToStand() && !this.enemyOver()) {
+      this.standUp();
+      return;
+    }
+    // la boule ne quitte jamais le sol toute seule : au bord d'un trou (ou d'une marche), elle s'arrête
+    // et se relève ; sous un plafond bas, elle repart dans l'autre sens
+    if (this.onGround && this.hurtT <= 0 && !this.floorAt(this.x + this.rollDir * PHYS.rollSpeed * dt)) {
+      if (this.roomToStand()) {
+        this.standUp();
+        this.vx = 0;
+      } else {
+        this.rollDir = -this.rollDir;
+      }
+    }
+  }
+
+  // Y a-t-il quelque chose sous ses pieds si elle était en x (le sol, une planche, ou sa plateforme) ?
+  floorAt(x) {
+    const w = this.world;
+    const r = Math.floor((this.y + this.h + 2) / TILE);
+    for (let c = Math.floor((x + 0.01) / TILE); c <= Math.floor((x + this.w - 0.01) / TILE); c++) {
+      const ch = w.tileAt(c, r);
+      if (isSolidCh(ch) || isLedgeCh(ch)) return true;
+    }
+    const pl = this.platform;
+    return !!pl && x + this.w > pl.x + 3 && x < pl.x + pl.w - 3;
+  }
+
+  // Elle tombe, et le sol est tout près (ou elle est déjà dessus).
+  nearGround() {
+    const feet = this.y + this.h;
+    return this.vy >= 0 && this.world.surfaceBelow(this.cx, feet - 1) - feet < 36;
+  }
+
+  // Contre un mur, en boule : bonk ! Elle se relève si elle peut, sinon elle repart dans l'autre sens
+  // (on ne reste jamais coincée dans un passage bas).
+  rollBump(side) {
+    Sound.sfx.bump();
+    this.world.spawn({ type: 'ring', x: side > 0 ? this.x + this.w : this.x, y: this.cy, life: 0.25, size: 26, color: 'rgba(255,255,255,0.8)' });
+    if (this.roomToStand() && !this.enemyOver()) {
+      this.standUp();
+      this.vx = 0;
+    } else {
+      this.rollDir = -side;
+      this.roll = Math.max(this.roll, 0.1);
+    }
+  }
+
+  // Y a-t-il la place de se relever (rien de solide au-dessus de la boule) ?
+  roomToStand() {
+    return !this.world.boxSolid(this.x, this.y + this.h - this.standH, this.w, this.standH);
+  }
+
+  // Un ennemi qui ferait mal juste là (ou tout à côté), si elle se relevait ?
+  enemyOver() {
+    const b = { x: this.x - 24, y: this.y + this.h - this.standH + 4, w: this.w + 48, h: this.standH - 4 };
+    return this.world.enemies.some((e) => !e.dying && !e.dead && e.harmful() && overlap(b, e));
+  }
+
+  // Elle n'est plus en boule (les pieds restent où ils sont).
+  unball() {
+    this.y -= this.standH - this.h;
+    this.h = this.standH;
+    this.prevBottom = this.y + this.h;
+    this.ball = false;
+    this.roll = 0;
+  }
+
+  // Elle se relève, et repart à sa vitesse de marche.
+  standUp() {
+    if (!this.ball) return;
+    this.unball();
+    this.rollWait = PHYS.rollWait;
+    if (this.hurtT <= 0) this.vx = this.rollDir * Math.min(Math.abs(this.vx), PHYS.run);
+    for (let i = 0; i < 4; i++) {
+      this.world.spawn({ type: 'dust', x: this.cx + rand(-10, 10), y: this.y + this.h, vx: rand(-60, 60), vy: rand(-40, -10), life: 0.3, size: rand(3, 6) });
     }
   }
 
@@ -1005,6 +1178,11 @@ class Player {
     const d = Math.sign(this.cx - sx) || -this.facing;
     this.vx = d * O.vx;
     this.vy = O.vy;
+    // en boule : elle se relèvera dès qu'elle aura la place (sinon elle roule, loin de ce qui l'a touchée)
+    if (this.ball) {
+      this.roll = 0;
+      this.rollDir = d;
+    }
     if (O.freeze) {
       this.stunT = O.freeze;
       this.stunVx = this.vx;
@@ -1109,6 +1287,8 @@ class Player {
   die(cause) {
     if (this.dead || this.won) return;
     this.dropPuff();
+    // (elle ne touche plus rien : elle peut se relever n'importe où)
+    if (this.ball) this.unball();
     this.dead = true;
     this.cause = cause;
     if (cause !== 'hurt') this.ouch = null;
@@ -1137,6 +1317,7 @@ class Player {
     if (this.dead) pose = k ? 'ouch' : 'hurt';
     else if (this.won) pose = this.onGround ? 'win' : 'jump';
     else if (hanging) pose = 'hang';
+    else if (this.ball) pose = 'roll';
     else if (this.pound) pose = 'pound';
     else if (this.crouch) pose = 'crouch';
     else if (ouching) pose = 'ouch';
@@ -1172,7 +1353,34 @@ class Player {
       ellipsePath(ctx, this.cx, this.y + this.h + 1, 15, 4);
       ctx.fill();
     }
-    if (this.pound === 1) {
+    let feetY = this.y + this.h + 1;
+    if (this.ball) {
+      // en boule : Malice toute pelotonnée (et plus petite) tourne sur elle-même, dans un tourbillon
+      const r = this.h / 2;
+      const bx = this.cx;
+      const by = this.y + r;
+      const glow = ctx.createRadialGradient(bx, by, 2, bx, by, r + 4);
+      glow.addColorStop(0, 'rgba(255,255,255,0.5)');
+      glow.addColorStop(0.7, 'rgba(255,170,215,0.35)');
+      glow.addColorStop(1, 'rgba(255,120,190,0)');
+      ctx.fillStyle = glow;
+      circlePath(ctx, bx, by, r + 4);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 3; i++) {
+        const a = this.rollA * 0.7 + (i * Math.PI * 2) / 3;
+        ctx.beginPath();
+        ctx.arc(bx, by, r + 2, a, a + 1.2);
+        ctx.stroke();
+      }
+      ctx.translate(bx, by);
+      ctx.rotate(this.rollA);
+      ctx.scale(ROLL_SCALE, ROLL_SCALE);
+      ctx.translate(-bx, -by);
+      feetY = by + ROLL_CENTER;
+    } else if (this.pound === 1) {
       const a = (1 - this.poundT / PHYS.poundHang) * Math.PI * 2 * this.facing;
       ctx.translate(this.cx, this.y + this.h / 2);
       ctx.rotate(a);
@@ -1210,7 +1418,7 @@ class Player {
     const lava = this.dead && this.cause === 'lava';
     const choco = this.dead && this.cause === 'choco';
     if (this.puff) this.puff.drawHeld(ctx);
-    Heroes.draw(ctx, this.hero, this.cx, this.y + this.h + 1, {
+    Heroes.draw(ctx, this.hero, this.cx, feetY, {
       facing: this.dead ? 1 : this.facing,
       pose,
       t: this.t,
@@ -1230,6 +1438,10 @@ class Player {
     ctx.restore();
   }
 }
+
+// Malice en boule (la roulade) : sa taille, et où est le milieu de la boule au-dessus de ses pieds.
+const ROLL_SCALE = 0.56;
+const ROLL_CENTER = 28;
 
 // Le bébé oiseau assis sur la casquette (pendant le retour à la maison).
 // Il bat des ailes en l'air, sursaute quand Malice a mal, et ouvre le bec quand il donne un conseil.

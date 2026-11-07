@@ -270,6 +270,8 @@ class Boss extends Enemy {
     if (room < BOSS_CORNER) d = -d;
     p.vx = d * 520;
     p.vy = Math.min(p.vy, -560);
+    // (en boule, elle roule de ce côté-là)
+    if (p.ball) p.rollDir = d;
     p.onGround = false;
     p.platform = null;
     p.boostT = 0.4;

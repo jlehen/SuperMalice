@@ -56,6 +56,8 @@
 //             "nuit" : c'est la nuit, en plus doux (la lune, les lucioles et les fleurs éclairent).
 //  "clairDeLune" : [première colonne, dernière colonne] : la nuit, la lune éclaire ce grand champ
 //             (il y fait bien moins noir).
+//  "galeries" : les passages bas sous un plafond (une ou deux cases de haut, entre deux cases solides)
+//             sont dessinés comme des galeries de terre : une butte se lit comme une colline percée d'un tunnel.
 //  "music" : la musique du niveau, si ce n'est pas celle de son monde (voir SONGS dans music.js).
 //  "sansBadges" : pour les personnages qui n'ont pas les badges (tous sauf Malice) :
 //             "add" : des cases en plus [ligne, colonne, "lettres"] (les anneaux dorés disparaissent),
@@ -231,6 +233,40 @@ const LEVELS = [
       '..P..T..ooo.j.......E....T.......m....j..j....jT....E...m.......!..T.########..........j...........m.......!.T...........O.........jT......m...E....m..m........j...!..j.....m...j...j.T..!...................G..&..',
       '##########################################...################################.........########################__n__c__n_###__c__n_################################################...###############################',
       '##########################################...################################.........########################__________###_______################################################...###############################',
+    ],
+  },
+  {
+    world: 1,
+    name: "Le Défi de la Roulade",
+    theme: "meadow",
+    badge: "roulade",
+    galeries: true,
+    intro: "",
+    storms: [],
+    talk: [
+      "Bienvenue au stage d'entraînement\u00a0! Termine-le pour gagner le badge Roulade.",
+      "Pour faire une roulade, {ROULADE}\u00a0! En boule, tu passes dans les tout petits trous, comme celui sous la butte.",
+      "Un gros œil, sous un plafond trop bas pour sauter par-dessus\u00a0! Roule\u00a0: en boule, tu passes sous lui sans avoir mal\u00a0!",
+      "Un escargot dans le tunnel\u00a0! Roule\u00a0: tu passes à travers lui. Tant que tu es sous le plafond, tu continues de rouler toute seule.",
+      "Les taupes\u00a0! Quand la terre tremble, roule vite plus loin. Et si une taupe est dehors, roule à travers elle\u00a0!",
+      "Plein de petits trous à la suite, et un très long tunnel\u00a0! Roule, relève-toi, et roule encore\u00a0!",
+      "Le dernier défi\u00a0: un gros œil, et un tunnel juste derrière lui. Une seule roulade pour passer les deux\u00a0!",
+      "Bravo\u00a0! Va chercher ton badge\u00a0!",
+    ],
+    map: [
+      '..........................................................................................................................................................',
+      '..........................................................................................................................................................',
+      '..........................................................................................................................................................',
+      '..........................................................................................................................................................',
+      '..........................................................................................................................................................',
+      '..............###........######.............################........................................###..###..###...##########.......##########...........',
+      '..............###........######.............################........................................###..###..###...##########.......##########...........',
+      '..............###........######.............################..................o.o.o.................###..###..###...##########.......##########...........',
+      '..............###........######.............################........................................###..###..###...##########.......##########...........',
+      '..............###........##..##.............################........................................###..###..###...##########.......##..######.......Z...',
+      '..P..T...T....ooo...T......E.oo....!....T....O..oo................T..........m.....m.........!..T...o....o....o.......o.o.o.o....T.....E..ooo....T..#####.',
+      '##########################################################################################################################################################',
+      '##########################################################################################################################################################',
     ],
   },
   {
