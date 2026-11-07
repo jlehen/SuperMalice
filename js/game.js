@@ -28,13 +28,61 @@ const DIFFS = {
   },
 };
 
-// Les vrais niveaux (1 à 8) et les stages d'entraînement aux badges.
-const NORMAL_LEVELS = LEVELS.map((l, i) => (l.badge ? -1 : i)).filter((i) => i >= 0);
-// Le retour à la maison commence au premier niveau « sequel » (la grotte).
-const SEQUEL_START = LEVELS.findIndex((l) => l.sequel);
-const TRAINING_LEVELS = LEVELS.map((l, i) => (l.badge ? i : -1)).filter((i) => i >= 0);
+// Les mondes (voir levels.js) : chaque niveau prend le décor et le « sequel » de son monde.
+// Un niveau dont le monde n'existe pas est mis de côté (il n'est pas sur la carte).
+LEVELS.forEach((l) => {
+  l.world = Number(l.world);
+  const w = WORLDS[l.world - 1];
+  if (!w) {
+    console.error(`levels.js : le niveau « ${l.name} » a world: ${l.world}, mais il n'y a que ${WORLDS.length} mondes dans WORLDS (de 1 à ${WORLDS.length}). Il n'est pas sur la carte.`);
+    return;
+  }
+  if (!l.theme) l.theme = w.theme;
+  if (w.sequel) l.sequel = true;
+});
+// Pour chaque monde : ses niveaux (dans l'ordre où ils sont écrits) et son stage d'entraînement (-1 : aucun).
+const WORLD_LEVELS = WORLDS.map((w, k) => ({
+  levels: LEVELS.map((l, i) => (l.world === k + 1 && !l.badge ? i : -1)).filter((i) => i >= 0),
+  stage: LEVELS.findIndex((l) => l.world === k + 1 && l.badge),
+}));
+// Tous les niveaux dans l'ordre du chemin de la carte : les niveaux de chaque monde, puis son stage.
+const ORDER = [];
+WORLD_LEVELS.forEach((w) => {
+  ORDER.push(...w.levels);
+  if (w.stage >= 0) ORDER.push(w.stage);
+});
+const ORDER_POS = [];
+ORDER.forEach((i, p) => { ORDER_POS[i] = p; });
+// Le nom court d'un niveau : « 2-1 » (monde 2, niveau 1), et « 2-stage » pour le stage du monde 2.
+// C'est lui qu'on garde dans la sauvegarde.
+LEVELS.forEach((l, i) => {
+  const w = WORLD_LEVELS[l.world - 1];
+  if (w) l.key = l.badge ? `${l.world}-stage` : `${l.world}-${w.levels.indexOf(i) + 1}`;
+});
+// Le retour à la maison commence au premier niveau du premier monde « sequel » (la grotte).
+const SEQUEL_START = ORDER.find((i) => LEVELS[i].sequel);
+const TRAINING_LEVELS = ORDER.filter((i) => LEVELS[i].badge);
 const BADGE_AT = {};
 LEVELS.forEach((l, i) => { if (l.badge) BADGE_AT[l.badge] = i; });
+// Les anciennes sauvegardes comptaient les cases de l'ancienne liste des niveaux (avant les mondes).
+const OLD_ORDER = ['1-1', '2-1', '2-stage', '3-1', '4-1', '4-stage', '5-1', '6-1', '7-1', '8-1'];
+
+// Et on continue d'écrire ce compte (« unlocked ») pour une ancienne version du jeu (un vieil onglet) :
+// la case atteinte dans l'ancienne liste, ou sinon l'ancien niveau de son monde (« 1-3 » → « 1-1 »).
+function oldUnlocked(key) {
+  let k = OLD_ORDER.indexOf(key);
+  if (k < 0) k = OLD_ORDER.indexOf(`${parseInt(key, 10)}-1`);
+  return k < 0 ? OLD_ORDER.length : k + 1;
+}
+
+// La position sur le chemin d'un niveau gardé dans la sauvegarde (« 3-1 », « 2-stage »).
+// S'il n'existe plus, on prend le dernier niveau de son monde.
+function keyPos(key) {
+  const i = LEVELS.findIndex((l) => l.key === key);
+  if (i >= 0) return ORDER_POS[i];
+  const w = WORLD_LEVELS[parseInt(key, 10) - 1];
+  return w && w.levels.length ? ORDER_POS[w.levels[w.levels.length - 1]] : 0;
+}
 const BADGE_INFO = {
   saut: { name: 'Super Saut', desc: 'Accroupis-toi, puis saute deux fois plus haut !' },
   grappin: { name: 'Moustache-Grappin', desc: 'Accroche ta moustache aux anneaux dorés !' },
@@ -72,13 +120,21 @@ const Game = {
     this.canvas = $('#game');
     this.ctx = this.canvas.getContext('2d');
     this.save = Save.load();
-    if (!this.save.v) {
-      // anciennes sauvegardes : il n'y avait pas encore de stages d'entraînement
-      const n = Math.min(this.save.unlocked || 1, NORMAL_LEVELS.length);
-      this.save.unlocked = NORMAL_LEVELS[n - 1] + 1;
-      this.save.v = 2;
-      Save.save(this.save);
+    if (!this.save.v || this.save.v === 2) {
+      // Anciennes sauvegardes : « unlocked » comptait les niveaux débloqués,
+      // sans les stages d'entraînement (v1), puis dans l'ancienne liste avec les stages (v2).
+      // Maintenant, on garde le nom de la case la plus loin sur la carte (« reach »).
+      const n = Math.max(1, this.save.unlocked || 1);
+      this.save.reach = this.save.v ? OLD_ORDER[Math.min(n, OLD_ORDER.length) - 1] : `${Math.min(n, 8)}-1`;
+      this.save.v = 3;
+    } else {
+      // une ancienne version du jeu (un vieil onglet) a pu avancer plus loin : on la suit
+      const old = OLD_ORDER[clamp(this.save.unlocked || 1, 1, OLD_ORDER.length) - 1];
+      if (keyPos(old) > keyPos(this.save.reach)) this.save.reach = old;
     }
+    // le bébé oiseau est déjà sauvé si on est arrivé au retour à la maison
+    if (SEQUEL_START !== undefined && keyPos(this.save.reach) >= ORDER_POS[SEQUEL_START]) this.save.rescued = true;
+    this.setReach(this.save.reach);
     this.diffKey = DIFFS[this.save.difficulty] ? this.save.difficulty : 'gentil';
     this.diff = DIFFS[this.diffKey];
     Sound.setMuted(this.save.muted);
@@ -125,8 +181,9 @@ const Game = {
       }
     });
 
-    // Raccourcis pour tester : ?niveau=3 lance le niveau 3, ?stage=1 le 1er stage d'entraînement,
-    // ?perso=licorne joue avec la licorne.
+    // Raccourcis pour tester : ?niveau=1-2 lance le niveau 2 du monde 1, ?niveau=3 le 1er niveau
+    // du monde 3 (c'est aussi l'ancien niveau 3), ?stage=1 le 1er stage d'entraînement sur le chemin
+    // (ou ?stage=saut, ?stage=grappin), ?perso=licorne joue avec la licorne.
     const params = new URLSearchParams(location.search);
     if (params.get('personnages') === 'tous') this.roster = HEROES.map((h) => h.id);
     const perso = params.get('perso');
@@ -134,11 +191,14 @@ const Game = {
       this.hero = perso;
       if (!this.roster.includes(perso)) this.roster[this.roster.length - 1] = perso;
     }
-    const lv = parseInt(params.get('niveau') || params.get('level'), 10);
-    const st = parseInt(params.get('stage'), 10);
+    const lv = (params.get('niveau') || params.get('level') || '').split('-').map((n) => parseInt(n, 10));
+    const st = params.get('stage');
     let start = -1;
-    if (lv >= 1 && lv <= NORMAL_LEVELS.length) start = NORMAL_LEVELS[lv - 1];
-    if (st >= 1 && st <= TRAINING_LEVELS.length) start = TRAINING_LEVELS[st - 1];
+    const w = WORLD_LEVELS[lv[0] - 1];
+    const li = w && w.levels[lv.length > 1 ? lv[1] - 1 : 0];
+    if (typeof li === 'number') start = li;
+    const si = st && (BADGE_AT[st] !== undefined ? BADGE_AT[st] : TRAINING_LEVELS[parseInt(st, 10) - 1]);
+    if (typeof si === 'number') start = si;
     if (start >= 0) {
       const d = params.get('difficulte');
       if (DIFFS[d]) { this.diffKey = d; this.diff = DIFFS[d]; }
@@ -179,7 +239,9 @@ const Game = {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     $$('.screen').forEach((s) => s.classList.toggle('show', s.id === id));
     $('#screens').classList.toggle('active', !!id);
-    const first = id && $(`#${id} button:not([disabled]):not(.hidden)`);
+    // la carte est dessinée dans le jeu : on la touche à travers l'écran (sauf ses boutons)
+    $('#screens').classList.toggle('see-through', id === 'scr-map');
+    const first = id && id !== 'scr-map' && $(`#${id} button:not([disabled]):not(.hidden)`);
     if (first && !this.isTouch) setTimeout(() => first.focus({ preventScroll: true }), 30);
     this.updateTouchUI();
   },
@@ -194,6 +256,8 @@ const Game = {
     });
     document.addEventListener('keydown', (e) => {
       if (!$('#screens').classList.contains('active')) return;
+      // sur la carte, les flèches font marcher Malice (voir carte.js) ; Échap revient au menu
+      if (this.state === 'map' && e.key !== 'Escape') return;
       const btns = $$('.screen.show button:not([disabled]):not(.hidden)');
       if (!btns.length) return;
       const i = btns.indexOf(document.activeElement);
@@ -255,23 +319,28 @@ const Game = {
       case 'help': this.showScreen('scr-help'); break;
       case 'back': this.toTitle(); break;
       case 'diff': this.pickDifficulty(data.diff); break;
-      case 'level': this.newGame(parseInt(data.level, 10)); break;
       case 'resume': this.resume(); break;
       case 'restart': this.checkpoint = -1; this.lives = Math.max(this.lives, 1); this.enterIntro(); break;
+      case 'map': this.showMap({ at: this.levelIndex }); break;
       case 'menu': this.toTitle(); break;
       case 'retry': this.retry(); break;
       case 'sequel':
-        // le voyage de retour commence avec toutes ses vies
+        // le voyage de retour commence avec toutes ses vies, et la carte s'ouvre vers la grotte
         this.lives = Math.max(this.lives, this.diff.lives);
-        this.startLevel(SEQUEL_START);
+        this.showMap(this.mapAnim);
         break;
-      case 'reset': this.showScreen('scr-reset'); break;
-      case 'reset-no': this.showLevels(); break;
+      case 'reset':
+        // la carte reste derrière, mais Malice ne bouge plus (et Espace, Entrée marchent sur les boutons)
+        this.state = 'mapask';
+        Input.setCapture(false);
+        this.showScreen('scr-reset');
+        break;
+      case 'reset-no': this.showMap({ at: Carte.at }); break;
       case 'reset-yes':
         // on garde la difficulté et le réglage du son, on efface les niveaux débloqués
-        this.save.unlocked = 1;
-        Save.save(this.save);
-        this.showLevels();
+        this.save.rescued = false;
+        this.setReach(LEVELS[ORDER[0]].key);
+        this.showMap();
         break;
       default: break;
     }
@@ -407,49 +476,82 @@ const Game = {
     this.diff = DIFFS[key];
     this.save.difficulty = key;
     Save.save(this.save);
-    if (this.save.unlocked > 1) this.showLevels();
-    else this.newGame(0);
+    // dès qu'on a débloqué plus que le premier niveau, on choisit sur la carte
+    if (this.reachPos() > 0) {
+      this.newGame();
+      this.showMap();
+    } else {
+      this.newGame(ORDER[0]);
+    }
   },
 
-  showLevels() {
-    const box = $('#level-list');
-    box.innerHTML = '';
-    // sans badges, un stage d'entraînement débloqué débloque aussi le niveau d'après
-    let reach = this.save.unlocked;
-    while (!this.withBadges() && reach < LEVELS.length && LEVELS[reach - 1].badge) reach++;
-    LEVELS.forEach((lv, i) => {
-      if (lv.badge && !this.withBadges()) return;
-      const b = document.createElement('button');
-      b.className = 'lvl theme-' + lv.theme;
-      const locked = i + 1 > reach;
-      b.disabled = locked;
-      b.dataset.action = 'level';
-      b.dataset.level = String(i);
-      const num = lv.badge ? `<canvas data-icon="badge-${lv.badge}" width="54"></canvas>` : NORMAL_LEVELS.indexOf(i) + 1;
-      const label = lv.badge ? `Stage ${BADGE_INFO[lv.badge].name}` : lv.name;
-      b.innerHTML = `<span class="num">${locked ? '<canvas data-icon="lock" width="44"></canvas>' : num}</span><span class="nm">${label}</span>`;
-      if (lv.badge) b.classList.add('training');
-      box.appendChild(b);
-    });
-    this.drawIcons(box);
-    $('#btn-reset').classList.toggle('hidden', this.save.unlocked <= 1);
-    this.showScreen('scr-levels');
-    const btns = $$('#level-list button:not([disabled])');
-    if (btns.length && !this.isTouch) setTimeout(() => btns[btns.length - 1].focus({ preventScroll: true }), 40);
+  // ---------- La grande carte (voir carte.js) ----------
+  // anim : { at } pour poser Malice sur une case, ou { from, to, fresh } quand on revient d'un niveau réussi
+  // (fresh : la case « to » vient d'être débloquée). Sans anim : Malice est sur la dernière case débloquée.
+  showMap(anim) {
+    this.state = 'map';
+    this.stateT = 0;
+    this.world = null;
+    this.mapAnim = null;
+    Sound.setMusicVolume(1);
+    Input.setCapture(true);
+    Input.reset();
+    Input.clearTouch();
+    Carte.open(anim || {});
+    $('#btn-reset').classList.toggle('hidden', this.reachPos() <= 0);
+    this.showScreen('scr-map');
+    Sound.playMusic('title');
+  },
+
+  // Les niveaux du chemin pour le personnage choisi : seule Super Malice a les stages d'entraînement
+  // (les autres ont déjà leur pouvoir, ils passent par-dessus).
+  visibleOrder() {
+    return ORDER.filter((i) => this.withBadges() || !LEVELS[i].badge);
+  },
+
+  // Jusqu'où on est arrivé sur le chemin de la carte (la position dans ORDER).
+  reachPos() {
+    let p = keyPos(this.save.reach);
+    // un stage d'entraînement qu'on ne voit pas : le niveau d'après est débloqué aussi
+    const vis = this.visibleOrder();
+    while (p < ORDER.length - 1 && !vis.includes(ORDER[p])) p++;
+    // le retour à la maison reste fermé tant que le bébé oiseau n'est pas sauvé
+    if (!this.save.rescued && SEQUEL_START !== undefined) p = Math.min(p, Math.max(0, ORDER_POS[SEQUEL_START] - 1));
+    return p;
+  },
+
+  // La case la plus loin sur le chemin (et, pour une ancienne version du jeu, « unlocked »).
+  setReach(key) {
+    this.save.reach = key;
+    this.save.unlocked = oldUnlocked(key);
+    Save.save(this.save);
+  },
+
+  isUnlocked(i) {
+    return ORDER_POS[i] <= this.reachPos();
+  },
+
+  // Lancer un niveau depuis la carte : les vies et les friandises continuent.
+  playLevel(i) {
+    Sound.sfx.confirm();
+    if (this.lives <= 0) this.lives = this.diff.lives;
+    this.startLevel(i);
   },
 
   // ---------- Déroulement de la partie ----------
+  // Une nouvelle partie : toutes ses vies, plus de friandises. Sans levelIdx, on reste sur la carte.
   newGame(levelIdx) {
     this.lives = this.diff.lives;
     this.candies = 0;
     this.score = 0;
     this.caramel = 0;
     this.chips = 0;
-    this.startLevel(levelIdx);
+    if (levelIdx !== undefined) this.startLevel(levelIdx);
   },
 
   startLevel(i) {
     this.levelIndex = i;
+    this.mapAnim = null;
     this.checkpoint = -1;
     this.caughtEyes.clear();
     this.enterIntro();
@@ -517,10 +619,9 @@ const Game = {
     Sound.playMusic('gameover');
     const name = HERO_BY_ID[this.hero].name;
     let msg = `${name} n'a plus de vies… On recommence ce niveau !`;
-    if (this.diff.gameOver === 'game') {
-      msg = this.levelIndex >= SEQUEL_START
-        ? `${name} n'a plus de vies… Retour au début du voyage, dans la grotte !`
-        : `${name} n'a plus de vies… Retour au tout début de l'aventure !`;
+    const start = this.worldStart(this.levelIndex);
+    if (this.diff.gameOver === 'game' && start !== this.levelIndex) {
+      msg = `${name} n'a plus de vies… Retour au début du monde, au niveau ${LEVELS[start].key} !`;
     }
     $('#over-msg').textContent = msg;
     Input.setCapture(false);
@@ -528,17 +629,19 @@ const Game = {
   },
 
   retry() {
-    this.lives = this.diff.lives;
     if (this.diff.gameOver === 'game') {
-      this.candies = 0;
-      this.score = 0;
-      this.caramel = 0;
-      this.chips = 0;
-      // pendant le retour à la maison, on repart de la grotte
-      this.startLevel(this.levelIndex >= SEQUEL_START ? SEQUEL_START : 0);
+      // une nouvelle partie, au début du monde
+      this.newGame(this.worldStart(this.levelIndex));
     } else {
+      this.lives = this.diff.lives;
       this.startLevel(this.levelIndex);
     }
+  },
+
+  // Difficile : quand on n'a plus de vies, on repart du premier niveau du monde
+  // (un stage d'entraînement, lui, recommence simplement).
+  worldStart(i) {
+    return LEVELS[i].badge ? i : WORLD_LEVELS[LEVELS[i].world - 1].levels[0];
   },
 
   levelComplete() {
@@ -552,8 +655,7 @@ const Game = {
     this.badgeWon = LEVELS[this.levelIndex].badge || null;
     Sound.playMusic(this.badgeWon ? 'badge' : 'clear');
     this.score += 1000;
-    const next = this.nextLevel(this.levelIndex);
-    this.unlock(next >= 0 ? next + 1 : LEVELS.length);
+    this.openNext(false);
     for (let i = 0; i < 50; i++) {
       w.spawn({
         type: 'confetti', x: w.cam.x + rand(0, VIEW_W), y: w.cam.y - 20, vx: rand(-60, 60), vy: rand(50, 250),
@@ -562,9 +664,22 @@ const Game = {
     }
   },
 
-  unlock(n) {
-    this.save.unlocked = Math.min(LEVELS.length, Math.max(this.save.unlocked, n));
-    Save.save(this.save);
+  // Le niveau est réussi : la case d'après se débloque, on la verra s'ouvrir sur la carte
+  // (clouds : les nuages du retour à la maison s'envolent d'abord).
+  // S'il n'y a pas de case après, on revient simplement sur la carte.
+  openNext(clouds) {
+    const next = this.nextLevel(this.levelIndex);
+    if (next < 0) {
+      this.mapAnim = { at: this.levelIndex };
+      return;
+    }
+    this.mapAnim = { from: this.levelIndex, to: next, fresh: !this.isUnlocked(next), clouds };
+    this.unlock(next);
+  },
+
+  // Débloque le niveau i (et tous ceux d'avant sur le chemin).
+  unlock(i) {
+    if (ORDER_POS[i] > keyPos(this.save.reach)) this.setReach(LEVELS[i].key);
   },
 
   // kind : 'rescue' (le bébé oiseau sauvé dans le volcan) ou 'family' (il a retrouvé sa famille : fin du jeu)
@@ -586,8 +701,12 @@ const Game = {
       p.holding = (ctx) => Art.heldBird(ctx, w.t);
       Sound.sfx.chirp();
       Sound.playMusic('victory');
-      // maintenant, il faut le ramener chez lui : la grotte est débloquée
-      if (SEQUEL_START > 0) this.unlock(SEQUEL_START + 1);
+      // maintenant, il faut le ramener chez lui : le retour à la maison s'ouvre
+      // (si ce n'était pas le dernier niveau du monde, c'est d'abord le niveau d'après)
+      const clouds = !this.save.rescued;
+      this.save.rescued = true;
+      Save.save(this.save);
+      this.openNext(clouds);
     }
   },
 
@@ -680,10 +799,12 @@ const Game = {
           w.player.onGround = false;
         }
         if (this.stateT > (this.badgeWon ? 5.8 : 4.6) || (this.stateT > 1.5 && Input.pressed.jump)) {
-          const next = this.nextLevel(this.levelIndex);
-          if (next >= 0) this.startLevel(next);
-          else this.toTitle();
+          // retour sur la carte : la case suivante s'ouvre et Malice y va
+          this.showMap(this.mapAnim || { at: this.levelIndex });
         }
+        break;
+      case 'map':
+        Carte.update(dt);
         break;
       case 'victory':
         w.update(dt);
@@ -721,6 +842,8 @@ const Game = {
     ctx.imageSmoothingEnabled = true;
     if (this.state === 'intro') {
       this.drawIntro(ctx);
+    } else if (this.state === 'map' || this.state === 'mapask') {
+      Carte.render(ctx);
     } else if (this.world) {
       this.world.render(ctx, s);
       this.drawHUD(ctx);
@@ -1089,19 +1212,20 @@ const Game = {
   },
 
   hasBadge(b) {
-    return this.withBadges() && BADGE_AT[b] !== undefined && this.levelIndex >= BADGE_AT[b];
+    return this.withBadges() && BADGE_AT[b] !== undefined && ORDER_POS[this.levelIndex] >= ORDER_POS[BADGE_AT[b]];
   },
 
-  // Le niveau qui vient après i (-1 : c'était le dernier).
+  // Le niveau qui vient après i sur le chemin de la carte (-1 : c'était le dernier).
+  // On ne part pas vers le retour à la maison tant que le bébé oiseau n'est pas sauvé.
   nextLevel(i) {
-    for (let j = i + 1; j < LEVELS.length; j++) {
-      if (this.withBadges() || !LEVELS[j].badge) return j;
-    }
-    return -1;
+    const next = this.visibleOrder().find((j) => ORDER_POS[j] > ORDER_POS[i]);
+    if (next === undefined) return -1;
+    if (next === SEQUEL_START && !this.save.rescued) return -1;
+    return next;
   },
 
   levelLabel(i) {
-    return LEVELS[i].badge ? 'Stage d\'entraînement' : `Niveau ${NORMAL_LEVELS.indexOf(i) + 1}`;
+    return LEVELS[i].badge ? 'Stage d\'entraînement' : `Niveau ${LEVELS[i].key}`;
   },
 
   // Les fleurs expliquent les commandes selon l'appareil (clavier ou tactile).
@@ -1128,7 +1252,10 @@ const Game = {
     }
     const playing = this.state === 'play' || this.state === 'dying' || this.state === 'clear' || this.state === 'intro';
     $('#touch').classList.toggle('show', this.isTouch && playing);
-    $('#hudbtns').classList.toggle('show', playing || this.state === 'pause');
+    // sur la carte : le son et le plein écran, mais pas la pause
+    const map = this.state === 'map' || this.state === 'mapask';
+    $('#hudbtns').classList.toggle('show', playing || this.state === 'pause' || map);
+    $('#btn-pause').classList.toggle('hidden', map);
   },
 
   updateTouchCounts() {
@@ -1192,19 +1319,6 @@ const Game = {
         case 'mustache':
           Art.anchorRing(g, c, 16, 0, {});
           Art.mustacheRope(g, c, 44, c, 16, 0, true);
-          break;
-        case 'lock':
-          g.strokeStyle = '#fff';
-          g.lineWidth = 5;
-          g.beginPath();
-          g.arc(c, 20, 9, Math.PI, 0);
-          g.stroke();
-          roundRectPath(g, c - 14, 20, 28, 22, 5);
-          g.fillStyle = '#fff';
-          g.fill();
-          g.fillStyle = '#6c4fe0';
-          circlePath(g, c, 30, 3.5);
-          g.fill();
           break;
         case 'fire': {
           const fg = g.createLinearGradient(0, 6, 0, 44);

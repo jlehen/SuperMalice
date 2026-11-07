@@ -37,12 +37,34 @@
 //  "sansBadges" : pour les personnages qui n'ont pas les badges (tous sauf Malice) :
 //             "add" : des cases en plus [ligne, colonne, "lettres"] (les anneaux dorés disparaissent),
 //             "talk" : d'autres phrases pour les fleurs { numéro de la phrase : "phrase" }.
-//  "sequel" : le retour à la maison. Le bébé oiseau est sur la casquette de Malice,
-//             et c'est lui qui donne les conseils (les "T" ne font pas pousser de fleur).
+//
+//  LES MONDES
+//  "world" : le monde du niveau (1 = la Prairie, 2 = la Forêt… voir WORLDS juste en dessous).
+//             Dans un monde, les niveaux se suivent dans l'ordre où ils sont écrits ici :
+//             le premier est le 1-1, le suivant le 1-2… Pour ajouter un niveau à un monde,
+//             il suffit d'écrire un niveau de plus avec son "world" : la carte suit toute seule.
+//  "badge" : c'est le stage d'entraînement du monde (une case étoile à côté du chemin, juste
+//             avant le monde suivant). Un seul stage par monde.
+//  "boss" : (plus tard) le niveau se termine par un boss : sa case devient le château du bout du monde.
 // =====================================================================
+
+// "sequel" : le retour à la maison (après avoir sauvé le bébé oiseau). Le bébé oiseau est sur
+// la casquette de Malice, et c'est lui qui donne les conseils (les "T" ne font pas pousser de fleur).
+// "theme" : le décor du monde sur la carte (et celui de ses niveaux, s'ils n'en ont pas un autre).
+const WORLDS = [
+  { name: "La Prairie", theme: "meadow" },
+  { name: "La Forêt", theme: "forest" },
+  { name: "La Vallée des Orages", theme: "storm" },
+  { name: "Les Pentes du Volcan", theme: "mountain" },
+  { name: "Le Cœur du Volcan", theme: "volcano" },
+  { name: "La Grotte", theme: "cave", sequel: true },
+  { name: "La Montagne des Nuages", theme: "sky", sequel: true },
+  { name: "Le Pays des Bonbons", theme: "candy", sequel: true },
+];
 
 const LEVELS = [
   {
+    world: 1,
     name: "La Prairie Fleurie",
     theme: "meadow",
     intro: "Le bébé oiseau a besoin de toi !",
@@ -74,6 +96,7 @@ const LEVELS = [
     ],
   },
   {
+    world: 2,
     name: "La Forêt des Épines",
     theme: "forest",
     intro: "Attention aux ronces, ça pique !",
@@ -101,6 +124,7 @@ const LEVELS = [
     ],
   },
   {
+    world: 2,
     name: "Le Défi du Super Saut",
     theme: "badge",
     badge: "saut",
@@ -130,6 +154,7 @@ const LEVELS = [
     ],
   },
   {
+    world: 3,
     name: "La Vallée des Orages",
     theme: "storm",
     intro: "Il pleut des éclairs au chocolat !",
@@ -156,6 +181,7 @@ const LEVELS = [
     ],
   },
   {
+    world: 4,
     name: "Les Pentes du Volcan",
     theme: "mountain",
     intro: "Le volcan est tout près !",
@@ -182,6 +208,7 @@ const LEVELS = [
     ],
   },
   {
+    world: 4,
     name: "Le Défi de la Moustache-Grappin",
     theme: "badge",
     badge: "grappin",
@@ -211,6 +238,7 @@ const LEVELS = [
     ],
   },
   {
+    world: 5,
     name: "Le Cœur du Volcan",
     theme: "volcano",
     intro: "Sauve le bébé oiseau !",
@@ -244,9 +272,9 @@ const LEVELS = [
     ],
   },
   {
+    world: 6,
     name: "La Grotte aux Cristaux",
     theme: "cave",
-    sequel: true,
     dark: true,
     intro: "Ramène le bébé oiseau chez lui !",
     storms: [],
@@ -275,9 +303,9 @@ const LEVELS = [
     ],
   },
   {
+    world: 7,
     name: "La Montagne des Nuages",
     theme: "sky",
-    sequel: true,
     winds: [[45, 54, 1], [121, 131, -1], [186, 194, 1]],
     intro: "Tout là-haut, dans les nuages !",
     storms: [],
@@ -310,9 +338,9 @@ const LEVELS = [
     ],
   },
   {
+    world: 8,
     name: "Le Monde des Bonbons",
     theme: "candy",
-    sequel: true,
     intro: "La famille du bébé oiseau est tout près !",
     storms: [],
     talk: [

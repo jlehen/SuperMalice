@@ -69,18 +69,16 @@
             <button class="card difficile" data-action="diff" data-diff="difficile">
               <canvas class="emo" data-icon="fire" width="56"></canvas>
               <b>Difficile</b>
-              <small>3 vies.<br>Plus de vies&nbsp;? Retour au tout début&nbsp;!</small>
+              <small>3 vies.<br>Plus de vies&nbsp;? Retour au début du monde&nbsp;!</small>
             </button>
           </div>
           <button class="small" data-action="heroes" data-esc>← Retour</button>
         </section>
 
-        <!-- Choix du niveau -->
-        <section class="screen" id="scr-levels">
-          <h2>Choisis un niveau</h2>
-          <div id="level-list"></div>
+        <!-- La grande carte : elle est dessinée dans le jeu (js/carte.js), ici il n'y a que ses boutons -->
+        <section class="screen" id="scr-map">
           <div class="row-btns">
-            <button class="small" data-action="back">← Retour</button>
+            <button class="small" data-action="back" data-esc>← Retour</button>
             <button class="small danger" data-action="reset" id="btn-reset">Recommencer depuis le début</button>
           </div>
         </section>
@@ -88,7 +86,7 @@
         <!-- Effacer la progression -->
         <section class="screen dim" id="scr-reset">
           <h2>Tout recommencer&nbsp;?</h2>
-          <p class="tagline">Tous les niveaux débloqués seront effacés&nbsp;:<br>tu repartiras du niveau 1.</p>
+          <p class="tagline">Tous les niveaux débloqués seront effacés&nbsp;:<br>tu repartiras du niveau 1-1.</p>
           <div class="row-btns">
             <button data-action="reset-no" data-esc>Non, je garde tout</button>
             <button class="danger" data-action="reset-yes">Oui, tout effacer</button>
@@ -143,6 +141,7 @@
           <div class="menu">
             <button class="big" data-action="resume">▶ Reprendre</button>
             <button data-action="restart">Recommencer le niveau</button>
+            <button data-action="map">La carte</button>
             <button data-action="menu">Menu principal</button>
           </div>
         </section>
@@ -217,6 +216,7 @@
   <script src="js/pouvoirs.js"></script>
   <script src="js/world.js"></script>
   <script src="js/levels.js"></script>
+  <script src="js/carte.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

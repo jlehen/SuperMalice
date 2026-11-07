@@ -8,28 +8,46 @@ puis le ramener chez sa famille, au pays des bonbons !
 
 👉 **Jouer : https://jlehen.github.io/SuperMalice/**
 
-## Les 8 niveaux et les 2 stages d'entraînement
+## Les 8 mondes, la grande carte et les stages d'entraînement
 
-1. **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
-2. **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
+Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
+du dernier niveau, et un stage d'entraînement. Pour l'instant, chaque monde a son premier niveau :
+
+1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
+2. **La Forêt** — 2-1 **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
-3. **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
-4. **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
+3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
+4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    - ⭐ **Stage d'entraînement : le Défi de la Moustache-Grappin** → on gagne le badge *Moustache-Grappin*
-5. **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (avec Malice, il faut utiliser les deux badges)
+5. **Le Cœur du Volcan** — 5-1 **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (avec Malice, il faut utiliser les deux badges)
 
 **Le retour à la maison** (débloqué quand on a sauvé le bébé oiseau) : le bébé oiseau voyage sur la casquette
 de Malice, pépie de temps en temps, et c'est lui qui donne les conseils.
 
-6. **La Grotte aux Cristaux** : il fait noir ! Les minerais (or, rubis, émeraude, topaze, diamant) éclairent
+6. **La Grotte** — 6-1 **La Grotte aux Cristaux** : il fait noir ! Les minerais (or, rubis, émeraude, topaze, diamant) éclairent
    tout autour de Malice pendant un moment, de leur couleur. Champignons qui font rebondir,
    stalactites qui tremblent puis tombent, chauves-souris qui dorment au plafond puis foncent sur Malice.
-7. **La Montagne des Nuages** : ponts arc-en-ciel, oiseaux grincheux qui volent en faisant des vagues,
+7. **La Montagne des Nuages** — 7-1 **La Montagne des Nuages** : ponts arc-en-ciel, oiseaux grincheux qui volent en faisant des vagues,
    et du vent qui souffle par rafales (les flèches blanches montrent où et dans quel sens).
-8. **Le Monde des Bonbons** : rivières de chocolat (on ne se brûle pas, on s'enfonce : vite, il faut sauter !),
+8. **Le Pays des Bonbons** — 8-1 **Le Monde des Bonbons** : rivières de chocolat (on ne se brûle pas, on s'enfonce : vite, il faut sauter !),
    guimauves qui font rebondir, oursons en gélatine qui sautent partout, et des gros yeux bonbons tout gentils
    qui s'enfuient : si on en attrape un, une vie en plus et tous les cœurs ! Au bout, toute la famille oiseau
    attend dans son nid, sur un gâteau géant.
+
+**La grande carte** : tous les mondes sont dessinés à la suite sur un seul grand chemin, de la maison de Malice
+jusqu'au gâteau de la famille oiseau. Il y a une case par niveau (avec son numéro), une case étoile pour chaque stage
+d'entraînement (sur une petite branche à côté du chemin), un panneau au début de chaque monde, et au bout de chaque
+monde la place du château du boss (vide tant que le monde n'a pas de boss). Malice marche de case en case avec ← →
+(ou la manette), et le saut ou Entrée lance le niveau. Sur tablette : toucher à gauche ou à droite pour marcher
+(on continue tant que le doigt reste posé), toucher une case pour y aller, et la toucher encore (ou « ▶ Jouer ») pour la lancer.
+Les cases pas encore débloquées sont grises, avec un cadenas : on ne peut pas aller plus loin. Tant que le bébé oiseau
+n'est pas sauvé, le retour à la maison est caché sous les nuages et reste fermé (même si on a fini tous les niveaux
+du volcan) ; le sauver ouvre la case d'après. Start sur la manette (ou Échap) revient à l'écran titre.
+
+On arrive sur la carte après « Jouer » (personnage, difficulté) dès qu'on a débloqué plus que le premier niveau,
+et après chaque niveau réussi : la case suivante s'ouvre (le chemin se dessine jusqu'à elle) et Malice y va.
+En pause, « La carte » y ramène aussi. Les vies et les friandises continuent d'un niveau à l'autre.
+Les autres personnages que Malice ne voient pas les stages d'entraînement sur la carte (voir les badges).
 
 ## Les personnages
 
@@ -135,14 +153,16 @@ Une manette de jeu fonctionne aussi.
   et surtout le caramel et les chips marchent pour toujours : un ennemi collé ou essoufflé le reste.
 - **Gentil** : vies illimitées, on repart du dernier drapeau.
 - **Classique** : 3 vies ; si on les perd toutes, on recommence le niveau.
-- **Difficile** : 3 vies ; si on les perd toutes, retour au tout début du jeu
-  (pendant le retour à la maison : retour à la grotte).
+- **Difficile** : 3 vies ; si on les perd toutes, retour au premier niveau du monde où on est
+  (par exemple 2-3 → 2-1). Dans un stage d'entraînement, on recommence simplement le stage.
 
 Les ennemis sont aussi un peu plus rapides en Classique et en Difficile.
 100 friandises (bonbons, sucettes, balles) donnent une vie en plus.
 
-La progression (niveaux débloqués) est gardée dans le navigateur. Pour tout effacer :
-« Jouer » → écran « Choisis un niveau » → **Recommencer depuis le début** (une confirmation est demandée).
+La progression (jusqu'où on est arrivé sur la carte) est gardée dans le navigateur, sous le nom de la case
+la plus loin (« 3-1 », « 2-stage »…) : si on ajoute des niveaux à un monde, on ne perd rien, et les anciennes
+sauvegardes (d'avant les mondes) sont reprises telles quelles (et le jeu écrit toujours l'ancien « unlocked », pour un vieil onglet). Pour tout effacer :
+sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 
 ## Inventer ses propres niveaux
 
@@ -150,8 +170,19 @@ Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) 
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile…).
 Il suffit de modifier les lettres et de recharger la page.
 
-Pour tester directement un niveau : `index.html?niveau=3` (de 1 à 8), ou un stage d'entraînement : `index.html?stage=1`
-(on peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=difficile`).
+Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
+au-dessus des niveaux). Pour **ajouter un niveau à un monde**, il suffit d'écrire un niveau de plus avec son `world` :
+dans un monde, les niveaux se suivent dans l'ordre où ils sont écrits (le premier est le 1-1, le suivant le 1-2…),
+et la carte, les numéros et la progression suivent tout seuls. Un niveau avec `badge` est le stage d'entraînement
+de son monde, et le **dernier** niveau d'un monde, s'il a `boss: true` (plus tard), prend la place du château
+au bout du monde (un `boss` sur un autre niveau ne change rien : c'est une case normale).
+Un **nouveau monde** s'ajoute **à la fin** de `WORLDS` (sinon les numéros des mondes d'après changeraient).
+Si un niveau a un `world` qui n'est pas dans `WORLDS`, il n'apparaît pas et la console du navigateur le dit.
+
+Pour tester directement un niveau : `index.html?niveau=1-2` (monde 1, niveau 2), ou `index.html?niveau=3`
+(le premier niveau du monde 3 : c'est aussi l'ancien « niveau 3 »), ou un stage d'entraînement : `index.html?stage=1`
+(le 1er stage sur le chemin de la carte ; aussi `?stage=saut` ou `?stage=grappin`).
+On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=difficile`.
 
 ## Pour les grands : comment c'est fait
 
@@ -162,7 +193,7 @@ Pour tester directement un niveau : `index.html?niveau=3` (de 1 à 8), ou un sta
 
   | Monde | Variation |
   |---|---|
-  | Écran titre | la version d'origine, façon console 8 bits |
+  | Écran titre et grande carte | la version d'origine, façon console 8 bits |
   | La Prairie Fleurie | calypso au steel drum, basse 3+3+2 |
   | La Forêt des Épines | do mineur en 12/8, flûte et harpe, entrées en canon |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
@@ -198,5 +229,6 @@ Pour tester directement un niveau : `index.html?niveau=3` (de 1 à 8), ou un sta
 | `js/audio.js` | Sons, instruments et lecteur de musique |
 | `js/music.js` | La partition du thème et ses variations |
 | `js/input.js` | Clavier, écran tactile, manette |
-| `js/levels.js` | Les cartes des niveaux |
+| `js/levels.js` | Les mondes et les cartes des niveaux |
+| `js/carte.js` | La grande carte des mondes (dessin, chemin, Malice qui marche de case en case) |
 | `js/version.js` | Numéro de version (rempli automatiquement à la publication) |
