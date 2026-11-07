@@ -3,31 +3,35 @@
 // forever : les ennemis collés par le caramel ou essoufflés par les chips le restent pour toujours.
 // starTime : combien de secondes dure l'étoile.
 // starLava : avec l'étoile, la lave ne brûle pas : Malice rebondit dessus.
+// batSpeed, birdSpeed, gummySpeed : vitesse des chauves-souris, oiseaux grincheux et oursons en gélatine.
+// eyeFlee : vitesse des gros yeux bonbons qui s'enfuient. windK : force du vent. darkR : lumière autour de Malice dans la grotte.
 const DIFFS = {
   bebe: {
     name: 'Bébé', lives: Infinity, eyeChase: 90, cubeFuse: 2.5, shootMin: 3.6, shootMax: 5,
     dotSpeed: 130, eclairMin: 2.4, eclairMax: 3.5, gameOver: null, forever: true, starTime: 30,
-    starLava: true,
+    starLava: true, batSpeed: 130, birdSpeed: 80, gummySpeed: 90, eyeFlee: 140, windK: 0.55, darkR: 280,
   },
   gentil: {
     name: 'Gentil', lives: Infinity, eyeChase: 115, cubeFuse: 1.9, shootMin: 2.8, shootMax: 3.8,
     dotSpeed: 165, eclairMin: 1.8, eclairMax: 2.7, gameOver: null, forever: false, starTime: STAR_TIME,
-    starLava: false,
+    starLava: false, batSpeed: 160, birdSpeed: 100, gummySpeed: 115, eyeFlee: 175, windK: 0.8, darkR: 240,
   },
   classique: {
     name: 'Classique', lives: 3, eyeChase: 135, cubeFuse: 1.55, shootMin: 2.2, shootMax: 3.2,
     dotSpeed: 200, eclairMin: 1.35, eclairMax: 2.1, gameOver: 'level', forever: false, starTime: STAR_TIME,
-    starLava: false,
+    starLava: false, batSpeed: 190, birdSpeed: 120, gummySpeed: 135, eyeFlee: 195, windK: 1, darkR: 215,
   },
   difficile: {
     name: 'Difficile', lives: 3, eyeChase: 155, cubeFuse: 1.3, shootMin: 1.7, shootMax: 2.6,
     dotSpeed: 235, eclairMin: 1.0, eclairMax: 1.7, gameOver: 'game', forever: false, starTime: STAR_TIME,
-    starLava: false,
+    starLava: false, batSpeed: 220, birdSpeed: 140, gummySpeed: 155, eyeFlee: 215, windK: 1.15, darkR: 195,
   },
 };
 
-// Les vrais niveaux (1 à 5) et les stages d'entraînement aux badges.
+// Les vrais niveaux (1 à 8) et les stages d'entraînement aux badges.
 const NORMAL_LEVELS = LEVELS.map((l, i) => (l.badge ? -1 : i)).filter((i) => i >= 0);
+// Le retour à la maison commence au premier niveau « sequel » (la grotte).
+const SEQUEL_START = LEVELS.findIndex((l) => l.sequel);
 const TRAINING_LEVELS = LEVELS.map((l, i) => (l.badge ? i : -1)).filter((i) => i >= 0);
 const BADGE_AT = {};
 LEVELS.forEach((l, i) => { if (l.badge) BADGE_AT[l.badge] = i; });
@@ -223,6 +227,7 @@ const Game = {
       case 'restart': this.checkpoint = -1; this.lives = Math.max(this.lives, 1); this.enterIntro(); break;
       case 'menu': this.toTitle(); break;
       case 'retry': this.retry(); break;
+      case 'sequel': this.startLevel(SEQUEL_START); break;
       case 'reset': this.showScreen('scr-reset'); break;
       case 'reset-no': this.showLevels(); break;
       case 'reset-yes':
@@ -360,9 +365,13 @@ const Game = {
     this.state = 'gameover';
     this.stateT = 0;
     Sound.playMusic('gameover');
-    $('#over-msg').textContent = this.diff.gameOver === 'game'
-      ? 'Malice n\'a plus de vies… Retour au tout début de l\'aventure !'
-      : 'Malice n\'a plus de vies… On recommence ce niveau !';
+    let msg = 'Malice n\'a plus de vies… On recommence ce niveau !';
+    if (this.diff.gameOver === 'game') {
+      msg = this.levelIndex >= SEQUEL_START
+        ? 'Malice n\'a plus de vies… Retour au début du voyage, dans la grotte !'
+        : 'Malice n\'a plus de vies… Retour au tout début de l\'aventure !';
+    }
+    $('#over-msg').textContent = msg;
     Input.setCapture(false);
     this.showScreen('scr-over');
   },
@@ -374,7 +383,8 @@ const Game = {
       this.score = 0;
       this.caramel = 0;
       this.chips = 0;
-      this.startLevel(0);
+      // pendant le retour à la maison, on repart de la grotte
+      this.startLevel(this.levelIndex >= SEQUEL_START ? SEQUEL_START : 0);
     } else {
       this.startLevel(this.levelIndex);
     }
@@ -405,19 +415,39 @@ const Game = {
     Save.save(this.save);
   },
 
-  victory() {
+  // kind : 'rescue' (le bébé oiseau sauvé dans le volcan) ou 'family' (il a retrouvé sa famille : fin du jeu)
+  victory(kind) {
     if (this.state !== 'play') return;
     const w = this.world;
     this.state = 'victory';
     this.stateT = 0;
     this.victoryShown = false;
+    this.victoryKind = kind || 'rescue';
     const p = w.player;
     p.won = true;
     p.star = 0;
-    p.holding = (ctx) => Art.heldBird(ctx, w.t);
+    p.grap = null;
     this.score += 5000;
-    Sound.sfx.chirp();
-    Sound.playMusic('victory');
+    if (this.victoryKind === 'family') {
+      Sound.playMusic('family');
+    } else {
+      p.holding = (ctx) => Art.heldBird(ctx, w.t);
+      Sound.sfx.chirp();
+      Sound.playMusic('victory');
+      // maintenant, il faut le ramener chez lui : la grotte est débloquée
+      if (SEQUEL_START > 0) this.unlock(SEQUEL_START + 1);
+    }
+  },
+
+  // Un gros œil bonbon attrapé : une vie en plus (en Bébé et Gentil, les vies sont déjà illimitées).
+  extraLife(x, y) {
+    const w = this.world;
+    if (this.diff.lives !== Infinity) {
+      this.lives++;
+      w.popText(x, y, '+1 vie !', '#7dff9a', 26);
+    } else {
+      w.popText(x, y, 'Cœurs à fond !', '#ff7ab8', 24);
+    }
   },
 
   onStarEnd() {
@@ -513,8 +543,13 @@ const Game = {
             g: 80, life: 4, size: rand(6, 10), color: `hsl(${randInt(0, 360)},90%,60%)`,
           });
         }
-        if (this.stateT > 3.2 && !this.victoryShown) {
+        if (this.stateT > this.victoryDelay() && !this.victoryShown) {
           this.victoryShown = true;
+          const family = this.victoryKind === 'family';
+          $('#vic-msg').textContent = family
+            ? 'Le bébé oiseau a retrouvé toute sa famille !'
+            : 'Malice a sauvé le bébé oiseau ! Maintenant, ramène-le chez lui…';
+          $('#btn-sequel').classList.toggle('hidden', family);
           $('#vic-stats').textContent = `Friandises : ${this.candies}   •   Score : ${this.score}`;
           Input.setCapture(false);
           this.showScreen('scr-victory');
@@ -537,7 +572,10 @@ const Game = {
       this.world.render(ctx, s);
       this.drawHUD(ctx);
       if (this.state === 'clear') this.drawClear(ctx);
-      if (this.state === 'victory' && this.victoryShown) this.drawVictory(ctx);
+      if (this.state === 'victory' && this.victoryShown) {
+        if (this.victoryKind === 'family') this.drawFamilyVictory(ctx);
+        else this.drawVictory(ctx);
+      }
       if (this.state === 'dying' && this.stateT > 1.6) {
         ctx.fillStyle = `rgba(20,5,30,${Math.min(1, (this.stateT - 1.6) / 0.8)})`;
         ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -629,11 +667,18 @@ const Game = {
       drawOutlinedText(ctx, '× ' + (this.lives === Infinity ? '∞' : this.lives), VIEW_W / 2 + 30, 302, 34, '#ffffff');
       drawOutlinedText(ctx, lv.intro || '', VIEW_W / 2, 400, 22, '#ffe2f4');
     }
-    if (this.levelIndex === LEVELS.length - 1) {
+    if (lv.sequel) {
+      Art.babyBird(ctx, VIEW_W / 2, 472, this.t, { noNest: true, happy: true, chirp: Math.floor(this.t * 3) % 2 === 0 });
+    } else if (lv.map.some((row) => row.includes('N'))) {
       Art.babyBird(ctx, VIEW_W / 2, 470, this.t, { chirp: Math.floor(this.t * 3) % 2 === 0 });
     }
     drawOutlinedText(ctx, `Difficulté : ${this.diff.name}`, VIEW_W / 2, 510, 16, '#c9b3ff');
     ctx.restore();
+  },
+
+  // la grande fin dure plus longtemps : on regarde le bébé rejoindre son nid
+  victoryDelay() {
+    return this.victoryKind === 'family' ? 5.5 : 3.2;
   },
 
   // Grande Malice qui serre le bébé oiseau dans ses bras.
@@ -674,6 +719,64 @@ const Game = {
     for (let i = 0; i < 6; i++) {
       const a = t * 1.5 + (i * Math.PI) / 3;
       Art.heart(ctx, 165 + Math.cos(a) * 120, 300 + Math.sin(a) * 80, 1.6 + Math.sin(t * 4 + i) * 0.2, '#ff4f8a');
+    }
+    ctx.restore();
+  },
+
+  // Fin du jeu : Malice fait coucou, et toute la famille oiseau chante dans son nid.
+  drawFamilyVictory(ctx) {
+    const t = this.t;
+    const k = Math.min(1, (this.stateT - this.victoryDelay()) / 0.5);
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.fillStyle = 'rgba(25,8,45,0.62)';
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    const g = ctx.createRadialGradient(200, 360, 20, 200, 360, 260);
+    g.addColorStop(0, 'rgba(255,220,120,0.55)');
+    g.addColorStop(1, 'rgba(255,220,120,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 60, 480, 480);
+    ctx.save();
+    ctx.translate(200, 360);
+    ctx.rotate(t * 0.3);
+    ctx.fillStyle = 'rgba(255,240,180,0.18)';
+    for (let i = 0; i < 10; i++) {
+      ctx.rotate(Math.PI / 5);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-18, 280);
+      ctx.lineTo(18, 280);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    // la famille dans son nid, à côté de Malice
+    ctx.save();
+    ctx.translate(220, 500);
+    ctx.scale(1.55, 1.55);
+    Art.birdNest(ctx, 0, 6, 150);
+    const sing = (i) => Math.floor(t * 4 + i * 1.3) % 2 === 0;
+    Art.bigBird(ctx, -52, -6, t, { kind: 'maman', sing: sing(0), hug: 0.6 + Math.sin(t * 3) * 0.3, dir: 1, happy: true });
+    Art.bigBird(ctx, 52, -6, t + 1, { kind: 'papa', sing: sing(1), hug: 0.6 + Math.cos(t * 3) * 0.3, dir: -1, happy: true });
+    [-28, -10, 10, 28].forEach((x, i) => {
+      Art.babyBird(ctx, x, -8, t + i, { noNest: true, colors: i === 1 ? undefined : SIBLINGS[i > 1 ? i - 1 : i], chirp: sing(i + 2), happy: true });
+    });
+    ctx.restore();
+    const hop = Math.abs(Math.sin(t * 4)) * 14;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ellipsePath(ctx, 400, 498, 40 - hop * 0.6, 8);
+    ctx.fill();
+    Art.malice(ctx, 400, 496 - hop, { pose: 'win', t, facing: 1, scale: 2.1, view: '3q' });
+    for (let i = 0; i < 7; i++) {
+      const a = t * 1.2 + (i * Math.PI * 2) / 7;
+      ctx.font = '700 32px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.strokeText(i % 2 ? '♪' : '♫', 260 + Math.cos(a) * 190, 270 + Math.sin(a) * 70);
+      ctx.fillStyle = ['#ff4f9a', '#3fa8ff', '#ffb000', '#2fbf5a'][i % 4];
+      ctx.fillText(i % 2 ? '♪' : '♫', 260 + Math.cos(a) * 190, 270 + Math.sin(a) * 70);
     }
     ctx.restore();
   },
@@ -834,7 +937,8 @@ const Game = {
       .replace(/\{SAUT\}/g, touch ? 'le gros bouton rose' : 'Espace')
       .replace(/\{GRAPPIN\}/g, touch ? 'le bouton moustache' : 'la touche V')
       .replace(/\{FLECHES\}/g, touch ? '◀ ▶' : '← →')
-      .replace(/\{AVANCER\}/g, touch ? 'le bouton ▶' : 'la flèche →');
+      .replace(/\{AVANCER\}/g, touch ? 'le bouton ▶' : 'la flèche →')
+      .replace(/\{GAUCHE\}/g, touch ? 'le bouton ◀' : 'la flèche ←');
   },
 
   // ---------- Boutons tactiles ----------
@@ -895,6 +999,11 @@ const Game = {
         case 'lava': Scenery.drawLavaRun(g, 0, 48, 14, true, 48, 0); break;
         case 'lutin': g.drawImage(Scenery.lutinSprite(), -Scenery.PAD, -Scenery.PAD, 64, 64); break;
         case 'bird': Art.babyBird(g, c, 44, 0, {}); break;
+        case 'gem': Art.gem(g, c, c, 1.4, 'rubis', 0.4); break;
+        case 'candyeye': Art.candyEye(g, c, 42, { dir: 1, look: { x: 0.5, y: 0 }, hue: 320 }); break;
+        case 'bat': g.translate(c, 40); g.scale(0.9, 0.9); Art.bat(g, 0, 0, { dir: 1, flap: 1, t: 0 }); break;
+        case 'grumpy': g.translate(c, 40); g.scale(0.85, 0.85); Art.grumpyBird(g, 0, 0, { dir: 1, flap: 1, t: 0 }); break;
+        case 'gummy': Art.gummyBear(g, c, 45, { dir: 1, hue: 0, t: 0 }); break;
         case 'heart': Art.heart(g, c, c + 2, 3, '#ff3d7f', '#ffffff'); break;
         case 'badge-saut': Art.badge(g, c, c - 4, 17, 'saut', 0); break;
         case 'badge-grappin': Art.badge(g, c, c - 4, 17, 'grappin', 0); break;

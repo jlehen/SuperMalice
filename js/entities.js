@@ -21,6 +21,13 @@ const PHYS = {
   pound: 1150,
   superJump: 1250,
   crouchCharge: 0.12,
+  // champignons et guimauves : rebond normal, en gardant le saut appuyé, après un écrasement
+  spring: 1150,
+  springHeld: 1380,
+  bigBounce: 1550,
+  // chocolat : on s'y enfonce doucement (pixels par seconde), et au bout de ce temps on perd une vie
+  chocoSink: 36,
+  chocoTime: 2.8,
 };
 
 // Moustache-grappin : portée, vitesse de la moustache, vitesse de traction, longueur de la corde.
@@ -102,6 +109,15 @@ class Player {
     this.nextMimic = rand(2, 8);
     this.mimic = null;
     this.lastMimic = '';
+    // dans la rivière de chocolat (monde des bonbons)
+    this.inChoco = false;
+    this.sinkT = 0;
+    this.blubT = 0;
+    // le bébé oiseau sur la casquette : il parle (birdTalk), il est rentré chez lui (birdGone)
+    this.birdTalk = 0;
+    this.birdGone = false;
+    this.chirpT = rand(4, 9);
+    this.beakT = 0;
   }
 
   get cx() { return this.x + this.w / 2; }
@@ -120,6 +136,9 @@ class Player {
       }
       if (this.cause === 'lava' && Math.random() < dt * 20) {
         w.spawn({ type: 'smoke', x: this.cx + rand(-10, 10), y: this.y + this.h, vy: -60, life: 0.9, size: 10, color: '#555' });
+      }
+      if (this.cause === 'choco' && Math.random() < dt * 12) {
+        w.spawn({ type: 'dot', x: this.cx + rand(-12, 12), y: this.y + this.h - rand(0, 30), vy: 60, g: 600, life: 0.8, size: rand(2.5, 4), color: '#6a3418' });
       }
       return;
     }
@@ -162,7 +181,7 @@ class Player {
     this.target = badgeGrappin && (!this.grap || this.grap.phase === 'swing') ? this.findAnchor(this.grap && this.grap.anchor) : null;
     if (this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing')) {
       this.updateHanging(dt);
-      if (w.inLava(this) && !this.lavaProof()) this.die('lava');
+      if (w.inLava(this) && !this.lavaProof() && !w.choco) this.die('lava');
       return;
     }
     if (I.pressed.grapple && badgeGrappin && !this.pound && this.hurtT <= 0) this.startGrapple();
@@ -201,7 +220,7 @@ class Player {
         w.spawn({ type: 'dust', x: this.cx - dir * 10, y: this.y + this.h, vx: -dir * rand(40, 140), vy: rand(-50, -10), life: 0.35, size: rand(4, 7) });
       }
     }
-    const top = this.running ? PHYS.sprint : PHYS.run;
+    const top = this.inChoco ? 110 : this.running ? PHYS.sprint : PHYS.run;
 
     if (this.pound) {
       this.vx = 0;
@@ -223,7 +242,8 @@ class Player {
     // saut (avec un peu de tolérance pour les enfants)
     if (I.pressed.jump) this.jumpBuf = PHYS.buffer;
     else this.jumpBuf -= dt;
-    this.coyote = this.onGround ? PHYS.coyote : this.coyote - dt;
+    // dans le chocolat, on peut toujours sauter pour en sortir
+    this.coyote = this.onGround || this.inChoco ? PHYS.coyote : this.coyote - dt;
     if (this.jumpBuf > 0 && this.coyote > 0 && !this.pound) {
       this.jumpBuf = 0;
       this.coyote = 0;
@@ -274,6 +294,11 @@ class Player {
     } else {
       this.vy = Math.min(this.vy + PHYS.gravity * dt, this.pound === 2 ? PHYS.pound : PHYS.maxFall);
     }
+    if (this.inChoco) {
+      // on s'enfonce tout doucement
+      this.pound = 0;
+      this.vy = Math.min(this.vy, PHYS.chocoSink);
+    }
 
     if (I.pressed.caramel) this.throwIt('caramel');
     if (I.pressed.chips) this.throwIt('chips');
@@ -281,10 +306,15 @@ class Player {
     this.prevBottom = this.y + this.h;
     const wasGround = this.onGround;
     const fallSpeed = this.vy;
+    // le vent pousse Malice (montagne des nuages), mais pas quand elle reste sagement immobile par terre
+    const push = this.onGround && !dir ? 0 : w.windPush(this);
+    this.vx += push;
     const res = w.moveBody(this, dt, this.pound === 2 ? (tiles) => w.poundTiles(this, tiles) : null);
+    if (!res.wall) this.vx -= push;
     if (res.landed) this.platform = null;
     if (res.ceil) w.headBump(this, res.ceil);
     if (!res.landed) this.checkPlatforms();
+    if (res.landed) this.springTile();
 
     if (this.onGround && !wasGround) {
       this.land = 0.12;
@@ -320,8 +350,69 @@ class Player {
 
     if (w.inLava(this)) {
       if (this.lavaProof()) this.lavaBounce();
+      else if (w.choco) this.sinkInChoco(dt);
       else this.die('lava');
-    } else if (this.y > w.height + 60) this.die('fall');
+    } else {
+      this.inChoco = false;
+      this.sinkT = 0;
+      if (this.y > w.height + 60) this.die('fall');
+    }
+    this.updateBird(dt);
+  }
+
+  // Champignon (grotte) ou guimauve (bonbons) sous les pieds : ça rebondit !
+  springTile() {
+    const w = this.world;
+    const r = Math.round((this.y + this.h) / TILE);
+    const c0 = Math.floor((this.x + 2) / TILE);
+    const c1 = Math.floor((this.x + this.w - 2) / TILE);
+    let hit = -1;
+    for (let c = c0; c <= c1; c++) {
+      if (w.tileAt(c, r) === 'M') { hit = c; break; }
+    }
+    if (hit < 0) return;
+    const big = this.pound === 2;
+    this.vy = -(big ? PHYS.bigBounce : Input.held.jump ? PHYS.springHeld : PHYS.spring);
+    this.onGround = false;
+    this.platform = null;
+    this.jumping = false;
+    this.pound = 0;
+    this.coyote = 0;
+    w.springAt(hit, r, big);
+  }
+
+  // Dans la rivière de chocolat : on ne se brûle pas, mais on s'enfonce. Vite, il faut sauter !
+  sinkInChoco(dt) {
+    const w = this.world;
+    if (!this.inChoco) {
+      this.inChoco = true;
+      this.sinkT = 0;
+      this.blubT = 0.3;
+      Sound.sfx.chocoPlop();
+      for (let i = 0; i < 10; i++) {
+        w.spawn({ type: 'dot', x: this.cx + rand(-16, 16), y: this.y + this.h - 8, vx: rand(-160, 160), vy: rand(-320, -120), g: 1200, life: 0.6, size: rand(3, 6), color: '#7a4224' });
+      }
+    }
+    this.sinkT += dt;
+    this.blubT -= dt;
+    if (this.blubT <= 0) {
+      this.blubT = 0.4;
+      Sound.sfx.chocoBlub();
+      w.spawn({ type: 'ring', x: this.cx + rand(-14, 14), y: this.y + this.h - 6, life: 0.4, size: 14, color: 'rgba(160,95,55,0.9)' });
+    }
+    if (this.sinkT > PHYS.chocoTime) this.die('choco');
+  }
+
+  // Le bébé oiseau pépie de temps en temps sur la casquette.
+  updateBird(dt) {
+    if (!this.world.def.sequel || this.birdGone) return;
+    this.chirpT -= dt;
+    this.beakT -= dt;
+    if (this.chirpT <= 0) {
+      this.chirpT = rand(6, 12);
+      this.beakT = 0.3;
+      Sound.sfx.chirp();
+    }
   }
 
   // Mode Bébé : avec l'étoile, la lave ne brûle pas.
@@ -674,6 +765,7 @@ class Player {
     this.vx = 0;
     this.vy = -780;
     this.platform = null;
+    this.inChoco = false;
     if (cause === 'lava') Sound.sfx.lava(); else Sound.sfx.die();
     this.world.shake(5);
     this.world.game.onPlayerDeath();
@@ -751,6 +843,10 @@ class Player {
     if (this.dead && this.cause === 'lava') {
       ctx.globalAlpha = 1;
     }
+    let palette = null;
+    if (this.star > 0) palette = Art.maliceRainbow(this.t);
+    else if (this.dead && this.cause === 'lava') palette = LAVA_PALETTE;
+    else if (this.dead && this.cause === 'choco') palette = CHOCO_PALETTE;
     Art.malice(ctx, this.cx, this.y + this.h + 1, {
       facing: this.dead ? 1 : this.facing,
       pose,
@@ -758,19 +854,43 @@ class Player {
       ph: this.ph,
       sx,
       sy,
-      palette: this.star > 0 ? Art.maliceRainbow(this.t) : (this.dead && this.cause === 'lava' ? LAVA_PALETTE : null),
+      palette,
       holding: this.holding,
       face: pose === 'idle' ? this.mimic : null,
       ouch: k,
+      onHead: this.world.def.sequel && !this.birdGone ? (c) => this.drawHatBird(c, pose) : null,
     });
     ctx.restore();
   }
 }
 
+// Le bébé oiseau assis sur la casquette (pendant le retour à la maison).
+// Il bat des ailes en l'air, sursaute quand Malice a mal, et ouvre le bec quand il donne un conseil.
+Player.prototype.drawHatBird = function drawHatBird(ctx, pose) {
+  const air = pose === 'jump' || pose === 'fall' || pose === 'pound';
+  const jolt = this.hurtT > 0 ? this.hurtT * 30 : 0;
+  ctx.save();
+  ctx.translate(-2, -61 - jolt);
+  ctx.scale(0.5, 0.5);
+  Art.babyBird(ctx, 0, 0, this.t, {
+    noNest: true,
+    happy: air || this.hurtT > 0,
+    chirp: (this.birdTalk > 0.5 && Math.floor(this.t * 9) % 2 === 0) || this.beakT > 0,
+  });
+  ctx.restore();
+};
+
 const LAVA_PALETTE = Object.assign({}, Art.MALICE, {
   skin: '#5a3a30', skinShade: '#3a2420', shirt: '#6a5a5a', shirtShade: '#4a3a3a',
   overall: '#7a3a4a', overallDark: '#5a2a3a', hair: '#7a6a3a', hairDark: '#5a4a2a',
   hat: '#7a3a4a', hatDark: '#5a2a3a', hatLight: '#8a4a5a',
+});
+
+// Malice toute couverte de chocolat
+const CHOCO_PALETTE = Object.assign({}, Art.MALICE, {
+  skin: '#8a5030', skinShade: '#6a3820', shirt: '#9a5a34', shirtShade: '#7a4224',
+  overall: '#7a4224', overallDark: '#5a2c14', hair: '#a0643a', hairDark: '#7a4224',
+  hat: '#8a4a2a', hatDark: '#6a3418', hatLight: '#b06a40',
 });
 
 // ======================= PROJECTILES DE MALICE =======================
@@ -1310,6 +1430,281 @@ class Ladybug extends Enemy {
   mouth() { return { x: this.dir * 31, y: -7 }; }
 }
 
+// Chauve-souris : elle dort la tête en bas au plafond de la grotte. Quand Malice approche,
+// elle se réveille et fonce sur elle, puis remonte et recommence.
+class Bat extends Enemy {
+  constructor(world, x, y) {
+    super(world, x, y, 40, 30);
+    this.state = 'sleep';
+    this.homeX = x;
+    this.homeY = y;
+    this.timer = 0;
+    this.flap = Math.random() * 6;
+    this.target = null;
+  }
+
+  ai(dt) {
+    const w = this.world;
+    const p = w.player;
+    const dx = p.cx - this.cx;
+    const dy = p.cy - this.cy;
+    const free = !p.dead && !p.won;
+    if (this.state === 'sleep') {
+      this.vx = 0;
+      this.vy = 0;
+      if (free && Math.abs(dx) < 230 && dy > -40 && dy < 460) {
+        this.state = 'wake';
+        this.timer = 0.45;
+        if (w.onScreen(this)) Sound.sfx.batWake();
+        w.popText(this.cx, this.y + this.h + 12, '!', '#ff4040', 30);
+      }
+      return;
+    }
+    this.flap += dt * (this.state === 'swoop' ? 22 : 16);
+    this.timer -= dt;
+    const sp = w.diff.batSpeed;
+    let tx;
+    let ty;
+    if (this.state === 'wake') {
+      // elle se décroche et descend un peu en battant des ailes
+      this.vx = 0;
+      this.vy = 60;
+      if (this.timer <= 0) this.swoop();
+    } else if (this.state === 'swoop') {
+      // elle fonce là où était Malice
+      tx = this.target.x;
+      ty = this.target.y;
+      if (this.timer <= 0 || Math.hypot(tx - this.cx, ty - this.cy) < 20) {
+        this.state = 'rise';
+        this.timer = rand(1.4, 2.4);
+      }
+    } else {
+      // elle remonte vers le plafond en tournant autour de chez elle, puis refonce
+      tx = this.homeX + 20 + Math.sin(this.t * 1.3) * 120;
+      ty = this.homeY + 20 + Math.sin(this.t * 2.6) * 18;
+      if (this.timer <= 0 && free && Math.abs(dx) < 380 && dy > -60) this.swoop();
+    }
+    if (tx != null) {
+      const ddx = tx - this.cx;
+      const ddy = ty - this.cy;
+      const d = Math.hypot(ddx, ddy) || 1;
+      const speed = this.state === 'swoop' ? sp : sp * 0.6;
+      const k = Math.min(1, dt * (this.state === 'swoop' ? 4 : 2.5));
+      this.vx += ((ddx / d) * speed - this.vx) * k;
+      this.vy += ((ddy / d) * speed - this.vy) * k;
+    }
+    if (Math.abs(this.vx) > 8) this.dir = Math.sign(this.vx);
+    const res = w.moveBody(this, dt);
+    if (res.wall) this.vx = -this.vx * 0.5;
+    if (res.landed) this.vy = -120;
+    if (res.ceil) this.vy = 40;
+  }
+
+  swoop() {
+    const p = this.world.player;
+    this.state = 'swoop';
+    this.timer = 1.5;
+    this.target = { x: p.cx, y: p.cy + 10 };
+  }
+
+  onStuck() { this.state = 'rise'; }
+  onFat() { this.state = 'rise'; }
+  onUnstuck() { this.timer = 2; }
+
+  drawBody(ctx, x, y) {
+    Art.bat(ctx, x, y, {
+      t: this.t, dir: this.dir, sleep: this.state === 'sleep' && !this.stuck, flap: this.flap,
+      angry: this.state === 'swoop' || this.state === 'wake', fat: this.fat, rest: this.fatRest && this.stuck <= 0,
+    });
+  }
+
+  mouth() { return { x: this.dir * 3, y: this.fat ? -10 : -10.5 }; }
+}
+
+// Oiseau grincheux : il vole en faisant des vagues dans la montagne des nuages.
+class GrumpyBird extends Enemy {
+  constructor(world, x, y) {
+    super(world, x, y, 44, 34);
+    this.homeX = x;
+    this.homeY = y;
+    this.range = TILE * 4;
+    this.ft = Math.random() * 6;
+    this.flap = 0;
+    this.squawkT = rand(2, 5);
+  }
+
+  ai(dt) {
+    const w = this.world;
+    this.ft += dt;
+    this.flap += dt * 14;
+    const nx = this.x + this.dir * w.diff.birdSpeed * dt;
+    const ny = this.homeY + Math.sin(this.ft * 2.4) * 38;
+    if (nx < this.homeX - this.range || nx > this.homeX + this.range || w.boxSolid(nx, ny, this.w, this.h)) {
+      this.dir *= -1;
+    } else {
+      this.x = nx;
+    }
+    if (!w.boxSolid(this.x, ny, this.w, this.h)) this.y = ny;
+    this.squawkT -= dt;
+    if (this.squawkT <= 0) {
+      this.squawkT = rand(3, 6);
+      if (w.onScreen(this, -40)) Sound.sfx.squawk();
+    }
+  }
+
+  // collé ou essoufflé, il tombe ; décollé, il repart d'où il est
+  onUnstuck() {
+    this.homeX = this.x;
+    this.homeY = this.y - TILE * 2;
+  }
+
+  drawBody(ctx, x, y) {
+    Art.grumpyBird(ctx, x, y, { t: this.t, dir: this.dir, flap: this.flap, fat: this.fat, rest: this.fatRest && this.stuck <= 0 });
+  }
+
+  mouth() { return { x: this.dir * (this.fat ? 17 : 15), y: -12 }; }
+}
+
+// Ourson en gélatine : il rebondit partout, et vers Malice quand il la voit.
+class GummyBear extends Enemy {
+  constructor(world, x, y) {
+    super(world, x, y, 34, 40);
+    this.hue = choose([0, 30, 50, 120, 280]);
+    this.hopT = rand(0.1, 0.6);
+    this.squash = 0;
+  }
+
+  ai(dt) {
+    const w = this.world;
+    const p = w.player;
+    const wasAir = !this.onGround;
+    if (this.onGround) {
+      this.vx = 0;
+      this.squash = approach(this.squash, 0, dt * 2);
+      this.hopT -= dt;
+      if (this.hopT <= 0) {
+        const dx = p.cx - this.cx;
+        if (!p.dead && Math.abs(dx) < 300 && Math.abs(dx) > 10) this.dir = Math.sign(dx);
+        // pas de saut dans le vide ni dans le chocolat
+        if (!w.groundAhead(this, 20) || !w.groundAhead(this, 70)) this.dir *= -1;
+        if (w.groundAhead(this, 20) && w.groundAhead(this, 70)) this.vx = this.dir * w.diff.gummySpeed;
+        this.vy = -rand(520, 760);
+        this.onGround = false;
+        this.hopT = rand(0.05, 0.3);
+      }
+    } else {
+      this.squash = -Math.min(0.3, Math.abs(this.vy) / 2500);
+    }
+    this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
+    const res = w.moveBody(this, dt);
+    if (res.wall) {
+      this.dir *= -1;
+      this.vx = -this.vx;
+    }
+    if (res.landed && wasAir) {
+      this.squash = 0.35;
+      if (w.onScreen(this)) Sound.sfx.gummyHop();
+    }
+  }
+
+  drawBody(ctx, x, y) {
+    Art.gummyBear(ctx, x, y, {
+      t: this.t, dir: this.dir, hue: this.hue, squash: this.fat ? 0 : this.squash,
+      fat: this.fat, rest: this.fatRest && this.stuck <= 0,
+    });
+  }
+
+  mouth() { return { x: this.dir * 2.5, y: this.fat ? -23.5 : -24.5 }; }
+}
+
+// Gros œil bonbon : il est gentil mais timide. Il s'enfuit quand Malice approche ;
+// si on l'attrape, on gagne une vie (et tous ses cœurs).
+class CandyEye {
+  constructor(world, x, y) {
+    this.world = world;
+    this.w = 32;
+    this.h = 34;
+    this.x = x;
+    this.y = y;
+    this.vx = 0;
+    this.vy = 0;
+    this.dir = choose([-1, 1]);
+    this.onGround = false;
+    this.state = 'walk';
+    this.timer = 0;
+    this.hopT = 0;
+    this.t = Math.random() * 5;
+    this.legPhase = 0;
+    this.look = { x: this.dir, y: 0 };
+    this.hue = choose([320, 190, 50, 120, 270]);
+    this.dead = false;
+  }
+
+  get cx() { return this.x + this.w / 2; }
+
+  update(dt) {
+    const w = this.world;
+    const p = w.player;
+    this.t += dt;
+    this.timer -= dt;
+    const dx = p.cx - this.cx;
+    const near = !p.dead && !p.won && Math.abs(dx) < 210 && Math.abs(p.cy - this.y) < 160;
+    let speed = 0;
+    if (this.state === 'walk') {
+      speed = 40;
+      if (near && this.timer <= 0) {
+        this.state = 'flee';
+        this.timer = rand(1.8, 2.6);
+        this.vy = this.onGround ? -300 : this.vy;
+        if (w.onScreen(this)) Sound.sfx.eyeFlee();
+      }
+    } else if (this.state === 'flee') {
+      this.dir = dx > 0 ? -1 : 1;
+      speed = w.diff.eyeFlee;
+      this.hopT -= dt;
+      if (this.onGround && this.hopT <= 0) {
+        this.hopT = 0.45;
+        this.vy = -240;
+      }
+      if (this.timer <= 0) {
+        // tout essoufflé : c'est le moment de l'attraper !
+        this.state = 'tired';
+        this.timer = 2.4;
+      }
+    } else if (this.timer <= 0) {
+      this.state = 'walk';
+      this.timer = 0.8;
+    }
+    // il ne saute jamais dans le vide : coincé au bord, il tremble sur place
+    let vx = this.dir * speed;
+    if (this.onGround && vx && !w.groundAhead(this, 6)) {
+      if (this.state === 'walk') this.dir *= -1;
+      vx = 0;
+    }
+    this.vx = vx;
+    if (Math.abs(vx) > 1) this.legPhase += dt * Math.abs(vx) * 0.12;
+    this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
+    const res = w.moveBody(this, dt);
+    if (res.wall && this.state === 'walk') this.dir *= -1;
+    const tx = this.state === 'flee' ? -this.dir : this.dir;
+    this.look.x += (tx - this.look.x) * Math.min(1, dt * 8);
+    if (this.y > w.height + 40 || w.inLava(this)) this.dead = true;
+  }
+
+  draw(ctx) {
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    if (this.onGround) {
+      ellipsePath(ctx, this.cx, this.y + this.h + 1, 13, 3.5);
+      ctx.fill();
+    }
+    const shiver = this.state === 'flee' && this.vx === 0 ? Math.sin(this.t * 50) * 1.2 : 0;
+    Art.candyEye(ctx, this.cx + shiver, this.y + this.h, {
+      t: this.t, dir: this.dir, look: this.look, legPhase: this.legPhase, moving: Math.abs(this.vx) > 1,
+      scared: this.state === 'flee', tired: this.state === 'tired', hue: this.hue,
+    });
+  }
+}
+
 // ======================= DANGERS =======================
 class BlackDot {
   constructor(world, x, y, vx, vy) {
@@ -1415,6 +1810,115 @@ class CubeBit {
     ctx.fill();
     ctx.fillStyle = this.color;
     roundRectPath(ctx, -5, -5, 10, 10, 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// Stalactite : une pointe de pierre au plafond de la grotte. Quand Malice approche, elle tremble… puis tombe !
+class Stalactite {
+  constructor(world, x, y) {
+    this.world = world;
+    this.w = 30;
+    this.h = 44;
+    this.x = x + (TILE - this.w) / 2;
+    this.y = y;
+    this.vy = 0;
+    this.state = 'hang';
+    this.timer = 0;
+    this.t = 0;
+    this.dead = false;
+    this.v = Math.floor(Math.random() * 3);
+    this.ouch = 'head'; // elle tombe sur la tête de Malice (voir OUCH)
+  }
+
+  harmful() { return this.state === 'fall'; }
+
+  update(dt) {
+    const w = this.world;
+    const p = w.player;
+    this.t += dt;
+    const cx = this.x + this.w / 2;
+    if (this.state === 'hang') {
+      if (!p.dead && Math.abs(p.cx - cx) < 120 && p.y > this.y && p.y - this.y < 560) {
+        this.state = 'shake';
+        this.timer = 0.4;
+        if (w.onScreen(this)) Sound.sfx.stalactiteShake();
+      }
+    } else if (this.state === 'shake') {
+      this.timer -= dt;
+      if (Math.random() < dt * 25) {
+        w.spawn({ type: 'dot', x: cx + rand(-14, 14), y: this.y + rand(0, 6), vy: rand(20, 80), g: 900, life: 0.6, size: rand(1.5, 3), color: '#9a8cb8' });
+      }
+      if (this.timer <= 0) {
+        this.state = 'fall';
+        this.vy = 200;
+      }
+    } else {
+      this.vy = Math.min(this.vy + 3200 * dt, 1200);
+      this.y += this.vy * dt;
+      for (const e of w.enemies) {
+        if (!e.dying && !e.dead && overlap(this, e)) e.kill('bump');
+      }
+      if (w.solidAt(cx, this.y + this.h) || this.y > w.height) this.crash();
+    }
+  }
+
+  crash() {
+    const w = this.world;
+    const cx = this.x + this.w / 2;
+    this.dead = true;
+    if (w.onScreen(this)) {
+      Sound.sfx.stalactiteCrash();
+      w.shake(3);
+    }
+    for (let i = 0; i < 10; i++) {
+      w.spawn({
+        type: 'debris', x: cx + rand(-10, 10), y: this.y + this.h - rand(0, 20),
+        vx: rand(-220, 220), vy: rand(-380, -120), g: 1800, life: 0.7, size: rand(5, 9),
+        color: i % 3 ? '#6f6394' : '#bff6ff', vr: rand(-12, 12),
+      });
+    }
+    w.puff(cx, this.y + this.h, '#b8aed0');
+  }
+
+  draw(ctx) {
+    const shake = this.state === 'shake' ? Math.sin(this.t * 60) * 2 : 0;
+    const x = this.x + this.w / 2 + shake;
+    const y = this.y;
+    ctx.save();
+    ctx.lineJoin = 'round';
+    // pointe de pierre avec des anneaux plus clairs et un bout en cristal
+    const g = ctx.createLinearGradient(x - 15, 0, x + 15, 0);
+    g.addColorStop(0, '#8a7cb0');
+    g.addColorStop(0.5, '#6f6394');
+    g.addColorStop(1, '#463c64');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x - 15, y - 2);
+    ctx.quadraticCurveTo(x - 9, y + 20, x - 1.5, y + this.h - 2);
+    ctx.quadraticCurveTo(x, y + this.h + 1, x + 1.5, y + this.h - 2);
+    ctx.quadraticCurveTo(x + 9, y + 20, x + 15, y - 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#2f2742';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 2;
+    for (const k of [10, 21]) {
+      const hw = 15 * (1 - k / this.h) - 1;
+      ctx.beginPath();
+      ctx.moveTo(x - hw, y + k);
+      ctx.quadraticCurveTo(x, y + k + 3, x + hw, y + k);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#bff6ff';
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y + this.h - 12);
+    ctx.lineTo(x, y + this.h);
+    ctx.lineTo(x + 4, y + this.h - 12);
+    ctx.closePath();
     ctx.fill();
     ctx.restore();
   }
@@ -1554,7 +2058,7 @@ class Eclair {
 }
 
 // ======================= BONUS =======================
-const ITEM_SIZE = { candy: 26, lollipop: 28, ball: 24, fruit: 34, caramel: 34, chips: 34, star: 36 };
+const ITEM_SIZE = { candy: 26, lollipop: 28, ball: 24, fruit: 34, caramel: 34, chips: 34, star: 36, gem: 28 };
 
 class Item {
   constructor(world, kind, cx, cy, fromBlock) {
@@ -1570,6 +2074,8 @@ class Item {
     this.appear = fromBlock ? 0.45 : 0;
     this.t = Math.random() * 6;
     this.v = randInt(0, 5);
+    // minerai de la grotte : 0 or, 1 rubis, 2 émeraude, 3 topaze, 4 diamant (voir Art.GEMS)
+    this.gem = 0;
     this.dead = false;
   }
 
@@ -1590,7 +2096,17 @@ class Item {
   draw(ctx) {
     const cx = this.x + this.w / 2;
     const cy = this.y + this.h / 2;
-    if (this.kind !== 'candy' && this.kind !== 'ball' && this.kind !== 'lollipop') {
+    if (this.kind === 'gem') {
+      const gl = ctx.createRadialGradient(cx, cy, 2, cx, cy, 34);
+      gl.addColorStop(0, Art.GEMS[this.gem].color);
+      gl.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.save();
+      ctx.globalAlpha = 0.45 + 0.15 * Math.sin(this.t * 4);
+      ctx.fillStyle = gl;
+      circlePath(ctx, cx, cy, 34);
+      ctx.fill();
+      ctx.restore();
+    } else if (this.kind !== 'candy' && this.kind !== 'ball' && this.kind !== 'lollipop') {
       const gl = ctx.createRadialGradient(cx, cy, 2, cx, cy, 30);
       gl.addColorStop(0, 'rgba(255,255,220,0.55)');
       gl.addColorStop(1, 'rgba(255,255,220,0)');
@@ -1606,6 +2122,7 @@ class Item {
       case 'caramel': Art.caramel(ctx, cx, cy, 1.2); break;
       case 'chips': Art.chipsBag(ctx, cx, cy + 2, 1.15); break;
       case 'star': Art.star(ctx, cx, cy, 18, this.t); break;
+      case 'gem': Art.gem(ctx, cx, cy, 1.05, Art.GEMS[this.gem].kind, this.t); break;
       default: break;
     }
   }
@@ -2024,6 +2541,175 @@ class TalkFlower {
     if (this.show > 0.05 && this.msg) {
       this.world.bubble(this.x, this.y - 64, this.msg, this.show);
     }
+  }
+}
+
+// Pendant le retour à la maison, c'est le bébé oiseau (sur la casquette de Malice) qui donne les conseils,
+// quand elle passe à certains endroits. On ne voit rien par terre : la bulle sort de son bec.
+class BirdTip {
+  constructor(world, x, y, msg) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+    this.msg = msg;
+    this.show = 0;
+    this.said = false;
+  }
+
+  update(dt) {
+    const p = this.world.player;
+    const near = !p.dead && !p.birdGone && Math.abs(p.cx - this.x) < 190 && Math.abs(p.cy - this.y) < 260;
+    this.show = approach(this.show, near ? 1 : 0, dt * 5);
+    if (near && !this.said) {
+      this.said = true;
+      Sound.sfx.chirp();
+    } else if (!near && this.show <= 0) {
+      this.said = false;
+    }
+  }
+
+  draw() {
+    const p = this.world.player;
+    if (this.show > 0.05 && this.msg) this.world.bubble(p.cx, p.y - 44, this.msg, this.show);
+  }
+}
+
+// La grande fin : la famille du bébé oiseau attend dans son nid, sur un gâteau géant.
+// Quand Malice arrive, le bébé s'envole de sa casquette jusqu'au nid, et tout le monde chante.
+const CAKE_TIERS = [[150, 50], [118, 44], [86, 38]];
+const CAKE_H = CAKE_TIERS.reduce((a, [, h]) => a + h, 0);
+const SIBLINGS = [
+  { light: '#ffc0e0', mid: '#ff7ab8', dark: '#d0408a', wing: '#e0559e' },
+  { light: '#b8ffd8', mid: '#4fd08a', dark: '#239a5a', wing: '#2fae6a' },
+  { light: '#fff0a0', mid: '#ffcf3a', dark: '#d89a10', wing: '#e8a820' },
+];
+
+class FamilyGoal {
+  constructor(world, x, y) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+    this.t = 0;
+    this.reached = false;
+    this.flyT = -1;
+    this.from = null;
+    this.chirpT = 1;
+    this.noteT = 0;
+    this.nestY = y - CAKE_H;
+  }
+
+  update(dt) {
+    const w = this.world;
+    const p = w.player;
+    this.t += dt;
+    this.chirpT -= dt;
+    const near = Math.abs(p.cx - this.x) < 560;
+    if (this.chirpT <= 0) {
+      this.chirpT = rand(1, 2);
+      if (near && !this.reached) Sound.sfx.chirp();
+    }
+    if (!this.reached && !p.dead && p.cx >= this.x - 120) {
+      this.reached = true;
+      this.flyT = 0;
+      this.from = { x: p.cx, y: p.y - 10 };
+      p.birdGone = true;
+      w.game.victory('family');
+    }
+    if (this.flyT >= 0) {
+      const was = this.flyT;
+      this.flyT += dt;
+      if (was < 1.2 && this.flyT >= 1.2) {
+        Sound.sfx.familyCheer();
+        butterflyPouf(w, this.x, this.nestY - 30);
+      }
+      if (this.flyT > 1.2) {
+        this.noteT -= dt;
+        if (this.noteT <= 0) {
+          this.noteT = 0.22;
+          const cols = ['#ff4f9a', '#7fd3ff', '#ffd84a', '#7dff9a', '#c49bff'];
+          w.spawn({ type: 'note', text: choose(['♪', '♫']), x: this.x + rand(-70, 70), y: this.nestY - 60, vx: rand(-30, 30), vy: rand(-90, -50), life: 1.6, size: 28, color: choose(cols) });
+        }
+      }
+    }
+  }
+
+  // le bébé : sur le chemin entre la casquette de Malice et le nid
+  babyPos() {
+    const k = clamp(this.flyT / 1.2, 0, 1);
+    const e = k * k * (3 - 2 * k);
+    const tx = this.x;
+    const ty = this.nestY - 12;
+    const mx = (this.from.x + tx) / 2;
+    const my = Math.min(this.from.y, ty) - 120;
+    const u = 1 - e;
+    return { x: u * u * this.from.x + 2 * u * e * mx + e * e * tx, y: u * u * this.from.y + 2 * u * e * my + e * e * ty, k };
+  }
+
+  draw(ctx) {
+    const t = this.t;
+    const home = this.flyT >= 1.2;
+    this.drawCake(ctx);
+    Art.birdNest(ctx, this.x, this.nestY + 8, 132);
+    const sing = (i) => home && Math.floor(t * 4 + i * 1.3) % 2 === 0;
+    const hug = home ? Math.min(1, (this.flyT - 1.2) * 3) : 0;
+    Art.bigBird(ctx, this.x - 46, this.nestY - 4, t, { kind: 'maman', sing: sing(0) || (!this.reached && this.chirpT > 1.6), hug, dir: 1, happy: home });
+    Art.bigBird(ctx, this.x + 46, this.nestY - 4, t + 1, { kind: 'papa', sing: sing(1), hug, dir: -1, happy: home });
+    const sibs = home ? [-26, -13, 13] : [-16, 0, 16];
+    SIBLINGS.forEach((colors, i) => {
+      Art.babyBird(ctx, this.x + sibs[i], this.nestY - 6, t + i, { noNest: true, colors, chirp: sing(i + 2), happy: home });
+    });
+    if (this.flyT >= 0) {
+      const b = this.babyPos();
+      Art.babyBird(ctx, b.x, b.k >= 1 ? this.nestY - 6 : b.y, t, { noNest: true, happy: true, chirp: Math.floor(t * 6) % 2 === 0 });
+    }
+    const p = this.world.player;
+    if (!this.reached && Math.abs(p.cx - this.x) < 520) {
+      this.world.bubble(this.x - 46, this.nestY - 74, 'Piou ! Notre bébé !', 1);
+    }
+  }
+
+  // un gâteau à trois étages, nappage rose qui coule, crème et fraises
+  drawCake(ctx) {
+    let y = this.y;
+    CAKE_TIERS.forEach(([w, h], i) => {
+      const x0 = this.x - w / 2;
+      const g = ctx.createLinearGradient(0, y - h, 0, y);
+      g.addColorStop(0, i === 1 ? '#8a5030' : '#f8dcb0');
+      g.addColorStop(1, i === 1 ? '#6a3820' : '#e6b880');
+      ctx.fillStyle = g;
+      roundRectPath(ctx, x0, y - h, w, h, 8);
+      ctx.fill();
+      // nappage qui coule
+      ctx.fillStyle = i === 1 ? '#ffffff' : '#ff8fc8';
+      ctx.beginPath();
+      ctx.moveTo(x0, y - h + 6);
+      for (let k = 0; k <= 8; k++) {
+        const xx = x0 + (w * k) / 8;
+        const drip = 8 + (hash(i * 9 + k) * 14);
+        ctx.quadraticCurveTo(xx - w / 16, y - h + drip, xx, y - h + 8);
+      }
+      ctx.lineTo(x0 + w, y - h + 6);
+      ctx.quadraticCurveTo(x0 + w, y - h, x0 + w - 8, y - h);
+      ctx.lineTo(x0 + 8, y - h);
+      ctx.quadraticCurveTo(x0, y - h, x0, y - h + 6);
+      ctx.fill();
+      // fraises et boules de crème le long du bord
+      for (let k = 0; k < 4; k++) {
+        const fx = x0 + w * (0.15 + k * 0.233);
+        ctx.fillStyle = k % 2 ? '#ffffff' : '#e8203a';
+        circlePath(ctx, fx, y - h + 2, k % 2 ? 5 : 6);
+        ctx.fill();
+        if (!(k % 2)) {
+          ctx.fillStyle = '#4fc04f';
+          ellipsePath(ctx, fx, y - h - 4, 4, 2);
+          ctx.fill();
+        }
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      roundRectPath(ctx, x0 + 6, y - h + 14, 6, h - 22, 3);
+      ctx.fill();
+      y -= h;
+    });
   }
 }
 

@@ -107,6 +107,9 @@
               <p class="note">Sur tablette, utilise les gros boutons sur les côtés. Une manette marche aussi&nbsp;!</p>
               <h3>Les blocs lutin</h3>
               <p class="row"><canvas data-icon="lutin" width="40"></canvas><span>Casse-les en tapant dessous avec la tête, ou saute dessus et appuie vers le bas. Ils cachent des surprises&nbsp;!</span></p>
+              <h3>Les badges</h3>
+              <p class="row"><canvas data-icon="badge-saut" width="36"></canvas><span><b>Super Saut</b>&nbsp;: accroupis-toi (↓) puis saute, beaucoup plus haut.</span></p>
+              <p class="row"><canvas data-icon="badge-grappin" width="36"></canvas><span><b>Moustache-Grappin</b>&nbsp;: près d'un anneau doré, appuie sur V, balance-toi puis saute&nbsp;!</span></p>
             </div>
             <div class="col">
               <h3>Les bonus</h3>
@@ -115,12 +118,11 @@
               <p class="row"><canvas data-icon="chips" width="40"></canvas><span><b>Chips au vinaigre</b>&nbsp;: 3 chips qui rendent les ennemis gros, lents et tout essoufflés.</span></p>
               <p class="row"><canvas data-icon="star" width="40"></canvas><span><b>Étoile</b>&nbsp;: invincible pendant 15 secondes&nbsp;!</span></p>
               <p class="row"><canvas data-icon="candy" width="34"></canvas><canvas data-icon="lollipop" width="34"></canvas><canvas data-icon="ball" width="34"></canvas><span>Ramasse les friandises&nbsp;: 100 = une vie en plus.</span></p>
+              <p class="row"><canvas data-icon="gem" width="40"></canvas><canvas data-icon="candyeye" width="40"></canvas><span><b>Minerai</b>&nbsp;: éclaire la grotte. <b>Œil bonbon</b>&nbsp;: une vie&nbsp;!</span></p>
               <h3>Attention&nbsp;!</h3>
               <p class="row"><canvas data-icon="eye" width="40"></canvas><canvas data-icon="rubik" width="40"></canvas><canvas data-icon="ladybug" width="40"></canvas><span>Saute sur la tête des ennemis pour les battre. Les points noirs des coccinelles s'écrasent aussi&nbsp;!</span></p>
+              <p class="row"><canvas data-icon="bat" width="40"></canvas><canvas data-icon="grumpy" width="40"></canvas><canvas data-icon="gummy" width="40"></canvas><span>Eux aussi, saute-leur sur la tête&nbsp;!</span></p>
               <p class="row"><canvas data-icon="lava" width="40"></canvas><canvas data-icon="thorn" width="40"></canvas><canvas data-icon="eclair" width="40"></canvas><span>Lave, ronces et éclairs au chocolat&nbsp;: ça fait mal&nbsp;!</span></p>
-              <h3>Les badges</h3>
-              <p class="row"><canvas data-icon="badge-saut" width="36"></canvas><span><b>Super Saut</b>&nbsp;: accroupis-toi (↓) puis saute, beaucoup plus haut.</span></p>
-              <p class="row"><canvas data-icon="badge-grappin" width="36"></canvas><span><b>Moustache-Grappin</b>&nbsp;: près d'un anneau doré, appuie sur V, balance-toi puis saute&nbsp;!</span></p>
             </div>
           </div>
           <button class="small" data-action="back">← Retour</button>
@@ -149,10 +151,11 @@
         <!-- Victoire -->
         <section class="screen" id="scr-victory">
           <h1 class="logo win"><span class="l2">Bravo&nbsp;!</span></h1>
-          <p class="tagline">Malice a sauvé le bébé oiseau&nbsp;!</p>
+          <p class="tagline" id="vic-msg">Malice a sauvé le bébé oiseau&nbsp;!</p>
           <p id="vic-stats" class="stats"></p>
           <div class="menu">
-            <button class="big" data-action="menu">Menu principal</button>
+            <button class="big" data-action="sequel" id="btn-sequel">Ramener le bébé oiseau chez lui ▶</button>
+            <button data-action="menu">Menu principal</button>
           </div>
           <p class="credits">Un jeu imaginé par Alice</p>
         </section>

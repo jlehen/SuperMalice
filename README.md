@@ -3,11 +3,12 @@
 Un jeu de plateforme imaginé par Alice.
 
 **Malice** (casquette rose, salopette rose, t-shirt blanc, cheveux blonds et grosse moustache noire)
-doit traverser 5 mondes pour sauver le **bébé oiseau** coincé sur un rocher au cœur du volcan.
+doit traverser 5 mondes pour sauver le **bébé oiseau** coincé sur un rocher au cœur du volcan…
+puis le ramener chez sa famille, au pays des bonbons !
 
 👉 **Jouer : https://jlehen.github.io/SuperMalice/**
 
-## Les 5 niveaux et les 2 stages d'entraînement
+## Les 8 niveaux et les 2 stages d'entraînement
 
 1. **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
 2. **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
@@ -16,6 +17,19 @@ doit traverser 5 mondes pour sauver le **bébé oiseau** coincé sur un rocher a
 4. **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    - ⭐ **Stage d'entraînement : le Défi de la Moustache-Grappin** → on gagne le badge *Moustache-Grappin*
 5. **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (il faut utiliser les deux badges)
+
+**Le retour à la maison** (débloqué quand on a sauvé le bébé oiseau) : le bébé oiseau voyage sur la casquette
+de Malice, pépie de temps en temps, et c'est lui qui donne les conseils.
+
+6. **La Grotte aux Cristaux** : il fait noir ! Les minerais (or, rubis, émeraude, topaze, diamant) éclairent
+   tout autour de Malice pendant un moment, de leur couleur. Champignons qui font rebondir,
+   stalactites qui tremblent puis tombent, chauves-souris qui dorment au plafond puis foncent sur Malice.
+7. **La Montagne des Nuages** : ponts arc-en-ciel, oiseaux grincheux qui volent en faisant des vagues,
+   et du vent qui souffle par rafales (les flèches blanches montrent où et dans quel sens).
+8. **Le Monde des Bonbons** : rivières de chocolat (on ne se brûle pas, on s'enfonce : vite, il faut sauter !),
+   guimauves qui font rebondir, oursons en gélatine qui sautent partout, et des gros yeux bonbons tout gentils
+   qui s'enfuient : si on en attrape un, une vie en plus et tous les cœurs ! Au bout, toute la famille oiseau
+   attend dans son nid, sur un gâteau géant.
 
 ## Les badges
 
@@ -69,7 +83,8 @@ Une manette de jeu fonctionne aussi.
   et surtout le caramel et les chips marchent pour toujours : un ennemi collé ou essoufflé le reste.
 - **Gentil** : vies illimitées, on repart du dernier drapeau.
 - **Classique** : 3 vies ; si on les perd toutes, on recommence le niveau.
-- **Difficile** : 3 vies ; si on les perd toutes, retour au tout début du jeu.
+- **Difficile** : 3 vies ; si on les perd toutes, retour au tout début du jeu
+  (pendant le retour à la maison : retour à la grotte).
 
 Les ennemis sont aussi un peu plus rapides en Classique et en Difficile.
 100 friandises (bonbons, sucettes, balles) donnent une vie en plus.
@@ -83,7 +98,7 @@ Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) 
 La légende est en haut du fichier (`#` = sol, `~` = lave, `E` = gros œil, `S` = bloc lutin avec une étoile…).
 Il suffit de modifier les lettres et de recharger la page.
 
-Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraînement : `index.html?stage=1`
+Pour tester directement un niveau : `index.html?niveau=3` (de 1 à 8), ou un stage d'entraînement : `index.html?stage=1`
 (on peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=difficile`).
 
 ## Pour les grands : comment c'est fait
@@ -103,7 +118,11 @@ Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraî
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |
+  | La Grotte aux Cristaux | do mineur, lent et mystérieux : la mélodie au célesta revient en écho, bourdon d'orgue, gouttes d'eau |
+  | La Montagne des Nuages | ballade planante en fa majeur, flûte de pan, harpe en arpèges, nappes de cordes, carillon à vent |
+  | Le Monde des Bonbons | polka de fête foraine : orgue de barbarie, tuba « oum-pa », glockenspiel, wood-blocks |
   | Victoire | marche triomphale en ré majeur, avec la vraie fin du morceau |
+  | La famille oiseau (grande fin) | chanson joyeuse en mi majeur, flûte et guitare ; les oisillons répondent en sifflant avec des trilles |
   | Étoile (invincible) | disco arc-en-ciel : la mélodie ne bouge pas, les accords changent sous elle, puis tout monte d'un ton |
 - Polices : Fredoka et Luckiest Guy (Google Fonts).
 - Le site est publié automatiquement sur GitHub Pages à chaque `git push` sur `main`
@@ -120,7 +139,7 @@ Pour tester directement un niveau : `index.html?niveau=3`, ou un stage d'entraî
 | `js/world.js` | Un niveau en cours : décor, collisions, caméra |
 | `js/entities.js` | Malice, ennemis, bonus, dangers |
 | `js/art.js` | Dessins des personnages et objets |
-| `js/scenery.js` | Dessins des décors des 5 mondes |
+| `js/scenery.js` | Dessins des décors de tous les mondes |
 | `js/audio.js` | Sons, instruments et lecteur de musique |
 | `js/music.js` | La partition du thème et ses variations |
 | `js/input.js` | Clavier, écran tactile, manette |

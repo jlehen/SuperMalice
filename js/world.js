@@ -1,7 +1,11 @@
 'use strict';
 
 const LUTIN_BLOCKS = 'LFKCS';
-const isSolidCh = (ch) => ch === '#' || ch === 'B' || LUTIN_BLOCKS.includes(ch);
+const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || LUTIN_BLOCKS.includes(ch);
+// plateformes qu'on traverse par dessous : planche, nuage… ou pont arc-en-ciel
+const isLedgeCh = (ch) => ch === '-' || ch === '=';
+// les minerais de la grotte, dans l'ordre de Art.GEMS : or, rubis, émeraude, topaze, diamant
+const GEM_CHARS = 'gretd';
 
 // Un niveau en cours de jeu : le décor, les personnages et tout ce qui bouge.
 class World {
@@ -23,6 +27,7 @@ class World {
     this.platforms = [];
     this.checkpoints = [];
     this.flowers = [];
+    this.critters = [];
     this.anchors = [];
     this.eclairs = [];
     this.particles = [];
@@ -37,6 +42,18 @@ class World {
     this.shakeY = 0;
     this.cam = { x: 0, y: 0 };
     this.look = 60;
+    // monde des bonbons : la lave est une rivière de chocolat
+    this.choco = def.theme === 'candy';
+    // grotte : il fait noir, sauf autour de Malice et de ce qui brille
+    this.dark = !!def.dark;
+    this.lightT = 0;
+    this.lightBoost = 0;
+    this.lightColor = '#ffffff';
+    this.lights = [];
+    // vent : [première colonne, dernière colonne, sens]
+    this.winds = (def.winds || []).map(([a, b, dir], i) => ({ a, b, dir, ph: i * 1.7, on: false }));
+    // champignons et guimauves qui s'écrasent quand on rebondit dessus
+    this.springs = new Map();
 
     let start = { x: 3 * TILE, y: 11 * TILE };
     const flowerSpots = [];
@@ -65,15 +82,27 @@ class World {
           case 'T': flowerSpots.push({ x: mx, y: by }); break;
           case '@': this.anchors.push(new Anchor(this, mx, y + TILE / 2)); break;
           case 'Z': this.goal = new BadgeGoal(this, mx, by, def.badge); break;
-          default: keep = true;
+          case 'X': this.goal = new FamilyGoal(this, mx, by); break;
+          case 'V': this.enemies.push(new Bat(this, mx - 20, y)); break;
+          case 'Y': this.enemies.push(new GrumpyBird(this, mx - 22, y + 6)); break;
+          case 'U': this.enemies.push(new GummyBear(this, mx - 17, by - 40)); break;
+          case 'Q': this.critters.push(new CandyEye(this, mx - 16, by - 34)); break;
+          case 'A': this.hazards.push(new Stalactite(this, x, y)); break;
+          default:
+            if (GEM_CHARS.includes(ch)) {
+              const it = new Item(this, 'gem', mx, y + TILE / 2);
+              it.gem = GEM_CHARS.indexOf(ch);
+              this.items.push(it);
+            } else keep = true;
         }
         if (!keep) this.tiles[r][c] = '.';
       }
     }
-    // les fleurs parlent dans l'ordre, de gauche à droite
+    // les fleurs parlent dans l'ordre, de gauche à droite (pendant le retour, c'est le bébé oiseau)
     flowerSpots.sort((a, b) => a.x - b.x);
     flowerSpots.forEach((f, i) => {
-      this.flowers.push(new TalkFlower(this, f.x, f.y, game.textFor((def.talk || [])[i] || '')));
+      const Talker = def.sequel ? BirdTip : TalkFlower;
+      this.flowers.push(new Talker(this, f.x, f.y, game.textFor((def.talk || [])[i] || '')));
     });
     if (checkpointIdx >= 0 && this.checkpoints[checkpointIdx]) {
       const cp = this.checkpoints[checkpointIdx];
@@ -135,7 +164,7 @@ class World {
       let tiles = [];
       for (let c = c0; c <= c1; c++) {
         const ch = this.tileAt(c, r);
-        if (isSolidCh(ch) || (ch === '-' && prevBottom <= r * T + 0.5)) tiles.push({ c, r, ch });
+        if (isSolidCh(ch) || (isLedgeCh(ch) && prevBottom <= r * T + 0.5)) tiles.push({ c, r, ch });
       }
       if (tiles.length && onFloorHit && onFloorHit(tiles)) {
         tiles = tiles.filter((t) => this.tileAt(t.c, t.r) !== '.');
@@ -170,14 +199,14 @@ class World {
     const below = this.tileAt(c, Math.floor((e.y + e.h + 4) / TILE));
     const at = this.tileAt(c, Math.floor((e.y + e.h - 4) / TILE));
     if (at === '^' || at === 'v') return false;
-    return isSolidCh(below) || below === '-';
+    return isSolidCh(below) || isLedgeCh(below);
   }
 
   surfaceBelow(x, fromY) {
     const c = Math.floor(x / TILE);
     for (let r = Math.max(0, Math.floor(fromY / TILE)); r < this.rows; r++) {
       const ch = this.tileAt(c, r);
-      if (isSolidCh(ch) || ch === '-') return r * TILE;
+      if (isSolidCh(ch) || isLedgeCh(ch)) return r * TILE;
       if (ch === '~') return r * TILE + 12;
     }
     return this.height + 200;
@@ -185,7 +214,8 @@ class World {
 
   inLava(b) {
     const y = b.y + b.h - 4;
-    const r = Math.floor(y / TILE);
+    // sous la dernière rangée, on est encore dedans (Malice s'enfonce dans le chocolat)
+    const r = Math.min(Math.floor(y / TILE), this.rows - 1);
     const c0 = Math.floor((b.x + 4) / TILE);
     const c1 = Math.floor((b.x + b.w - 4) / TILE);
     for (let c = c0; c <= c1; c++) {
@@ -327,6 +357,14 @@ class World {
         Sound.sfx.weapon();
         this.popText(cx, cy, 'Chips x3 !', '#b6ff7a', 22);
         break;
+      case 'gem': {
+        const gem = Art.GEMS[it.gem];
+        this.lightUp(gem.color);
+        Sound.sfx.gem(it.gem);
+        this.popText(cx, cy, gem.name + ' !', gem.color, 22);
+        this.spawn({ type: 'ring', x: cx, y: cy + it.h / 2, life: 0.5, size: 80, color: gem.color });
+        break;
+      }
       case 'star':
         p.star = this.diff.starTime;
         Sound.sfx.star();
@@ -387,15 +425,23 @@ class World {
     for (const ec of this.eclairs) ec.update(dt);
     for (const cp of this.checkpoints) cp.update(dt);
     for (const f of this.flowers) f.update(dt);
+    for (const ce of this.critters) ce.update(dt);
     for (const a of this.anchors) a.update(dt);
     if (this.goal) this.goal.update(dt);
+    if (this.def.sequel) p.birdTalk = this.flowers.reduce((m, f) => Math.max(m, f.show), 0);
     this.updateStorms(dt);
+    this.updateWinds(dt);
+    this.updateLight(dt);
+    for (const [k, v] of this.springs) {
+      if (v > 0.4) this.springs.delete(k); else this.springs.set(k, v + dt);
+    }
     if (!p.dead && !p.won) this.interactions();
     this.enemies = this.enemies.filter((e) => !e.dead);
     this.hazards = this.hazards.filter((h) => !h.dead);
     this.projectiles = this.projectiles.filter((h) => !h.dead);
     this.items = this.items.filter((h) => !h.dead);
     this.eclairs = this.eclairs.filter((h) => !h.dead);
+    this.critters = this.critters.filter((h) => !h.dead);
     this.updateParticles(dt);
     this.updateCamera(dt, false);
   }
@@ -438,8 +484,9 @@ class World {
       } else if (h instanceof BlackDot && stomps(h.y + 12)) {
         h.squash();
         p.bounceOff();
-      } else if (p.hurt(h, h.ouch) && h instanceof BlackDot) {
-        h.dead = true;
+      } else if (p.hurt(h, h.ouch)) {
+        if (h instanceof BlackDot) h.dead = true;
+        else if (h instanceof Stalactite) h.crash();
       }
     }
     for (const ec of this.eclairs) {
@@ -450,6 +497,93 @@ class World {
     if (th) p.hurt(th, th.ouch);
     for (const it of this.items) {
       if (!it.dead && it.appear <= 0 && overlap(pb, it)) this.collect(it);
+    }
+    for (const ce of this.critters) {
+      if (!ce.dead && overlap(pb, ce)) this.catchEye(ce);
+    }
+  }
+
+  // On a attrapé un gros œil bonbon : une vie en plus et tous les cœurs !
+  catchEye(ce) {
+    const p = this.player;
+    const cx = ce.cx;
+    const cy = ce.y;
+    ce.dead = true;
+    p.heal(this.game.energyMax);
+    this.game.extraLife(cx, cy - 10);
+    Sound.sfx.eyeCatch();
+    this.game.addScore(500);
+    for (let i = 0; i < 8; i++) {
+      this.spawn({ type: 'heart', x: cx + rand(-16, 16), y: cy + 10, vy: rand(-160, -60), vx: rand(-60, 60), life: 1, size: 1 });
+    }
+    for (let i = 0; i < 10; i++) {
+      this.spawn({ type: 'spark', x: cx, y: cy + 16, vx: rand(-180, 180), vy: rand(-200, 60), life: 0.5, size: rand(4, 7), color: choose(['#ff9fd8', '#fff59a', '#7fd3ff']) });
+    }
+  }
+
+  // ---------- Vent (montagne des nuages) ----------
+  // Le vent souffle par rafales : 3 secondes de vent, puis 2 secondes de calme.
+  gust(z) {
+    const k = (this.t + z.ph) % 5;
+    if (k > 3.4) return 0;
+    return Math.min(1, k / 0.4, (3.4 - k) / 0.4);
+  }
+
+  windZone(x) {
+    const col = x / TILE;
+    return this.winds.find((z) => col >= z.a && col < z.b + 1) || null;
+  }
+
+  // vitesse en plus (pixels par seconde) donnée par le vent ; plus forte en l'air
+  windPush(b) {
+    const z = this.windZone(b.x + b.w / 2);
+    if (!z) return 0;
+    return z.dir * this.gust(z) * (b.onGround ? 75 : 160) * this.diff.windK;
+  }
+
+  updateWinds(dt) {
+    const p = this.player;
+    for (const z of this.winds) {
+      const g = this.gust(z);
+      const x0 = z.a * TILE;
+      const x1 = (z.b + 1) * TILE;
+      const seen = x1 > this.cam.x - 100 && x0 < this.cam.x + VIEW_W + 100;
+      if (g > 0.5 && !z.on && seen && p.cx > x0 - 500 && p.cx < x1 + 300) Sound.sfx.wind();
+      z.on = g > 0.5;
+      if (!seen || g <= 0) continue;
+      // traînées de vent
+      if (Math.random() < dt * 30 * g) {
+        const x = z.dir > 0 ? Math.max(x0, this.cam.x) + rand(-40, 200) : Math.min(x1, this.cam.x + VIEW_W) - rand(-40, 200);
+        this.spawn({ type: 'wind', x, y: this.cam.y + rand(60, VIEW_H - 40), vx: z.dir * rand(420, 620), life: rand(0.5, 0.9), size: rand(30, 60), dir: z.dir });
+      }
+    }
+  }
+
+  // ---------- Champignons et guimauves ----------
+  springAt(c, r, big) {
+    this.springs.set(c + ',' + r, 0);
+    Sound.sfx.boing(big);
+    const cx = c * TILE + TILE / 2;
+    const cols = this.theme === 'candy' ? ['#ffffff', '#ffb3d9'] : ['#9ffcff', '#ffffff'];
+    for (let i = 0; i < (big ? 14 : 8); i++) {
+      this.spawn({ type: 'spark', x: cx + rand(-18, 18), y: r * TILE, vx: rand(-160, 160), vy: rand(-260, -60), life: 0.45, size: rand(3, 6), color: cols[i % 2] });
+    }
+    if (big) this.spawn({ type: 'ring', x: cx, y: r * TILE, life: 0.4, size: 60, color: 'rgba(255,255,255,0.9)' });
+  }
+
+  // ---------- Lumière (grotte) ----------
+  // Un minerai ramassé : la lumière autour de Malice grandit un moment, de la couleur du minerai.
+  lightUp(color) {
+    this.lightT = 12;
+    this.lightColor = color;
+  }
+
+  updateLight(dt) {
+    if (this.lightT > 0) {
+      this.lightT -= dt;
+      this.lightBoost = Math.min(1, this.lightBoost + dt * 2.5);
+    } else {
+      this.lightBoost = Math.max(0, this.lightBoost - dt / 1.5);
     }
   }
 
@@ -520,7 +654,9 @@ class World {
     Scenery.drawBackground(ctx, this.theme, this.cam.x, this.cam.y, this.t, this.flash);
     ctx.save();
     ctx.translate(-camX, -camY);
+    this.lights.length = 0;
     this.drawStormClouds(ctx);
+    this.drawWinds(ctx);
     this.drawDecor(ctx, camX);
     for (const f of this.flowers) f.draw(ctx);
     ctx.restore();
@@ -535,6 +671,9 @@ class World {
     for (const pl of this.platforms) pl.draw(ctx);
     for (const a of this.anchors) a.draw(ctx);
     for (const it of this.items) it.draw(ctx);
+    for (const ce of this.critters) {
+      if (this.onScreen(ce, 80)) ce.draw(ctx);
+    }
     for (const e of this.enemies) {
       if (e.x + e.w > camX - 80 && e.x < camX + VIEW_W + 80) e.draw(ctx);
     }
@@ -545,6 +684,7 @@ class World {
     if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);
     this.drawLava(ctx, camX, camY);
+    if (this.dark) this.drawDarkness(ctx, camX, camY);
     this.drawParticles(ctx);
     this.drawBubbles(ctx);
     ctx.restore();
@@ -575,12 +715,21 @@ class World {
           img = Scenery.lutinSprite();
         } else if (ch === '-') {
           img = Scenery.platformSprite(th, this.tileAt(c - 1, r) !== '-', this.tileAt(c + 1, r) !== '-');
+        } else if (ch === '=') {
+          img = Scenery.rainbowSprite(this.tileAt(c - 1, r) !== '=', this.tileAt(c + 1, r) !== '=');
+        } else if (ch === 'M') {
+          img = Scenery.bounceSprite(th);
         } else if (ch === '^' || ch === 'v') {
           img = Scenery.thornSprite(th, ch === 'v', Math.floor(hash2(c, r) * 3));
         }
         if (!img) continue;
         const dx = Math.round((c * T - pad - camX) * s);
-        const dy = Math.round((r * T - pad - camY) * s);
+        let dy = Math.round((r * T - pad - camY) * s);
+        if (ch === 'M' && this.springs.has(c + ',' + r)) {
+          // le champignon s'écrase puis reprend sa forme
+          const k = this.springs.get(c + ',' + r) / 0.4;
+          dy += Math.round(Math.sin(k * Math.PI) * (1 - k) * 12 * s);
+        }
         const dx2 = Math.round(((c + 1) * T + pad - camX) * s);
         const dy2 = Math.round(((r + 1) * T + pad - camY) * s);
         ctx.drawImage(img, dx, dy, dx2 - dx, dy2 - dy);
@@ -622,11 +771,16 @@ class World {
     for (let c = c0; c <= c1; c++) {
       for (let r = 1; r < this.rows; r++) {
         if (this.tiles[r][c] !== '#') continue;
+        // sous un plafond (grotte), on cherche le vrai sol plus bas
+        if (this.tiles[r - 1][c] === '#') continue;
         if (this.tiles[r - 1][c] !== '.') break;
         const h = hash2(c * 3.1, r * 1.7);
         if (h < 0.42) {
           const v = hash2(c, r + 9);
-          Scenery.decor(ctx, this.theme, c * TILE + 10 + h * 50, r * TILE + 2, v, this.t);
+          const x = c * TILE + 10 + h * 50;
+          Scenery.decor(ctx, this.theme, x, r * TILE + 2, v, this.t);
+          // les petits champignons de la grotte brillent dans le noir
+          if (this.dark && v < 0.5) this.lights.push({ x, y: r * TILE - 8, r: 46, a: 0.55 });
         }
         break;
       }
@@ -651,6 +805,7 @@ class World {
     const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / TILE) + 1);
     const r0 = Math.max(0, Math.floor(camY / TILE));
     const r1 = Math.min(this.rows - 1, Math.ceil((camY + VIEW_H) / TILE));
+    const run = this.choco ? Scenery.drawChocoRun : Scenery.drawLavaRun;
     for (let r = r0; r <= r1; r++) {
       let c = c0;
       while (c <= c1) {
@@ -660,9 +815,123 @@ class World {
         while (e + 1 <= c1 && this.tiles[r][e + 1] === '~' && (this.tileAt(e + 1, r - 1) !== '~') === surface) e++;
         let bottom = (r + 1) * TILE;
         if (r === this.rows - 1) bottom += 40;
-        Scenery.drawLavaRun(ctx, c * TILE, (e + 1) * TILE, r * TILE, surface, bottom, this.t);
+        run(ctx, c * TILE, (e + 1) * TILE, r * TILE, surface, bottom, this.t);
+        // dans le noir de la grotte, la lave éclaire
+        if (this.dark && surface) {
+          for (let k = c; k <= e; k++) this.lights.push({ x: k * TILE + TILE / 2, y: r * TILE + 10, r: 95, a: 0.7 });
+        }
         c = e + 1;
       }
+    }
+  }
+
+  // Petites flèches de vent qui défilent quand ça souffle.
+  drawWinds(ctx) {
+    for (const z of this.winds) {
+      const g = this.gust(z);
+      const x0 = z.a * TILE;
+      const x1 = (z.b + 1) * TILE;
+      if (g <= 0.02 || x1 < this.cam.x - 50 || x0 > this.cam.x + VIEW_W + 50) continue;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, this.cam.y, x1 - x0, VIEW_H);
+      ctx.clip();
+      ctx.strokeStyle = `rgba(255,255,255,${0.55 * g})`;
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const step = 150;
+      const off = ((this.t * 260 * z.dir) % step + step) % step;
+      for (let y = Math.floor(this.cam.y / 110) * 110 + 50; y < this.cam.y + VIEW_H; y += 110) {
+        const shift = (Math.floor(y / 110) % 2) * 75;
+        for (let x = x0 - step + off + shift; x < x1 + step; x += step) {
+          ctx.beginPath();
+          ctx.moveTo(x - z.dir * 9, y - 10);
+          ctx.lineTo(x + z.dir * 3, y);
+          ctx.lineTo(x - z.dir * 9, y + 10);
+          ctx.moveTo(x + z.dir * 5, y - 10);
+          ctx.lineTo(x + z.dir * 17, y);
+          ctx.lineTo(x + z.dir * 5, y + 10);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+  }
+
+  // Le noir de la grotte : on ne voit qu'autour de Malice et de ce qui brille.
+  drawDarkness(ctx, camX, camY) {
+    const p = this.player;
+    const s = this.game.scale;
+    const cw = ctx.canvas.width;
+    const chh = ctx.canvas.height;
+    if (!this.darkCv) this.darkCv = document.createElement('canvas');
+    const cv = this.darkCv;
+    if (cv.width !== cw || cv.height !== chh) {
+      cv.width = cw;
+      cv.height = chh;
+    }
+    const g = cv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+    g.clearRect(0, 0, cw, chh);
+    g.fillStyle = 'rgba(10,5,28,0.92)';
+    g.fillRect(0, 0, cw, chh);
+    g.setTransform(s, 0, 0, s, -camX * s, -camY * s);
+    g.globalCompositeOperation = 'destination-out';
+    const R = this.diff.darkR + this.lightBoost * 170 + Math.sin(this.t * 7) * 3;
+    const L = this.lights;
+    L.push({ x: p.cx, y: p.cy - 6, r: R, a: 1 });
+    const T = TILE;
+    const c0 = Math.max(0, Math.floor(camX / T) - 2);
+    const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / T) + 2);
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = c0; c <= c1; c++) {
+        const ch = this.tiles[r][c];
+        if (ch === 'M') L.push({ x: c * T + T / 2, y: r * T + 14, r: 120, a: 0.85 });
+        else if (LUTIN_BLOCKS.includes(ch)) L.push({ x: c * T + T / 2, y: r * T + T / 2, r: 60, a: 0.5 });
+      }
+    }
+    for (const it of this.items) {
+      // les friandises restent dans le noir ; les minerais et les bonus brillent
+      if (it.kind === 'candy' || it.kind === 'lollipop' || it.kind === 'ball' || !this.onScreen(it, 80)) continue;
+      L.push({ x: it.x + it.w / 2, y: it.y + it.h / 2, r: it.kind === 'gem' ? 75 : 55, a: it.kind === 'gem' ? 0.9 : 0.65 });
+    }
+    for (const h of this.hazards) {
+      // le bout en cristal des stalactites brille : on les voit venir
+      if (h instanceof Stalactite && this.onScreen(h, 80)) L.push({ x: h.x + h.w / 2, y: h.y + h.h - 10, r: h.state === 'hang' ? 52 : 70, a: 0.75 });
+    }
+    for (const cp of this.checkpoints) {
+      if (Math.abs(cp.x - p.cx) < VIEW_W) L.push({ x: cp.x + 10, y: cp.y - 70, r: cp.active ? 130 : 90, a: 0.75 });
+    }
+    if (this.goal) L.push({ x: this.goal.x + 20, y: this.goal.y - 110, r: 180, a: 0.9 });
+    for (const e of this.enemies) {
+      // les chauves-souris réveillées ont les yeux qui brillent un peu
+      if (e instanceof Bat && e.state !== 'sleep' && !e.dying && this.onScreen(e)) L.push({ x: e.cx, y: e.cy, r: 42, a: 0.45 });
+    }
+    for (const l of L) {
+      const gr = g.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r);
+      gr.addColorStop(0, `rgba(0,0,0,${l.a})`);
+      gr.addColorStop(0.55, `rgba(0,0,0,${l.a * 0.8})`);
+      gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr;
+      g.fillRect(l.x - l.r, l.y - l.r, l.r * 2, l.r * 2);
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(cv, 0, 0);
+    ctx.restore();
+    // la lumière d'un minerai a sa couleur
+    if (this.lightBoost > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.22 * this.lightBoost;
+      const gl = ctx.createRadialGradient(p.cx, p.cy, 10, p.cx, p.cy, R);
+      gl.addColorStop(0, this.lightColor);
+      gl.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gl;
+      ctx.fillRect(p.cx - R, p.cy - R, R * 2, R * 2);
+      ctx.restore();
     }
   }
 
@@ -731,6 +1000,28 @@ class World {
         case 'text':
           drawOutlinedText(ctx, q.text, q.x, q.y, q.size, q.color);
           break;
+        case 'note':
+          // note de musique : contour fin pour que la couleur se voie bien
+          ctx.font = `700 ${q.size}px Fredoka, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+          ctx.strokeText(q.text, q.x, q.y);
+          ctx.fillStyle = q.color;
+          ctx.fillText(q.text, q.x, q.y);
+          break;
+        case 'wind': {
+          ctx.globalAlpha = Math.min(1, a * 2) * 0.7;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2.5;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(q.x, q.y);
+          ctx.quadraticCurveTo(q.x - q.dir * q.size * 0.5, q.y - 5, q.x - q.dir * q.size, q.y);
+          ctx.stroke();
+          break;
+        }
         default: break;
       }
       ctx.restore();

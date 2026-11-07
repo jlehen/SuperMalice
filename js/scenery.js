@@ -1,6 +1,6 @@
 'use strict';
 
-// Décors : cases du sol, blocs, plateformes, ronces, lave et arrière-plans des 5 mondes.
+// Décors : cases du sol, blocs, plateformes, ronces, lave et arrière-plans de tous les mondes.
 const Scenery = (() => {
   const TAU = Math.PI * 2;
   const PAD = 8;
@@ -47,6 +47,30 @@ const Scenery = (() => {
       brick: '#4f3b44', brickDark: '#2a1d24', brickLight: '#76606b', glow: true,
       plat: '#5b4650', platDark: '#2f2329', platLight: '#86707b', ember: true,
       bramble: '#4a2030', brambleDark: '#12060a', thorn: '#ffd27a',
+    },
+    // la grotte : roche violette, petits cristaux qui brillent sur le dessus
+    cave: {
+      dirt: '#4b4062', dirtDark: '#30283f', dirtLight: '#66597f', stripe: 'rgba(20,10,40,0.25)',
+      top: '#6f6394', topDark: '#463c64', topLight: '#9a8cc4', blades: false, crystals: true,
+      brick: '#6a6283', brickDark: '#3e3756', brickLight: '#9b93b8',
+      plat: '#a5764a', platDark: '#6a4a2a', platLight: '#d4a26c',
+      bramble: '#5a3a7a', brambleDark: '#22102e', thorn: '#bff6ff',
+    },
+    // la montagne des nuages : le sol est fait de nuages tout doux
+    sky: {
+      dirt: '#e9f0ff', dirtDark: '#bccbef', dirtLight: '#ffffff', stripe: 'rgba(150,170,220,0.16)',
+      top: '#ffffff', topDark: '#d9e4ff', topLight: '#ffffff', blades: false, fluffy: true,
+      brick: '#ffd56a', brickDark: '#d99a2a', brickLight: '#fff0b0',
+      plat: '#ffffff', platDark: '#c9d6f5', platLight: '#ffffff', cloud: true,
+      bramble: '#6a5ab0', brambleDark: '#2a2060', thorn: '#ffffff',
+    },
+    // le monde des bonbons : biscuit, nappage rose, tablettes de chocolat et sucres d'orge
+    candy: {
+      dirt: '#e2a65e', dirtDark: '#b8773a', dirtLight: '#f5c886', stripe: 'rgba(150,80,20,0.12)',
+      top: '#ff8fc8', topDark: '#e0559e', topLight: '#ffd6ec', blades: false, cream: true, biscuit: true,
+      brick: '#7a4428', brickDark: '#4a2410', brickLight: '#a0603c', choco: true,
+      plat: '#ffffff', platDark: '#e0c8d8', platLight: '#ffffff', candyCane: true,
+      bramble: '#3a2030', brambleDark: '#140810', thorn: '#ff6fb0',
     },
   };
 
@@ -111,7 +135,7 @@ const Scenery = (() => {
     }
     // strates
     g.fillStyle = th.stripe;
-    for (const sy of [12, 36]) {
+    for (const sy of th.fluffy ? [] : [12, 36]) {
       g.beginPath();
       g.moveTo(0, sy);
       for (let x = 0; x <= T; x += 8) g.lineTo(x, sy + Math.sin((x / T) * TAU) * 2.5);
@@ -119,8 +143,35 @@ const Scenery = (() => {
       g.closePath();
       g.fill();
     }
+    if (th.fluffy) {
+      // nuage : de grosses boules toutes douces
+      for (let i = 0; i < 4; i++) {
+        const px = 6 + hash(v * 5.3 + i) * 36;
+        const py = (m.t ? 18 : 4) + hash(v * 9.7 + i * 2) * (m.t ? 24 : 38);
+        const r = 7 + hash(v * 3.1 + i * 5) * 6;
+        g.fillStyle = th.stripe;
+        circlePath(g, px, py + 2, r);
+        g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.7)';
+        circlePath(g, px - 1, py, r * 0.8);
+        g.fill();
+      }
+    } else if (th.biscuit) {
+      // biscuit : des petits trous bien rangés
+      for (let i = 0; i < 4; i++) {
+        const px = 12 + (i % 2) * 24 + (Math.floor(i / 2) % 2) * 6 - 3;
+        const py = (m.t ? 24 : 12) + Math.floor(i / 2) * 16;
+        if (py > T - 4) continue;
+        g.fillStyle = th.dirtDark;
+        circlePath(g, px, py, 2.4);
+        g.fill();
+        g.fillStyle = th.dirtLight;
+        circlePath(g, px - 0.6, py - 1.2, 1.1);
+        g.fill();
+      }
+    }
     // cailloux
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < (th.fluffy || th.biscuit ? 0 : 3); i++) {
       const px = 7 + hash(v * 5.3 + i) * 34;
       const py = (m.t ? 20 : 6) + hash(v * 9.7 + i * 2) * (m.t ? 22 : 36);
       const r = 2.5 + hash(v * 3.1 + i * 5) * 3;
@@ -184,6 +235,23 @@ const Scenery = (() => {
       g.stroke();
       return;
     }
+    if (th.fluffy) {
+      // dessus de nuage tout bosselé
+      g.fillStyle = th.topDark;
+      for (let i = 0; i < 4; i++) {
+        const bx = lipL + 6 + i * ((lipR - lipL - 12) / 3);
+        circlePath(g, bx, 4, 9 + hash(v + i) * 2);
+        g.fill();
+      }
+      g.fillStyle = th.top;
+      for (let i = 0; i < 4; i++) {
+        const bx = lipL + 6 + i * ((lipR - lipL - 12) / 3);
+        circlePath(g, bx, 1.5, 8.5 + hash(v + i) * 2);
+        g.fill();
+      }
+      g.fillRect(lipL + 2, 0, lipR - lipL - 4, 9);
+      return;
+    }
     const gr = g.createLinearGradient(0, -4, 0, 16);
     gr.addColorStop(0, th.topLight);
     gr.addColorStop(0.35, th.top);
@@ -227,6 +295,39 @@ const Scenery = (() => {
         circlePath(g, 10 + i * 24 + hash(v + i) * 6, 2, 1.6);
         g.fill();
       }
+    }
+    if (th.biscuit) {
+      // vermicelles de toutes les couleurs sur le nappage
+      const cols = ['#ffffff', '#7fd3ff', '#ffe14d', '#7dff9a', '#b06bff'];
+      g.lineCap = 'round';
+      g.lineWidth = 2.2;
+      for (let i = 0; i < 4; i++) {
+        const sx = 6 + hash(v * 4.1 + i * 3) * 36;
+        const sy = 2 + hash(v * 7.3 + i) * 6;
+        const a = hash(v * 2.2 + i * 7) * Math.PI;
+        g.strokeStyle = cols[(i + v) % cols.length];
+        g.beginPath();
+        g.moveTo(sx - Math.cos(a) * 2.5, sy - Math.sin(a) * 2.5);
+        g.lineTo(sx + Math.cos(a) * 2.5, sy + Math.sin(a) * 2.5);
+        g.stroke();
+      }
+    }
+    if (th.crystals && hash(v * 3.7) < 0.6) {
+      // petits cristaux qui poussent sur la roche
+      const cx = 8 + hash(v * 6.1) * 30;
+      const cols = ['#7ff0ff', '#ff9fd8', '#c9a6ff', '#ffe680'];
+      g.fillStyle = cols[v % cols.length];
+      for (let k = -1; k <= 1; k++) {
+        const h = k === 0 ? 11 : 7;
+        g.beginPath();
+        g.moveTo(cx + k * 4 - 2.5, 1);
+        g.lineTo(cx + k * 5, -h);
+        g.lineTo(cx + k * 4 + 2.5, 1);
+        g.closePath();
+        g.fill();
+      }
+      g.fillStyle = 'rgba(255,255,255,0.7)';
+      g.fillRect(cx - 0.8, -8, 1.4, 6);
     }
   }
 
@@ -272,6 +373,27 @@ const Scenery = (() => {
           circlePath(g, cx, cy, 2);
           g.fill();
         }
+        return;
+      }
+      if (th.choco) {
+        // carreau de tablette de chocolat
+        for (let i = 0; i < 4; i++) {
+          const x0 = 3 + (i % 2) * 21;
+          const y0 = 3 + Math.floor(i / 2) * 21;
+          const gr = g.createLinearGradient(x0, y0, x0 + 20, y0 + 20);
+          gr.addColorStop(0, th.brickLight);
+          gr.addColorStop(0.5, th.brick);
+          gr.addColorStop(1, th.brickDark);
+          g.fillStyle = gr;
+          roundRectPath(g, x0, y0, 19, 19, 3);
+          g.fill();
+          g.fillStyle = th.brick;
+          roundRectPath(g, x0 + 4, y0 + 4, 11, 11, 2);
+          g.fill();
+        }
+        g.fillStyle = 'rgba(255,255,255,0.25)';
+        roundRectPath(g, 5, 4, T - 10, 2.5, 1.2);
+        g.fill();
         return;
       }
       const rows = 3;
@@ -398,6 +520,32 @@ const Scenery = (() => {
         }
         return;
       }
+      if (th.candyCane) {
+        // sucre d'orge rayé rose et blanc
+        g.save();
+        cornerRect(g, x0, 1, x1 - x0, 15, l ? 7.5 : 0, r ? 7.5 : 0, r ? 7.5 : 0, l ? 7.5 : 0);
+        g.clip();
+        g.fillStyle = '#ffffff';
+        g.fillRect(x0, 0, x1 - x0, 18);
+        g.fillStyle = '#ff4f8a';
+        for (let sx = -16; sx < T + 16; sx += 14) {
+          g.beginPath();
+          g.moveTo(sx, 16);
+          g.lineTo(sx + 6, 16);
+          g.lineTo(sx + 14, 0);
+          g.lineTo(sx + 8, 0);
+          g.closePath();
+          g.fill();
+        }
+        const sh = g.createLinearGradient(0, 1, 0, 16);
+        sh.addColorStop(0, 'rgba(255,255,255,0.5)');
+        sh.addColorStop(0.4, 'rgba(255,255,255,0)');
+        sh.addColorStop(1, 'rgba(120,20,60,0.3)');
+        g.fillStyle = sh;
+        g.fillRect(x0, 0, x1 - x0, 18);
+        g.restore();
+        return;
+      }
       if (th.ember) {
         g.fillStyle = th.platDark;
         cornerRect(g, x0, 0, x1 - x0, 16, l ? 6 : 0, r ? 6 : 0, r ? 6 : 0, l ? 6 : 0);
@@ -441,6 +589,108 @@ const Scenery = (() => {
       }
       g.fillStyle = 'rgba(255,255,255,0.4)';
       roundRectPath(g, x0 + 4, 2, x1 - x0 - 8, 2.5, 1.2);
+      g.fill();
+    });
+  }
+
+  // ---------- Pont arc-en-ciel (on marche dessus, on le traverse par dessous) ----------
+  const RAINBOW = ['#ff4f6a', '#ff9a3a', '#ffe14d', '#5fd44a', '#4fb8ff', '#8a6bff'];
+
+  function rainbowSprite(l, r) {
+    return sprite(`rb:${l | 0}${r | 0}`, TILE + PAD * 2, TILE + PAD * 2, (g) => {
+      const T = TILE;
+      g.translate(PAD, PAD);
+      const x0 = l ? 4 : -1;
+      const x1 = r ? T - 4 : T + 1;
+      g.save();
+      cornerRect(g, x0, 0, x1 - x0, 18, l ? 6 : 0, r ? 6 : 0, r ? 6 : 0, l ? 6 : 0);
+      g.clip();
+      RAINBOW.forEach((c, i) => {
+        g.fillStyle = c;
+        g.fillRect(x0, i * 3, x1 - x0, 3.2);
+      });
+      g.fillStyle = 'rgba(255,255,255,0.45)';
+      g.fillRect(x0, 0, x1 - x0, 1.6);
+      g.restore();
+      // petits nuages au bout du pont
+      for (const [on, cx] of [[l, x0 + 2], [r, x1 - 2]]) {
+        if (!on) continue;
+        g.fillStyle = '#d9e4ff';
+        circlePath(g, cx, 14, 8);
+        g.fill();
+        g.fillStyle = '#ffffff';
+        circlePath(g, cx - 3, 10, 7);
+        g.fill();
+        circlePath(g, cx + 4, 12, 6);
+        g.fill();
+      }
+    });
+  }
+
+  // ---------- Bloc qui fait rebondir : champignon (grotte) ou guimauve (bonbons) ----------
+  function bounceSprite(theme) {
+    return sprite(`m:${theme}`, TILE + PAD * 2, TILE + PAD * 2, (g) => {
+      const T = TILE;
+      g.translate(PAD, PAD);
+      if (theme === 'candy') {
+        // gros coussin de guimauve rose et blanc
+        const gr = g.createLinearGradient(0, 0, 0, T);
+        gr.addColorStop(0, '#ffffff');
+        gr.addColorStop(0.5, '#ffe0f0');
+        gr.addColorStop(1, '#f2b3d3');
+        g.fillStyle = gr;
+        roundRectPath(g, 1, 2, T - 2, T - 3, 16);
+        g.fill();
+        g.strokeStyle = '#e48ab8';
+        g.lineWidth = 2;
+        g.stroke();
+        g.save();
+        roundRectPath(g, 1, 2, T - 2, T - 3, 16);
+        g.clip();
+        g.fillStyle = 'rgba(255,120,180,0.45)';
+        for (let sx = -30; sx < T + 10; sx += 18) {
+          g.beginPath();
+          g.moveTo(sx, T);
+          g.lineTo(sx + 8, T);
+          g.lineTo(sx + 32, 0);
+          g.lineTo(sx + 24, 0);
+          g.closePath();
+          g.fill();
+        }
+        g.restore();
+        g.fillStyle = 'rgba(255,255,255,0.85)';
+        ellipsePath(g, 15, 9, 9, 3.5, -0.2);
+        g.fill();
+        return;
+      }
+      // champignon lumineux : gros chapeau à pois, pied blanc
+      g.fillStyle = '#efe6d6';
+      roundRectPath(g, T / 2 - 8, T * 0.45, 16, T * 0.55, 6);
+      g.fill();
+      g.strokeStyle = '#b7a68a';
+      g.lineWidth = 1.5;
+      g.stroke();
+      const cap = g.createRadialGradient(T / 2 - 6, 8, 3, T / 2, 14, 28);
+      cap.addColorStop(0, '#9ffcff');
+      cap.addColorStop(0.5, '#36c9e8');
+      cap.addColorStop(1, '#1a6fa8');
+      g.fillStyle = cap;
+      g.beginPath();
+      g.moveTo(-2, T * 0.55);
+      g.bezierCurveTo(-4, -4, T + 4, -4, T + 2, T * 0.55);
+      g.quadraticCurveTo(T / 2, T * 0.42, -2, T * 0.55);
+      g.closePath();
+      g.fill();
+      g.strokeStyle = '#124a7a';
+      g.lineWidth = 1.6;
+      g.stroke();
+      g.fillStyle = '#ffffff';
+      for (const [px, py, pr] of [[12, 13, 4.5], [27, 8, 5], [38, 17, 3.5], [21, 20, 3]]) {
+        circlePath(g, px, py, pr);
+        g.fill();
+      }
+      g.fillStyle = 'rgba(255,255,255,0.6)';
+      ellipsePath(g, 12, 5, 6, 2.5, -0.4);
       g.fill();
     });
   }
@@ -549,6 +799,54 @@ const Scenery = (() => {
       gl.addColorStop(1, 'rgba(255,140,40,0.35)');
       ctx.fillStyle = gl;
       ctx.fillRect(x0, y - 40, x1 - x0, 52);
+    }
+  }
+
+  // ---------- Rivière de chocolat ----------
+  function drawChocoRun(ctx, x0, x1, y, surface, bottom, t) {
+    const g = ctx.createLinearGradient(0, y, 0, bottom);
+    g.addColorStop(0, '#a8643a');
+    g.addColorStop(0.15, '#7a4224');
+    g.addColorStop(1, '#4a2410');
+    ctx.fillStyle = g;
+    const wave = (x) => y + 12 + Math.sin(x * 0.05 + t * 1.6) * 2.5 + Math.sin(x * 0.11 - t) * 1.5;
+    ctx.beginPath();
+    if (surface) {
+      ctx.moveTo(x0, bottom);
+      for (let x = x0; x <= x1 + 0.1; x += 6) ctx.lineTo(x, wave(x));
+      ctx.lineTo(x1, bottom);
+    } else {
+      ctx.rect(x0, y, x1 - x0, bottom - y);
+    }
+    ctx.fill();
+    if (!surface) return;
+    // reflet brillant
+    ctx.strokeStyle = 'rgba(255,220,180,0.55)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let x = x0; x <= x1 + 0.1; x += 6) {
+      if (x === x0) ctx.moveTo(x, wave(x) + 1); else ctx.lineTo(x, wave(x) + 1);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,240,220,0.35)';
+    ctx.lineWidth = 2;
+    for (let c = Math.floor(x0 / TILE); c < Math.ceil(x1 / TILE); c++) {
+      const sx = c * TILE + 8 + hash(c * 2.3) * 20;
+      const k = (t * 0.4 + hash(c)) % 1;
+      ctx.beginPath();
+      ctx.moveTo(sx + k * 10, wave(sx) + 8);
+      ctx.lineTo(sx + 14 + k * 10, wave(sx) + 8);
+      ctx.stroke();
+    }
+    // grosses bulles qui font « blop »
+    for (let c = Math.floor(x0 / TILE); c < Math.ceil(x1 / TILE); c++) {
+      const ph = (t * 0.45 + hash(c * 3.3)) % 1;
+      if (ph < 0.35) {
+        const bx = c * TILE + 10 + hash(c * 1.7) * 28;
+        ctx.fillStyle = `rgba(150,85,50,${1 - ph * 2.5})`;
+        ellipsePath(ctx, bx, wave(bx) + 2, 3 + ph * 14, 2 + ph * 8);
+        ctx.fill();
+      }
     }
   }
 
@@ -999,6 +1297,288 @@ const Scenery = (() => {
         ctx.fill();
       }
     },
+
+    // La grotte : parois violettes, cristaux qui brillent au fond, stalactites et vers luisants.
+    cave(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#140c26'], [0.5, '#24183e'], [1, '#1a1030']]);
+      // paroi du fond avec des grappes de cristaux
+      const off1 = cx * 0.1;
+      forEachItem(off1, 230, 51, (x, i, h) => {
+        const by = 470 - cy * 0.08;
+        const w = 110 + h * 80;
+        ctx.fillStyle = '#2c2148';
+        ctx.beginPath();
+        ctx.moveTo(x - w, by + 80);
+        ctx.lineTo(x - w * 0.7, by - 120 - h * 90);
+        ctx.lineTo(x - w * 0.1, by - 170 - h * 120);
+        ctx.lineTo(x + w * 0.5, by - 130 - h * 60);
+        ctx.lineTo(x + w, by + 80);
+        ctx.closePath();
+        ctx.fill();
+        const cols = ['127,240,255', '255,159,216', '201,166,255', '255,230,128'];
+        const col = cols[i & 3];
+        const a = 0.45 + 0.25 * Math.sin(t * 1.5 + i * 2);
+        const gx = x - w * 0.2 + h * 40;
+        const gy = by - 60 - h * 50;
+        const gl = ctx.createRadialGradient(gx, gy, 2, gx, gy, 60);
+        gl.addColorStop(0, `rgba(${col},${a * 0.5})`);
+        gl.addColorStop(1, `rgba(${col},0)`);
+        ctx.fillStyle = gl;
+        circlePath(ctx, gx, gy, 60);
+        ctx.fill();
+        ctx.fillStyle = `rgba(${col},${a + 0.2})`;
+        for (let k = -1; k <= 1; k++) {
+          const ch = 26 - Math.abs(k) * 9;
+          ctx.beginPath();
+          ctx.moveTo(gx + k * 9 - 5, gy + 10);
+          ctx.lineTo(gx + k * 11, gy + 10 - ch);
+          ctx.lineTo(gx + k * 9 + 5, gy + 10);
+          ctx.closePath();
+          ctx.fill();
+        }
+      });
+      // stalactites et stalagmites
+      const off2 = cx * 0.3;
+      forEachItem(off2, 110, 53, (x, i, h) => {
+        const len = 60 + h * 120;
+        ctx.fillStyle = '#3a2d5a';
+        ctx.beginPath();
+        ctx.moveTo(x - 26, -cy * 0.2 - 10);
+        ctx.quadraticCurveTo(x - 6, len * 0.5 - cy * 0.2, x, len - cy * 0.2);
+        ctx.quadraticCurveTo(x + 6, len * 0.5 - cy * 0.2, x + 26, -cy * 0.2 - 10);
+        ctx.closePath();
+        ctx.fill();
+        if (h < 0.55) {
+          const sh = 50 + h * 110;
+          const by = 520 - cy * 0.25;
+          ctx.beginPath();
+          ctx.moveTo(x + 40, by + 40);
+          ctx.quadraticCurveTo(x + 52, by - sh * 0.5, x + 58, by - sh);
+          ctx.quadraticCurveTo(x + 64, by - sh * 0.5, x + 76, by + 40);
+          ctx.closePath();
+          ctx.fill();
+        }
+      });
+      ctx.fillStyle = '#3a2d5a';
+      ctx.fillRect(0, -10, VIEW_W, 12 - cy * 0.2);
+      // vers luisants qui pendent au plafond
+      const off3 = cx * 0.55;
+      forEachItem(off3, 80, 57, (x, i, h) => {
+        if (h > 0.55) return;
+        const len = 40 + h * 150;
+        ctx.strokeStyle = 'rgba(160,220,255,0.25)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, -cy * 0.4);
+        ctx.lineTo(x + Math.sin(t + i) * 3, len - cy * 0.4);
+        ctx.stroke();
+        const a = 0.5 + 0.4 * Math.sin(t * 2.3 + i * 1.7);
+        ctx.fillStyle = `rgba(150,240,255,${a})`;
+        circlePath(ctx, x + Math.sin(t + i) * 3, len - cy * 0.4, 2.6);
+        ctx.fill();
+      });
+    },
+
+    // La montagne des nuages : grand ciel, sommets qui dépassent d'une mer de nuages, arc-en-ciel au loin.
+    sky(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#4aa6ff'], [0.5, '#a8dcff'], [1, '#fff3e0']]);
+      // soleil
+      const sx = 150;
+      const sy = 95 - cy * 0.04;
+      const sg = ctx.createRadialGradient(sx, sy, 10, sx, sy, 90);
+      sg.addColorStop(0, '#fffde8');
+      sg.addColorStop(0.4, 'rgba(255,240,150,0.9)');
+      sg.addColorStop(1, 'rgba(255,240,150,0)');
+      ctx.fillStyle = sg;
+      circlePath(ctx, sx, sy, 90);
+      ctx.fill();
+      // grand arc-en-ciel très loin
+      const rx = 700 - ((cx * 0.03) % 1800);
+      ctx.save();
+      ctx.globalAlpha = 0.28;
+      ctx.lineWidth = 12;
+      RAINBOW.forEach((c, i) => {
+        ctx.strokeStyle = c;
+        ctx.beginPath();
+        ctx.arc(rx, 470 - cy * 0.05, 330 - i * 12, Math.PI, 0);
+        ctx.stroke();
+      });
+      ctx.restore();
+      // sommets enneigés
+      const off1 = cx * 0.08;
+      forEachItem(off1, 330, 71, (x, i, h) => {
+        const mh = 170 + h * 120;
+        const by = 430 - cy * 0.08;
+        ctx.fillStyle = '#8ea2d8';
+        ctx.beginPath();
+        ctx.moveTo(x - mh * 0.8, by);
+        ctx.lineTo(x - 12, by - mh);
+        ctx.quadraticCurveTo(x, by - mh - 8, x + 12, by - mh);
+        ctx.lineTo(x + mh * 0.8, by);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(x - mh * 0.26, by - mh * 0.68);
+        ctx.lineTo(x - 12, by - mh);
+        ctx.quadraticCurveTo(x, by - mh - 8, x + 12, by - mh);
+        ctx.lineTo(x + mh * 0.26, by - mh * 0.68);
+        ctx.quadraticCurveTo(x + 8, by - mh * 0.6, x, by - mh * 0.7);
+        ctx.quadraticCurveTo(x - 8, by - mh * 0.62, x - mh * 0.26, by - mh * 0.68);
+        ctx.fill();
+      });
+      // petites îles qui flottent
+      forEachItem(cx * 0.16, 420, 73, (x, i, h) => {
+        const y = 170 + h * 110 + Math.sin(t * 0.7 + i) * 6 - cy * 0.1;
+        ctx.fillStyle = '#9a7a8a';
+        ctx.beginPath();
+        ctx.moveTo(x - 40, y);
+        ctx.quadraticCurveTo(x, y + 50, x + 40, y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#7fdc5a';
+        roundRectPath(ctx, x - 42, y - 6, 84, 10, 5);
+        ctx.fill();
+        roundTree(ctx, x + 12 - h * 20, y - 2, 34, '#9a6a3a', '#4fcf5a', '#2fa34a');
+      });
+      // oiseaux au loin
+      ctx.strokeStyle = 'rgba(60,80,140,0.45)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const bx = ((hash(i + 40) * 1400 + t * (20 + i * 4) - cx * 0.05) % 1100 + 1100) % 1100 - 60;
+        const by = 80 + hash(i + 44) * 120 + Math.sin(t + i) * 8;
+        const f = Math.sin(t * 6 + i) * 4;
+        ctx.beginPath();
+        ctx.moveTo(bx - 8, by - f);
+        ctx.quadraticCurveTo(bx - 3, by - 4, bx, by);
+        ctx.quadraticCurveTo(bx + 3, by - 4, bx + 8, by - f);
+        ctx.stroke();
+      }
+      // nuages qui passent
+      forEachItem(cx * 0.12 - t * 10, 300, 75, (x, i, h) => fluffyCloud(ctx, x, 60 + h * 140 - cy * 0.06, 0.7 + h * 0.6, '#ffffff', '#d8e6ff'));
+      // mer de nuages, tout en bas : bleutée pour qu'on voie bien les trous entre les nuages du sol
+      const off2 = cx * 0.3;
+      hillPath(ctx, off2, 430 - cy * 0.2, 26, 0.02, 1.7, 12);
+      ctx.fillStyle = '#d4e0fa';
+      ctx.fill();
+      const deep = ctx.createLinearGradient(0, 450 - cy * 0.45, 0, VIEW_H);
+      deep.addColorStop(0, '#a9bdf0');
+      deep.addColorStop(1, '#6f86d6');
+      const off3 = cx * 0.55;
+      hillPath(ctx, off3, 470 - cy * 0.45, 22, 0.025, 3.1, 12);
+      ctx.fillStyle = deep;
+      ctx.fill();
+    },
+
+    // Le monde des bonbons : montagnes de boules de gomme, sucettes géantes, cornets de glace, collines en chocolat.
+    candy(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#ff9fd0'], [0.5, '#ffd3ea'], [1, '#fff0d8']]);
+      // nuages en barbe à papa
+      forEachItem(cx * 0.06 - t * 6, 320, 81, (x, i, h) => fluffyCloud(ctx, x, 60 + h * 100 - cy * 0.05, 0.8 + h * 0.5, h < 0.5 ? '#ffe0f2' : '#dcefff', h < 0.5 ? '#ffb8dd' : '#b8dcff'));
+      // montagnes de boules de gomme
+      const off1 = cx * 0.1;
+      const gum = ['#ff6fa8', '#7fd3ff', '#ffd84a', '#8ee07a', '#c49bff'];
+      forEachItem(off1, 150, 83, (x, i, h) => {
+        const r = 70 + h * 60;
+        const by = 430 - cy * 0.1;
+        ctx.fillStyle = gum[i % gum.length];
+        ctx.beginPath();
+        ctx.ellipse(x, by, r, r * 1.1, 0, Math.PI, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        for (let k = 0; k < 6; k++) {
+          circlePath(ctx, x - r * 0.6 + hash(i * 7 + k) * r * 1.2, by - r * 0.15 - hash(i * 3 + k) * r * 0.8, 2.2);
+          ctx.fill();
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ellipsePath(ctx, x - r * 0.35, by - r * 0.7, r * 0.18, r * 0.1, -0.5);
+        ctx.fill();
+      });
+      // sucettes géantes, sucres d'orge et cornets de glace
+      const off2 = cx * 0.3;
+      forEachItem(off2, 160, 85, (x, i, h) => {
+        const by = 470 - cy * 0.25;
+        const kind = i % 3;
+        if (kind === 0) {
+          const hh = 150 + h * 80;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(x - 4, by - hh, 8, hh + 60);
+          const r = 40 + h * 14;
+          ctx.fillStyle = gum[(i + 2) % gum.length];
+          circlePath(ctx, x, by - hh, r);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          for (let a = 0; a < TAU * 2.2; a += 0.2) {
+            const rr = (a / (TAU * 2.2)) * r * 0.85;
+            const px = x + Math.cos(a + t * 0.6) * rr;
+            const py = by - hh + Math.sin(a + t * 0.6) * rr;
+            if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+        } else if (kind === 1) {
+          const hh = 140 + h * 70;
+          ctx.lineCap = 'round';
+          ctx.lineWidth = 14;
+          ctx.strokeStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(x, by + 60);
+          ctx.lineTo(x, by - hh);
+          ctx.arc(x - 22, by - hh, 22, 0, Math.PI, true);
+          ctx.stroke();
+          ctx.lineCap = 'butt';
+          ctx.lineWidth = 14;
+          ctx.strokeStyle = '#ff4f8a';
+          ctx.setLineDash([9, 9]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          const hh = 90 + h * 50;
+          ctx.fillStyle = '#e8a85a';
+          ctx.beginPath();
+          ctx.moveTo(x - 24, by - hh);
+          ctx.lineTo(x, by + 40);
+          ctx.lineTo(x + 24, by - hh);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(150,90,30,0.5)';
+          ctx.lineWidth = 2;
+          for (let k = 1; k < 5; k++) {
+            ctx.beginPath();
+            ctx.moveTo(x - 24 + k * 6, by - hh);
+            ctx.lineTo(x + 6 - k * 3, by - hh + k * 26);
+            ctx.stroke();
+          }
+          const boules = h < 0.5 ? ['#ffb3d1', '#fff1c4'] : ['#a8e6c0', '#8a5a3a'];
+          boules.forEach((c, k) => {
+            ctx.fillStyle = c;
+            circlePath(ctx, x, by - hh - 14 - k * 26, 26 - k * 3);
+            ctx.fill();
+          });
+          ctx.fillStyle = '#e8203a';
+          circlePath(ctx, x + 2, by - hh - 66, 7);
+          ctx.fill();
+        }
+      });
+      // collines en chocolat avec du nappage qui coule
+      const off3 = cx * 0.55;
+      hillPath(ctx, off3, 480 - cy * 0.45, 26, 0.012, 0.9);
+      ctx.fillStyle = '#7a4428';
+      ctx.fill();
+      ctx.save();
+      hillPath(ctx, off3, 480 - cy * 0.45, 26, 0.012, 0.9);
+      ctx.clip();
+      ctx.fillStyle = '#ffd6ec';
+      for (let sx = -10; sx <= VIEW_W + 20; sx += 16) {
+        const wx = sx + off3;
+        const y = 480 - cy * 0.45 - 26 * (0.55 * Math.sin(wx * 0.012 + 0.9) + 0.3 * Math.sin(wx * 0.012 * 2.3 + 0.9 * 1.7) + 0.15 * Math.sin(wx * 0.012 * 5.1 + 0.9 * 2.9));
+        roundRectPath(ctx, sx, y - 4, 17, 10 + hash(Math.floor(wx / 16)) * 14, 7);
+        ctx.fill();
+      }
+      ctx.restore();
+    },
   };
 
   function drawBackground(ctx, theme, cx, cy, t, flash) {
@@ -1111,12 +1691,98 @@ const Scenery = (() => {
       ctx.lineTo(5, 0);
       ctx.closePath();
       ctx.fill();
+    } else if (theme === 'cave') {
+      if (v < 0.5) {
+        // petits champignons qui brillent dans le noir
+        const a = 0.7 + 0.3 * Math.sin(t * 2 + v * 30);
+        for (const [dx, s] of [[-5, 1], [5, 0.7]]) {
+          ctx.fillStyle = '#e8e0d0';
+          ctx.fillRect(dx - 1.5 * s, -9 * s, 3 * s, 9 * s);
+          ctx.fillStyle = `rgba(${v < 0.25 ? '120,250,255' : '255,160,230'},${a})`;
+          ctx.beginPath();
+          ctx.ellipse(dx, -9 * s, 7 * s, 5 * s, 0, Math.PI, 0);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else {
+        // caillou
+        ctx.fillStyle = '#5a4d78';
+        ellipsePath(ctx, 0, -4, 9, 5);
+        ctx.fill();
+        ctx.fillStyle = '#7a6c9a';
+        ellipsePath(ctx, -2, -6, 4, 2);
+        ctx.fill();
+      }
+    } else if (theme === 'sky') {
+      if (v < 0.5) {
+        // fleur-étoile qui scintille
+        ctx.rotate(sway);
+        ctx.strokeStyle = '#7ab8e8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -14);
+        ctx.stroke();
+        ctx.translate(0, -17);
+        ctx.rotate(t * 0.8 + v * 9);
+        ctx.fillStyle = v < 0.25 ? '#ffe14d' : '#ff9fd8';
+        Art.starShape(ctx, 6, 0.45);
+        ctx.fill();
+      } else {
+        // petit nuage tout rond
+        ctx.fillStyle = '#ffffff';
+        circlePath(ctx, -5, -4, 5);
+        ctx.fill();
+        circlePath(ctx, 3, -6, 6);
+        ctx.fill();
+        circlePath(ctx, 9, -3, 4);
+        ctx.fill();
+      }
+    } else if (theme === 'candy') {
+      if (v < 0.35) {
+        // petit sucre d'orge planté dans le nappage
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -16);
+        ctx.arc(-4, -16, 4, 0, Math.PI, true);
+        ctx.stroke();
+        ctx.strokeStyle = '#ff4f8a';
+        ctx.setLineDash([3, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else if (v < 0.7) {
+        // boule de gomme
+        const cols = ['#ff6fa8', '#7fd3ff', '#ffd84a', '#8ee07a'];
+        ctx.fillStyle = cols[Math.floor(v * 40) % 4];
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 8, 10, 0, Math.PI, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ellipsePath(ctx, -3, -6, 2.5, 1.5, -0.5);
+        ctx.fill();
+      } else {
+        // petite sucette
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-1, -16, 2, 16);
+        ctx.fillStyle = '#ff7fb6';
+        circlePath(ctx, 0, -18, 6);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, -18, 3, 0, 4.5);
+        ctx.stroke();
+      }
     }
     ctx.restore();
   }
 
   return {
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
-    drawLavaRun, drawBackground, decor, fluffyCloud, cornerRect,
+    rainbowSprite, bounceSprite, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
   };
 })();

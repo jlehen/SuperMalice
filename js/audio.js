@@ -202,6 +202,70 @@ const Sound = (() => {
     grab() { tone({ type: 'triangle', f: 1500, d: 0.08, v: 0.2 }); tone({ type: 'triangle', f: 2250, d: 0.15, v: 0.15, delay: 0.05 }); },
     select() { tone({ type: 'triangle', f: 660, d: 0.07, v: 0.2 }); },
     confirm() { tone({ type: 'triangle', f: 660, d: 0.07, v: 0.2 }); tone({ type: 'triangle', f: 990, d: 0.12, v: 0.2, delay: 0.07 }); },
+
+    // ---- La Grotte aux Cristaux ----
+    // la chauve-souris se réveille : deux petits cris très aigus
+    batWake() {
+      tone({ type: 'sine', f: 2600, f2: 3800, d: 0.07, v: 0.06 });
+      tone({ type: 'sine', f: 3000, f2: 4300, d: 0.07, v: 0.05, delay: 0.09 });
+    },
+    // la stalactite tremble : grondement sourd et petits cailloux qui tombent
+    stalactiteShake() {
+      noise({ f: 420, f2: 180, d: 0.5, v: 0.16 });
+      noise({ filter: 'highpass', f: 2600, d: 0.08, v: 0.05, delay: 0.12 });
+      noise({ filter: 'highpass', f: 3200, d: 0.06, v: 0.04, delay: 0.3 });
+    },
+    // la stalactite se brise par terre
+    stalactiteCrash() {
+      noise({ f: 3500, f2: 300, d: 0.4, v: 0.35 });
+      tone({ type: 'triangle', f: 300, f2: 80, d: 0.2, v: 0.15 });
+      noise({ filter: 'highpass', f: 4200, d: 0.22, v: 0.12, delay: 0.05 });
+    },
+    // rebond sur un champignon ou une guimauve (plus fort après un écrasement)
+    boing(big) {
+      tone({ type: 'sine', f: big ? 110 : 150, f2: big ? 560 : 430, d: big ? 0.32 : 0.24, v: 0.26, vib: 12, vibDepth: 40 });
+      tone({ type: 'triangle', f: big ? 220 : 300, f2: big ? 1100 : 860, d: 0.18, v: 0.07, delay: 0.03 });
+    },
+    // un minerai : carillon qui scintille (0 or, 1 rubis, 2 émeraude, 3 topaze, 4 diamant)
+    gem(i) {
+      const b = [1047, 1175, 1319, 1397, 1568][Math.max(0, Math.min(4, i | 0))];
+      arp([b, b * 1.5, b * 2, b * 3], { type: 'triangle', d: 0.2, v: 0.11, gap: 0.05 });
+      tone({ type: 'sine', f: b * 4, d: 0.55, v: 0.035, delay: 0.2, vib: 9, vibDepth: b * 0.04 });
+    },
+
+    // ---- La Montagne des Nuages ----
+    // début d'une rafale de vent : un souffle doux
+    wind() { noise({ filter: 'bandpass', f: 380, f2: 950, d: 1.2, v: 0.05, q: 0.8, a: 0.4 }); },
+    // l'oiseau grincheux râle
+    squawk() {
+      tone({ type: 'sawtooth', f: 720, f2: 430, d: 0.15, v: 0.045, vib: 30, vibDepth: 80 });
+      tone({ type: 'sawtooth', f: 620, f2: 380, d: 0.15, v: 0.04, vib: 30, vibDepth: 80, delay: 0.15 });
+    },
+
+    // ---- Le Monde des Bonbons ----
+    // l'ourson en gélatine retombe (on l'entend souvent : tout doux)
+    gummyHop() { tone({ type: 'sine', f: 220, f2: 460, d: 0.08, v: 0.03 }); },
+    // plouf dans la rivière de chocolat
+    chocoPlop() {
+      tone({ type: 'sine', f: 520, f2: 120, d: 0.2, v: 0.25 });
+      noise({ f: 800, f2: 200, d: 0.25, v: 0.18 });
+    },
+    // petite bulle de chocolat
+    chocoBlub() { tone({ type: 'sine', f: 180, f2: 430, d: 0.07, v: 0.08 }); },
+    // l'oeil bonbon a peur et s'enfuit
+    eyeFlee() { tone({ type: 'sine', f: 1200, f2: 2300, d: 0.25, v: 0.06, vib: 25, vibDepth: 120 }); },
+    // on attrape un oeil bonbon : une vie en plus
+    eyeCatch() {
+      arp([784, 988, 1175, 1568, 1976], { type: 'square', d: 0.1, v: 0.055, gap: 0.06 });
+      tone({ type: 'triangle', f: 2349, d: 0.35, v: 0.12, delay: 0.32 });
+    },
+    // toute la famille oiseau piaille en même temps
+    familyCheer() {
+      for (let i = 0; i < 7; i++) {
+        const f = 1700 + Math.random() * 1400;
+        tone({ type: 'sine', f, f2: f * 1.35, d: 0.08, v: 0.055, delay: i * 0.085 + Math.random() * 0.03 });
+      }
+    },
   };
 
   // ---------- Instruments ----------
@@ -231,6 +295,14 @@ const Sound = (() => {
     brass: { w: 'sawtooth', a: 0.025, d: 0.25, s: 0.8, r: 0.06, det: 8, f: { f0: 500, f1: 2400, t: 0.06, sus: 1600 } },
     organ: { w: 'organ', a: 0.01, s: 1, r: 0.06 },
     strings: { w: 'sawtooth', a: 0.25, s: 0.9, r: 0.35, det: 16, f: 1700, vib: [5, 5, 0.3] },
+    // célesta : petite cloche douce (la grotte)
+    celesta: { w: 'sine', a: 0.002, d: 0.7, s: 0, ring: true, r: 0.1, p: [[2, 0.3, 0.15], [4, 0.12, 0.05]] },
+    // flûte de pan : souffle doux avec un vibrato lent (les nuages)
+    panflute: { w: 'sine', a: 0.06, s: 0.85, r: 0.12, vib: [4.5, 14, 0.2], p: [[2, 0.1, 0], [3, 0.04, 0]] },
+    // orgue de barbarie (calliope) : tuyaux qui tremblent (les bonbons)
+    calliope: { w: 'sine', a: 0.01, s: 0.9, r: 0.04, vib: [7, 18, 0.02], p: [[2, 0.5, 0], [3, 0.25, 0], [4, 0.12, 0]] },
+    // sifflet d'oiseau : vibrato très rapide qui fait des trilles (la famille oiseau)
+    whistle: { w: 'sine', a: 0.01, d: 0.12, s: 0.6, r: 0.04, vib: [17, 70, 0] },
   };
 
   const WAVES = {};
@@ -375,9 +447,11 @@ const Sound = (() => {
   }
 
   // k grosse caisse, s caisse claire, h charleston, o charleston ouvert, r clave, x shaker, c cymbale,
-  // y ride, m timbale, t tom, b balai, p claquement de mains, n tonnerre
+  // y ride, m timbale, t tom, b balai, p claquement de mains, n tonnerre, d goutte d'eau, w wood-block
   function playDrum(k, t, v) {
     switch (k) {
+      case 'd': thump(t, 1700, 520, 0.09, 0.14 * v); thump(t + 0.07, 2400, 1800, 0.05, 0.05 * v); break;
+      case 'w': thump(t, 900, 850, 0.06, 0.25 * v, 'triangle'); noiseHit(t, 'bandpass', 1500, 4, 0.06 * v, 0.03); break;
       case 'k': thump(t, 150, 45, 0.14, 0.5 * v); break;
       case 's': noiseHit(t, 'bandpass', 1800, 1, 0.32 * v, 0.11); thump(t, 220, 160, 0.06, 0.12 * v, 'triangle'); break;
       case 'h': noiseHit(t, 'highpass', 7000, 1, 0.12 * v, 0.035); break;

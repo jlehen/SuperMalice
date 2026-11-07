@@ -534,6 +534,113 @@ const Music = (() => {
     return S.out({ drumV: 0.7 });
   }
 
+  // 6. La Grotte aux Cristaux : do mineur, lent et mystérieux (mais gentil). La mélodie au célesta
+  // revient en écho, plus doucement, comme sous une voûte ; bourdon grave à l'orgue, gouttes d'eau.
+  function cave() {
+    const S = new Song({ bpm: 100, mode: MINOR });
+    const DRONE = [[[0, 3.95, 'R']]];
+    const PAD = [[[0, 3.95, 'C']]];
+    const DRIPS = [
+      [[0.75, 'd', 0.6], [2.5, 'd', 0.4]],
+      [[1.5, 'd', 0.5], [3.25, 'd', 0.35], [3.5, 'd', 0.25], [0, 'm', 0.25]],
+      [[0.5, 'd', 0.3], [2, 'd', 0.55]],
+      [[1.25, 'd', 0.45], [2.75, 'd', 0.3], [3.75, 'd', 0.4]],
+    ];
+    const echo = (p, inst, v) => {
+      p.melody('lead', inst, v);
+      p.melody('echo', inst, v * 0.38, { delay: 0.75 });
+    };
+    const base = (p) => {
+      p.pattern('drone', 'organ', 0.055, DRONE, { bassOct: 2 });
+      p.pattern('pad', 'strings', 0.03, PAD, { low: 55 });
+      p.drums(DRIPS);
+    };
+    S.part(SECT.I, (p) => { echo(p, 'celesta', 0.15); p.pattern('drone', 'organ', 0.055, DRONE, { bassOct: 2 }); p.drums(DRIPS); });
+    S.part(SECT.A, (p) => { echo(p, 'celesta', 0.15); base(p); });
+    S.part(SECT.A, (p) => { echo(p, 'celesta', 0.15); p.melody('low', 'harp', 0.06, { oct: -1, top: true }); base(p); });
+    S.part(SECT.B, (p) => { echo(p, 'vibes', 0.1); base(p); });
+    S.part(SECT.C, (p) => { echo(p, 'celesta', 0.15); p.melody('low', 'flute', 0.045, { oct: -1, top: true }); base(p); });
+    return S.out({ drumV: 0.9 });
+  }
+
+  // 7. La Montagne des Nuages : ballade planante en fa majeur, flûte de pan, harpe en arpèges qui
+  // ruissellent, nappes de cordes, accords « flottants » (septièmes et neuvièmes majeures) et carillon à vent.
+  function sky() {
+    const S = new Song({
+      bpm: 112,
+      key: 5,
+      chordMap: { C: 'Cmaj9', F: 'Fmaj9', G7: 'G9', Ab: 'Abmaj7', Bb: 'Bbmaj7', Db: 'Dbmaj7' },
+    });
+    const ARP = [rep(8, (k) => [k * 0.5, 0.9, 'a' + [0, 2, 4, 1, 3, 5, 2, 4][k]])];
+    const BASS = [[[0, 1.9, 'R'], [2, 1.9, 'F']]];
+    const PAD = [[[0, 3.95, 'C']]];
+    const CHIME = [[[3.5, 0.5, 'a3']], [], [[1.5, 0.5, 'a4'], [1.75, 0.5, 'a2']], []];
+    const shaker = rep(8, (i) => [i * 0.5, 'x', i % 2 ? 0.3 : 0.5]);
+    const D = [[[0, 'k', 0.4], [2.5, 'k', 0.3], [1, 'b', 0.6], [3, 'b', 0.6], ...shaker]];
+    const base = (p) => {
+      p.pattern('harp', 'harp', 0.034, ARP, { low: 53 });
+      p.pattern('bass', 'upright', 0.12, BASS);
+      p.pattern('pad', 'strings', 0.03, PAD, { low: 57 });
+      p.pattern('chime', 'glock', 0.035, CHIME, { low: 76 });
+      p.drums(D);
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'panflute', 0.12); p.pattern('harp', 'harp', 0.034, ARP, { low: 53 }); p.pattern('pad', 'strings', 0.03, PAD, { low: 57 }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'panflute', 0.12); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'panflute', 0.12); p.melody('high', 'flute', 0.045, { oct: 1, top: true, delay: 0.5 }); base(p); });
+    S.part(SECT.C, (p) => { p.melody('lead', 'glock', 0.09, { top: true }); p.melody('low', 'panflute', 0.07, { oct: -1, top: true }); base(p); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'panflute', 0.12); base(p); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'flute', 0.11, { top: true }); p.melody('low', 'panflute', 0.06, { oct: -1, top: true }); base(p); });
+    return S.out({ drumV: 0.8 });
+  }
+
+  // 8. Le Monde des Bonbons : polka de fête foraine, rapide. Orgue de barbarie (calliope) qui tremblote,
+  // tuba « oum-pa », glockenspiel qui double la mélodie, wood-blocks sur les contretemps.
+  function candy() {
+    const S = new Song({ bpm: 184 });
+    const OOM = [[[0, 0.45, 'R'], [2, 0.45, '5L']]];
+    const PAH = [[[1, 0.3, 'C'], [3, 0.3, 'C'], [3.5, 0.2, 'C', 0.6]]];
+    const D = [[[0, 'k', 0.6], [2, 'k', 0.5], [1, 's', 0.35], [3, 's', 0.35], [0.5, 'w', 0.7], [1.5, 'w', 0.5], [2.5, 'w', 0.7], [3.5, 'w', 0.5]]];
+    const FILL = [[0, 'k'], [1, 'w'], [1.5, 'w', 0.8], [2, 'w'], [2.5, 'w', 0.8], [3, 's', 0.6], [3.25, 's', 0.7], [3.5, 's', 0.8], [3.75, 's']];
+    const base = (p) => {
+      p.pattern('bass', 'tuba', 0.22, OOM);
+      p.pattern('pah', 'calliope', 0.03, PAH, { low: 57 });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'calliope', 0.08, { gate: 0.7 }); base(p); p.drums(D, { crash: 0.5 }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'calliope', 0.08, { gate: 0.7 }); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'calliope', 0.08, { gate: 0.7 }); p.melody('glock', 'glock', 0.06, { oct: 1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.B, (p) => { p.melody('lead', 'calliope', 0.08, { gate: 0.7 }); base(p); p.drums(D, { crash: 0.5 }); });
+    S.part(SECT.C2, (p) => { p.melody('lead', 'glock', 0.1, { top: true }); p.melody('low', 'calliope', 0.05, { oct: -1, top: true, gate: 0.7 }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'calliope', 0.08, { gate: 0.7 }); p.melody('glock', 'glock', 0.06, { oct: 1, top: true }); base(p); p.drums(D, { crash: 0.5, fill: FILL }); });
+    return S.out({ drumV: 0.8 });
+  }
+
+  // Grande fin : la famille oiseau ! Chanson joyeuse en mi majeur, flûte et guitare, et les oisillons
+  // répondent à chaque phrase en sifflant (avec des trilles), un temps plus tard et une octave plus haut.
+  function family() {
+    const S = new Song({ bpm: 132, key: 4 });
+    const BASS = [[[0, 0.9, 'R'], [1, 0.9, 'F'], [2, 0.9, 'O'], [3, 0.9, 'F']]];
+    const STRUM = [[[0, 0.4, 'C'], [1.5, 0.3, 'C', 0.7], [2, 0.4, 'C'], [3, 0.3, 'C', 0.7], [3.5, 0.3, 'C', 0.6]]];
+    const shaker = rep(8, (i) => [i * 0.5, 'x', i % 2 ? 0.35 : 0.6]);
+    const D = [[[0, 'k', 0.7], [1, 'p', 0.5], [2, 'k', 0.6], [3, 'p', 0.5], ...shaker]];
+    const base = (p) => {
+      p.pattern('bass', 'pizz', 0.2, BASS);
+      p.pattern('strum', 'guitar', 0.04, STRUM, { low: 55 });
+    };
+    const birds = (p) => p.melody('birds', 'whistle', 0.045, { oct: 1, top: true, delay: 1, gate: 0.6 });
+    S.part(SECT.I, (p) => { p.melody('lead', 'flute', 0.12); birds(p); base(p); p.drums(D, { crash: 0.6 }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'flute', 0.12); birds(p); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'flute', 0.12); p.melody('glock', 'glock', 0.05, { oct: 1, top: true }); birds(p); base(p); p.drums(D); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'flute', 0.12); birds(p); base(p); p.drums(D, { crash: 0.6 }); });
+    S.part(SECT.END, (p) => {
+      p.melody('lead', 'flute', 0.12);
+      p.melody('birds', 'whistle', 0.05, { oct: 1, top: true, gate: 0.6 });
+      p.bassLine('bass', 'pizz', 0.2, { oct: -1 });
+      p.pattern('pad', 'strings', 0.045, [[[0, 3.9, 'C']]], { low: 57 });
+      p.drums([[[0, 'k'], [0, 'c', 0.6]]]);
+    });
+    return S.out({ drumV: 0.8 });
+  }
+
   const SONGS = {
     title: title(),
     meadow: meadow(),
@@ -544,6 +651,10 @@ const Music = (() => {
     'badge-grappin': swingJazz(),
     volcano: volcano(),
     victory: victory(),
+    cave: cave(),
+    sky: sky(),
+    candy: candy(),
+    family: family(),
     star: star(),
   };
   Object.keys(SONGS).forEach((name) => Sound.defineSong(name, SONGS[name]));
