@@ -1155,6 +1155,7 @@ const Art = (() => {
   //   zap : électrocutée par un éclair               ko : sonnée par un boulet de coccinelle
   //   hypno : hypnotisée par un gros oeil            scramble : couleurs mélangées par un Rubik's cube
   //   soot : noircie par les morceaux de cube        spots : couverte des points de la coccinelle
+  //   wet : tombée dans la rivière, elle grelotte     slime : couverte de bave d'escargot
   const NO_FX = {};
   // Moments où Malice noircie tousse.
   const COUGHS = [0.35, 0.8, 1.25];
@@ -1201,6 +1202,18 @@ const Art = (() => {
   for (const key in MALICE) XRAY[key] = /Line$/.test(key) ? '#a8ecff' : /(Dark|Shade)$/.test(key) ? '#2b4fc4' : '#3a63da';
   XRAY.mustache = '#0e0e1c';
 
+  // Toute mouillée : tout un peu bleu, les cheveux plus foncés.
+  const WET = {};
+  for (const key in MALICE) WET[key] = mixColor(MALICE[key], '#2a6ad0', /^hair/.test(key) ? 0.4 : 0.22);
+  WET.mustache = MALICE.mustache;
+  WET.eye = MALICE.eye;
+
+  // Toute gluante de bave verte.
+  const SLIMY = {};
+  for (const key in MALICE) SLIMY[key] = mixColor(MALICE[key], '#8ee05a', 0.35);
+  SLIMY.mustache = MALICE.mustache;
+  SLIMY.eye = MALICE.eye;
+
   // Toute noire de suie (seuls les yeux restent blancs).
   const SOOT = {};
   for (const key in MALICE) SOOT[key] = mixColor(MALICE[key], '#2a2422', 0.8);
@@ -1230,6 +1243,8 @@ const Art = (() => {
       // après l'électrocution, Malice est un peu grillée
       case 'zap': return k.shock ? C : mixPalette(C, SOOT, 0.45 * clamp(left / 0.5, 0, 1));
       case 'scramble': return scramblePalette(C, k);
+      case 'wet': return mixPalette(C, WET, clamp(left / 0.5, 0, 1));
+      case 'slime': return mixPalette(C, SLIMY, clamp(left / 0.5, 0, 1));
       default: return C;
     }
   }
@@ -1251,6 +1266,11 @@ const Art = (() => {
       // les bras ballants, elle tangue
       const w = Math.sin(ot * 9);
       return { legF: 0.3 + w * 0.15, legB: -0.3, armF: 0.25 + w * 0.25, armB: -0.15, lean: w * 0.09 };
+    }
+    if (k.kind === 'wet') {
+      // elle se serre dans ses bras, les genoux qui s'entrechoquent
+      const s = Math.sin(ot * 40) * 0.05;
+      return { legF: 0.16 + s, legB: -0.16 - s, armF: 0.95 + s, armB: 0.7 - s, lean: 0.05 };
     }
     return { legF: 0.45, legB: -0.45, armF: -1.25, armB: 1.5, lean: -0.12 };
   }
@@ -1288,6 +1308,16 @@ const Art = (() => {
         fx.hair = 'frizz';
         if (COUGHS.some((c) => t > c && t < c + 0.2)) fx.mouth = 'o';
         if ((t > 0.55 && t < 0.65) || (t > 0.95 && t < 1.05)) fx.eye = 'blink';
+        break;
+      case 'wet':
+        // les yeux fermés en ressortant, puis tout ronds ; elle claque des dents
+        fx.eye = t < 0.3 ? 'blink' : 'wide';
+        fx.mouth = t > 0.3 && t < k.dur - 0.3 ? (Math.floor(t * 16) % 2 ? 'wide' : 'small') : 'o';
+        break;
+      case 'slime':
+        // beurk !
+        fx.eye = 'squeeze';
+        fx.mouth = 'tongue';
         break;
       case 'scramble':
       case 'spots':
@@ -1372,6 +1402,70 @@ const Art = (() => {
     });
   }
 
+  // Toute mouillée : des gouttes pendent (casquette, nez, salopette) et tombent, et elle tremble de froid.
+  // top : le haut de la tête (pour les autres personnages, qui n'ont pas la même taille).
+  function wetOverlay(ctx, k, top) {
+    const t = k.t;
+    ctx.save();
+    ctx.globalAlpha *= clamp((k.dur - t) / 0.3, 0, 1);
+    const drops = [[13, top + 12], [-11, top + 16], [19, top + 26], [-6, -20], [8, -14]];
+    drops.forEach(([x, y], i) => {
+      const ph = (t * 1.8 + i * 0.37) % 1;
+      const s = ph < 0.7 ? ph / 0.7 : 1;
+      const fall = ph < 0.7 ? 0 : (ph - 0.7) * 40;
+      ctx.save();
+      ctx.translate(x, y + fall);
+      ctx.scale(0.55 + s * 0.45, 0.55 + s * 0.6);
+      ctx.beginPath();
+      ctx.moveTo(0, -3);
+      ctx.quadraticCurveTo(3, 1.5, 0, 3.5);
+      ctx.quadraticCurveTo(-3, 1.5, 0, -3);
+      paint(ctx, '#9fe0ff', '#2f8fd0', 0.8);
+      ctx.restore();
+    });
+    // brrr : des petits traits qui tremblent de chaque côté
+    if (t > 0.25) {
+      ctx.strokeStyle = 'rgba(120,200,255,0.9)';
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = 'round';
+      for (const side of [-1, 1]) {
+        for (let j = 0; j < 2; j++) {
+          const x = side * (21 + j * 5);
+          const y = -38 + j * 9;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 5);
+          ctx.lineTo(x + side * 2.5, y - 2);
+          ctx.lineTo(x - side * 1, y + 1);
+          ctx.lineTo(x + side * 2.5, y + 4);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  // Couverte de bave : des paquets verts tout brillants qui dégoulinent.
+  function slimeOverlay(ctx, k, top) {
+    const t = k.t;
+    ctx.save();
+    ctx.globalAlpha *= clamp((k.dur - t) / 0.4, 0, 1);
+    const blobs = [[2, top + 2, 7], [-7, -32, 5], [9, -20, 4.5]];
+    blobs.forEach(([x, y, r], i) => {
+      const drip = Math.min(1, t * 1.5) * (6 + i * 3);
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.7, 0, Math.PI, 0);
+      ctx.quadraticCurveTo(x + r, y + 3, x + r * 0.35, y + 3);
+      ctx.quadraticCurveTo(x + r * 0.2, y + drip, x, y + drip + 2);
+      ctx.quadraticCurveTo(x - r * 0.25, y + drip, x - r * 0.35, y + 3);
+      ctx.quadraticCurveTo(x - r, y + 3, x - r, y);
+      paint(ctx, 'rgba(160,235,110,0.85)', 'rgba(70,150,40,0.8)', 0.9);
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ellipsePath(ctx, x - r * 0.35, y - r * 0.3, r * 0.3, r * 0.15, -0.4);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
   // Électrocutée : des éclairs crépitent tout autour d'elle.
   function zapBolts(ctx, k) {
     const seed = Math.floor(k.t * 30) + k.seed;
@@ -1429,6 +1523,8 @@ const Art = (() => {
     const sc = o.scale || 1;
     ctx.scale((o.facing || 1) * sc * (o.sx || 1), sc * (o.sy || 1));
     if (shock) ctx.translate(rand(-1.2, 1.2), rand(-0.8, 0.8));
+    // toute mouillée : elle grelotte
+    if (kind === 'wet' && k.t < k.dur - 0.3) ctx.translate(Math.sin(k.t * 80) * 0.9, 0);
     let legF = 0.1;
     let legB = -0.1;
     let armF = -0.12;
@@ -1465,6 +1561,11 @@ const Art = (() => {
       case 'hold': armF = -1.0; armB = -0.8; break;
       case 'crouch': crouch = 7; legF = -1.25; legB = -0.85; legLen = 8; armF = -0.6; armB = 0.3; break;
       case 'hang': armF = 0.25; armB = -0.25; legF = 0.25; legB = -0.2; break;
+      // elle glisse sur la bave : les bras qui moulinent, penchée en arrière
+      case 'slip':
+        armF = -2.3 + Math.sin(t * 18) * 0.6; armB = 1.9 + Math.cos(t * 18) * 0.6;
+        legF = -0.6; legB = 0.5; lean = -0.2;
+        break;
       // pendue à un pissenlit géant : les bras en l'air, les jambes qui se balancent
       case 'float':
         armF = -2.25 + Math.sin(t * 2.6) * 0.05; armB = -2.0;
@@ -1506,6 +1607,8 @@ const Art = (() => {
     if (kind === 'ko') koStars(ctx, k, t);
     if (tilt) ctx.restore();
     if (kind === 'spots') spotsOverlay(ctx, k);
+    if (kind === 'wet') wetOverlay(ctx, k, -62);
+    if (kind === 'slime') slimeOverlay(ctx, k, -62);
     if (o.holding) {
       o.holding(ctx);
       drawArm(ctx, C, 1.2, -27.8, armF, false);
@@ -4184,6 +4287,441 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // ---------------- La Rivière aux Nénuphars ----------------
+  // Escargot : un gros corps tout doux couleur pêche, des yeux tout ronds au bout de ses cornes
+  // (un peu endormis), et une coquille de bonbon en spirale avec une petite pâquerette plantée dessus.
+  // Les pieds en (x, y), tourné vers la droite. o : dir, t, hue (la coquille), look ({x, y}),
+  // phase (le pied qui ondule), moving, fat, rest, hide (de 0 à 1 : il rentre dans sa coquille), wobble.
+  function snail(ctx, x, y, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const dir = o.dir || 1;
+    const hue = o.hue == null ? 330 : o.hue;
+    const fat = !!o.fat;
+    const hide = clamp(o.hide || 0, 0, 1);
+    const ph = o.phase || 0;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const body = '#ffd9b0';
+    const bodyDark = '#f0b47e';
+    const line = '#b8703e';
+    // le corps : il s'étire et se ramasse un peu en avançant ; il rentre dans la coquille
+    const stretch = (o.moving ? Math.sin(ph * 2) * 1.6 : 0) * (1 - hide);
+    const len = (1 - hide) * (fat ? 1.08 : 1);
+    if (len > 0.05) {
+      const thick = fat ? 9 : 7;
+      const hx = 17 * len + stretch;
+      const hy = -13 - (fat ? 1 : 0);
+      const hr = (fat ? 9 : 7.5) * (0.4 + 0.6 * len);
+      ctx.beginPath();
+      ctx.moveTo(-23 * len - stretch * 0.5, 0);
+      ctx.quadraticCurveTo(-26 * len, -3, -20 * len, -thick + 1);
+      ctx.lineTo(hx - 6, -thick);
+      ctx.quadraticCurveTo(hx - 8, hy - 2, hx, hy - hr);
+      ctx.quadraticCurveTo(hx + hr * 1.2, hy - hr, hx + hr, hy + 2);
+      ctx.quadraticCurveTo(hx + hr * 0.9, -2, hx + 6, 0);
+      ctx.closePath();
+      const g = ctx.createLinearGradient(0, hy - hr, 0, 0);
+      g.addColorStop(0, '#fff0dc');
+      g.addColorStop(0.6, body);
+      g.addColorStop(1, bodyDark);
+      paint(ctx, g, line, 1.3);
+      // le dessous du pied qui ondule
+      if (o.moving) {
+        ctx.strokeStyle = 'rgba(184,112,62,0.45)';
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i < 4; i++) {
+          const wx = -18 * len + ((i * 10 + ph * 6) % 38) * len;
+          ctx.beginPath();
+          ctx.moveTo(wx - 2.5, -1.5);
+          ctx.quadraticCurveTo(wx, -3.5, wx + 2.5, -1.5);
+          ctx.stroke();
+        }
+      }
+      // les cornes, avec les yeux au bout (ils suivent Malice)
+      if (hide < 0.5) {
+        const look = o.look || { x: 1, y: 0 };
+        const lx = clamp(look.x * dir, -1, 1);
+        const ly = clamp(look.y, -1, 1);
+        const sway = Math.sin(t * 2.2) * 1.5;
+        const grow = 1 - hide * 2;
+        const eyes = [[hx - 3, -1, 0.85], [hx + 3, 1, 1]];
+        eyes.forEach(([sx, side, s]) => {
+          const ex = sx + side * 3.5 + sway * side * 0.5 + lx * 1.5;
+          const ey = hy - hr - (13 + (side > 0 ? 1.5 : 0)) * grow + Math.sin(t * 2.2 + side) * 1;
+          ctx.strokeStyle = bodyDark;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(sx, hy - hr + 3);
+          ctx.quadraticCurveTo(sx + side * 1.5, (ey + hy - hr) / 2, ex, ey + 3);
+          ctx.stroke();
+          ctx.strokeStyle = body;
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+          const er = 4.2 * s;
+          circlePath(ctx, ex, ey, er);
+          paint(ctx, '#ffffff', line, 1);
+          ctx.fillStyle = '#3a2a4a';
+          circlePath(ctx, ex + lx * er * 0.4, ey + ly * er * 0.35 + 0.4, er * 0.5);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          circlePath(ctx, ex + lx * er * 0.4 - 0.9, ey + ly * er * 0.35 - 0.6, er * 0.18);
+          ctx.fill();
+          // des paupières un peu tombantes : il n'est jamais pressé (fermées pour cligner, ou fatigué)
+          const blink = (t + side * 0.07) % 4.1 < 0.14;
+          const lid = blink || (fat && o.rest) ? 1 : 0.38;
+          ctx.save();
+          circlePath(ctx, ex, ey, er);
+          ctx.clip();
+          ctx.fillStyle = body;
+          ctx.fillRect(ex - er - 1, ey - er - 1, er * 2 + 2, er * 2 * lid + 1);
+          ctx.restore();
+          ctx.strokeStyle = line;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(ex - er * 0.9, ey - er + er * 2 * lid);
+          ctx.lineTo(ex + er * 0.9, ey - er + er * 2 * lid);
+          ctx.stroke();
+        });
+        // une joue rose et un petit sourire
+        ctx.fillStyle = 'rgba(255,130,150,0.55)';
+        ellipsePath(ctx, hx + 2, hy + 2.5, 3, 2);
+        ctx.fill();
+        if (fat) chubbyCheeks(ctx, hx + 3, hy + 3, 3.4, 2.8, '#ffe4c4', line);
+        else {
+          ctx.strokeStyle = '#7a3a2a';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(hx + 4.5, hy + 1, 2.4, 0.3, Math.PI - 0.6);
+          ctx.stroke();
+        }
+      }
+    }
+    // la coquille : une spirale de bonbon, avec une pâquerette plantée dessus
+    const wob = o.wobble ? Math.sin(o.wobble * 30) * 0.22 * Math.max(0, 1 - o.wobble / 0.75) : 0;
+    const R = fat ? 15 : 14;
+    const sx = -4 + hide * 4;
+    const sy = -15 + hide * 1.5;
+    ctx.save();
+    ctx.translate(sx, sy + R);
+    ctx.rotate(wob);
+    ctx.translate(0, -R);
+    const sg = ctx.createRadialGradient(-4, -5, 2, 0, 0, R * 1.1);
+    sg.addColorStop(0, `hsl(${hue},90%,86%)`);
+    sg.addColorStop(0.6, `hsl(${hue},75%,70%)`);
+    sg.addColorStop(1, `hsl(${hue},60%,52%)`);
+    circlePath(ctx, 0, 0, R);
+    paint(ctx, sg, `hsl(${hue},55%,32%)`, 1.4);
+    // la spirale
+    ctx.beginPath();
+    for (let a = 0; a <= TAU * 2.6; a += 0.15) {
+      const r = 1.5 + (a / (TAU * 2.6)) * (R - 3);
+      const px = Math.cos(a + 2.4) * r;
+      const py = Math.sin(a + 2.4) * r;
+      if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = `hsl(${hue},80%,94%)`;
+    ctx.lineWidth = 3.2;
+    ctx.stroke();
+    ctx.strokeStyle = `hsla(${hue},55%,38%,0.55)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // reflet
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ellipsePath(ctx, -6, -8, 4, 2.2, -0.6);
+    ctx.fill();
+    // la petite pâquerette
+    ctx.translate(3, -R + 1);
+    ctx.rotate(Math.sin(t * 2 + hue) * 0.15);
+    ctx.strokeStyle = '#3f9a3a';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -6);
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU;
+      ellipsePath(ctx, Math.cos(a) * 3, -8 + Math.sin(a) * 3, 2, 1.2, a);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#ffc21f';
+    circlePath(ctx, 0, -8, 1.6);
+    ctx.fill();
+    ctx.restore();
+    // caché dans sa coquille : deux petits yeux inquiets à l'entrée
+    if (hide >= 0.5) {
+      ctx.fillStyle = '#3a1a10';
+      ellipsePath(ctx, sx + 7, sy + 7, 4.5, 3.6);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      circlePath(ctx, sx + 5.8, sy + 6.6, 1.3);
+      ctx.fill();
+      circlePath(ctx, sx + 8.6, sy + 6.6, 1.3);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // La bave d'un escargot (une goutte : elles se touchent et font une traînée qui brille).
+  // age : depuis combien de temps elle est là ; elle sèche de wet à total (elle devient terne et s'efface).
+  function slimeDrop(ctx, x, y, age, v, wet, total) {
+    const dry = clamp((age - wet) / (total - wet), 0, 1);
+    const a = (1 - dry) * Math.min(1, age * 4);
+    if (a <= 0.01) return;
+    // (argentée et un peu bleutée : on la voit bien sur l'herbe)
+    if (dry <= 0) {
+      ctx.fillStyle = `rgba(70,120,150,${0.35 * a})`;
+      ellipsePath(ctx, x, y - 0.5, 8, 3.2);
+      ctx.fill();
+    }
+    ctx.fillStyle = dry > 0 ? `rgba(235,240,230,${0.45 * a})` : `rgba(215,240,255,${0.85 * a})`;
+    ellipsePath(ctx, x, y - 2, 7.5, 2.8);
+    ctx.fill();
+    if (dry > 0) return;
+    // ça brille
+    const tw = 0.5 + 0.5 * Math.sin(age * 4 + v * 20);
+    ctx.fillStyle = `rgba(255,255,255,${0.9 * tw * a})`;
+    ellipsePath(ctx, x - 2 + v * 4, y - 3, 2.6, 0.9);
+    ctx.fill();
+  }
+
+  // Nénuphar : une grande feuille ronde (vue un peu de côté) avec son encoche. Les solides ont une fleur
+  // rose ; ceux qui coulent sont plus jaunes, et un peu grignotés. (cx, y) : le milieu du dessus.
+  function lilyPad(ctx, cx, y, w, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const rx = w / 2;
+    const ry = 7;
+    const cy = y + ry;
+    // une vaguelette autour, à la surface de l'eau
+    if (o.surface != null) {
+      const k = (t * 0.6) % 1;
+      ctx.strokeStyle = `rgba(255,255,255,${0.45 * (1 - k)})`;
+      ctx.lineWidth = 1.5;
+      ellipsePath(ctx, cx, o.surface + 2, rx + 4 + k * 12, 4 + k * 2);
+      ctx.stroke();
+    }
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(o.tilt || 0);
+    // grignoté : des petits bouts en moins sur le bord
+    if (o.sinks) {
+      ctx.beginPath();
+      ctx.rect(-rx - 10, -ry - 30, w + 20, ry * 2 + 40);
+      for (const [bx, by, br] of [[-rx * 0.62, ry * 0.75, 5], [rx * 0.8, -ry * 0.55, 4.5], [rx * 0.35, ry * 0.95, 3.5]]) {
+        ctx.moveTo(bx + br, by);
+        ctx.arc(bx, by, br, 0, TAU);
+      }
+      ctx.clip('evenodd');
+    }
+    // l'épaisseur de la feuille, puis le dessus avec l'encoche
+    const top = o.sinks ? ['#c8ec7a', '#9fd45a', '#6fa040'] : ['#8ee070', '#4fbf4a', '#2f8a35'];
+    ellipsePath(ctx, 0, 3, rx, ry);
+    ctx.fillStyle = top[2];
+    ctx.fill();
+    const notch = 0.32;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.ellipse(0, 0, rx, ry, 0, Math.PI * 0.5 + notch, Math.PI * 2.5 - notch);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, -ry, 0, ry);
+    g.addColorStop(0, top[0]);
+    g.addColorStop(1, top[1]);
+    paint(ctx, g, top[2], 1.4);
+    // les nervures
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    for (let i = 1; i < 8; i++) {
+      const a = Math.PI * 0.5 + notch + (i / 8) * (TAU - notch * 2);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * rx * 0.85, Math.sin(a) * ry * 0.85);
+    }
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ellipsePath(ctx, -rx * 0.35, -ry * 0.35, rx * 0.25, ry * 0.25);
+    ctx.fill();
+    ctx.restore();
+    // la fleur (seulement sur les nénuphars solides)
+    if (!o.sinks) {
+      const fx = cx - rx * 0.45;
+      const fy = cy - 2;
+      ctx.save();
+      ctx.translate(fx, fy);
+      const petal = (a, len, wid, col) => {
+        ctx.save();
+        ctx.rotate(a);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(wid, -len * 0.5, 0, -len);
+        ctx.quadraticCurveTo(-wid, -len * 0.5, 0, 0);
+        paint(ctx, col, '#d0508a', 0.7);
+        ctx.restore();
+      };
+      for (const a of [-1.25, 1.25, -0.8, 0.8]) petal(a, 9, 3.6, '#ffc0dc');
+      for (const a of [-0.4, 0.4, 0]) petal(a, 10.5, 3.4, '#ffe4f0');
+      ctx.fillStyle = '#ffd23a';
+      ellipsePath(ctx, 0, -2, 2.6, 1.6);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Lapin assis (le terrier secret), les pieds en (x, y). o : t, dir, hop (un bond, de 0 à 1, ou -1),
+  // peek (de 0 à 1 : il sort la tête de son trou, dans l'herbe ; -1 : pas de trou), v (sa couleur).
+  function bunny(ctx, x, y, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const v = o.v || 0;
+    const cols = [['#ffffff', '#e6dde8', '#9a8aa0'], ['#e8c8a0', '#c89a6a', '#8a5a3a'], ['#c8c4cc', '#a09aa8', '#5e5866']][Math.floor(v * 3) % 3];
+    const [fur, furDark, line] = cols;
+    const peek = o.peek == null ? -1 : o.peek;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (peek >= 0) {
+      // le trou dans l'herbe
+      ellipsePath(ctx, 0, -1, 17, 6);
+      ctx.fillStyle = '#3a2412';
+      ctx.fill();
+      ellipsePath(ctx, 0, 0, 17, 5);
+      ctx.strokeStyle = '#7a5230';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      if (peek <= 0.02) {
+        ctx.restore();
+        return;
+      }
+      ctx.beginPath();
+      ctx.rect(-40, -90, 80, 89);
+      ctx.clip();
+      ctx.translate(-8 * (o.dir || 1), 30 - 30 * peek);
+    }
+    ctx.scale(o.dir || 1, 1);
+    const hop = o.hop >= 0 ? Math.sin(o.hop * Math.PI) : 0;
+    const twitch = (t % 2.6) < 0.25 ? Math.sin(t * 40) * 0.12 : 0;
+    // les oreilles (une un peu pliée), qui bougent de temps en temps
+    const ear = (bx, a, len, fold) => {
+      ctx.save();
+      ctx.translate(bx, -33);
+      ctx.rotate(a - hop * 0.5);
+      ellipsePath(ctx, 0, -len / 2, 4.2, len / 2);
+      paint(ctx, fur, line, 1.1);
+      ellipsePath(ctx, 0, -len / 2 + 1, 2, len / 2 - 3);
+      ctx.fillStyle = '#ffb4c8';
+      ctx.fill();
+      if (fold) {
+        ellipsePath(ctx, -2, -len + 2, 3.5, 3);
+        paint(ctx, furDark, line, 1);
+      }
+      ctx.restore();
+    };
+    ear(5, -0.25 + twitch, 20, false);
+    ear(10, 0.2 - twitch * 0.5, 18, v > 0.5);
+    if (peek < 0) {
+      // le corps rond, la queue en pompon, les pattes
+      ellipsePath(ctx, -2, -12 - hop * 2, 13 + hop * 3, 11 - hop * 2);
+      paint(ctx, fur, line, 1.2);
+      ellipsePath(ctx, -7, -6, 8, 6);
+      paint(ctx, furDark, line, 1);
+      circlePath(ctx, -15, -14, 4.5);
+      paint(ctx, '#ffffff', line, 1);
+      ellipsePath(ctx, 7, -2, 4.5, 2.6);
+      paint(ctx, fur, line, 1);
+    }
+    // la tête
+    circlePath(ctx, 8, -26, 9.5);
+    paint(ctx, fur, line, 1.2);
+    // l'œil, la joue, le nez qui remue, les moustaches
+    const blink = (t + v * 3) % 3.3 < 0.13;
+    if (blink) {
+      ctx.strokeStyle = '#2a1a2a';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(10, -28);
+      ctx.lineTo(14, -28);
+      ctx.stroke();
+    } else {
+      ellipsePath(ctx, 12, -28, 2.3, 2.8);
+      ctx.fillStyle = '#2a1a2a';
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      circlePath(ctx, 12.7, -29, 0.9);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,140,170,0.55)';
+    ellipsePath(ctx, 12, -22.5, 3, 2);
+    ctx.fill();
+    const sniff = Math.sin(t * 14) * 0.6;
+    ellipsePath(ctx, 17.2, -25 + sniff * 0.4, 1.8, 1.4);
+    ctx.fillStyle = '#ff7ea0';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(90,70,90,0.6)';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    for (const dy of [-1.5, 1]) {
+      ctx.moveTo(15, -24 + dy);
+      ctx.lineTo(21.5, -24.5 + dy * 2 + sniff);
+    }
+    ctx.stroke();
+    ctx.restore();
+    // devant le trou, le bord de terre et des brins d'herbe
+    if (peek >= 0) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = '#9a6a3a';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 18, 4, 0, 0, Math.PI);
+      ctx.fill();
+      ctx.fillStyle = '#4fc04a';
+      for (const gx of [-15, -9, 10, 15]) {
+        ctx.beginPath();
+        ctx.moveTo(gx - 2, 2);
+        ctx.quadraticCurveTo(gx, -6, gx + 1, -9);
+        ctx.quadraticCurveTo(gx + 1, -4, gx + 2, 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  // Un petit poisson (il saute de la casquette de Malice quand elle sort de l'eau), tourné vers la droite.
+  function fish(ctx, x, y, s, hue, t) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(s, s);
+    const h = hue == null ? 25 : hue;
+    const wag = Math.sin((t || 0) * 40) * 0.35;
+    ctx.save();
+    ctx.translate(-7, 0);
+    ctx.rotate(wag);
+    ctx.beginPath();
+    ctx.moveTo(1, 0);
+    ctx.lineTo(-7, -5);
+    ctx.lineTo(-5.5, 0);
+    ctx.lineTo(-7, 5);
+    ctx.closePath();
+    paint(ctx, `hsl(${h},95%,58%)`, `hsl(${h},70%,32%)`, 1);
+    ctx.restore();
+    ellipsePath(ctx, 0, 0, 8.5, 4.8);
+    paint(ctx, `hsl(${h},95%,62%)`, `hsl(${h},70%,32%)`, 1);
+    ctx.fillStyle = `hsla(${h},100%,88%,0.8)`;
+    ellipsePath(ctx, 0.5, 1.8, 5, 1.6);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    circlePath(ctx, 4.5, -1.2, 1.9);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a2a';
+    circlePath(ctx, 5, -1.2, 1);
+    ctx.fill();
+    ctx.restore();
+  }
+
   return {
     MALICE, MIMIC_DUR, CUBE_COLORS, COUGHS, SCRAMBLE_BACK, MALICE_SPOTS, spotPop, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
@@ -4191,7 +4729,8 @@ const Art = (() => {
     eclair, sparks, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
     bat, grumpyBird, gummyBear, candyEye, gem, GEMS, bigBird, birdNest,
     dandelion, dandelionStem, dandelionLeaves, dandelionFlower, dandelionSeed,
+    snail, lilyPad, bunny, fish, slimeDrop,
     // pour les autres personnages (heroes.js)
-    paint, mixColor, ouchPose, koStars, spotsOverlay,
+    paint, mixColor, ouchPose, koStars, spotsOverlay, wetOverlay, slimeOverlay,
   };
 })();

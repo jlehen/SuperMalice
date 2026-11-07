@@ -148,6 +148,14 @@ const Sound = (() => {
         case 'spots': // plop plop plop
           for (let i = 0; i < 3; i++) tone({ type: 'sine', f: 380 + i * 140, f2: 900 + i * 200, d: 0.07, v: 0.18, delay: i * 0.07 });
           break;
+        case 'wet': // brrrrr : ça grelotte
+          tone({ type: 'sawtooth', f: 160, f2: 130, d: 0.6, v: 0.07, vib: 28, vibDepth: 30 });
+          tone({ type: 'sine', f: 620, f2: 480, d: 0.5, v: 0.06, vib: 28, vibDepth: 40 });
+          break;
+        case 'slime': // splortch !
+          noise({ filter: 'lowpass', f: 900, f2: 200, d: 0.3, v: 0.3 });
+          tone({ type: 'sine', f: 300, f2: 120, d: 0.3, v: 0.18, vib: 12, vibDepth: 50 });
+          break;
         default: break;
       }
     },
@@ -326,6 +334,41 @@ const Sound = (() => {
     puffGrow() {
       tone({ type: 'sine', f: 520, f2: 1250, d: 0.1, v: 0.07 });
       tone({ type: 'triangle', f: 1568, d: 0.2, v: 0.035, delay: 0.08 });
+    },
+
+    // ---- La Rivière aux Nénuphars ----
+    // on tombe dans l'eau : un gros plouf, et des bulles qui remontent
+    plouf() {
+      noise({ filter: 'lowpass', f: 2200, f2: 300, d: 0.45, v: 0.4 });
+      tone({ type: 'sine', f: 260, f2: 90, d: 0.3, v: 0.25 });
+      for (let i = 0; i < 4; i++) tone({ type: 'sine', f: 300 + i * 90, f2: 700 + i * 160, d: 0.06, v: 0.07, delay: 0.25 + i * 0.09 });
+    },
+    // on ressort de l'eau : pop !
+    popOut() {
+      tone({ type: 'sine', f: 380, f2: 1200, d: 0.12, v: 0.18 });
+      noise({ filter: 'bandpass', f: 1600, f2: 700, d: 0.2, v: 0.15, q: 1.2 });
+    },
+    // avec l'étoile, on ricoche sur l'eau
+    ricochet() {
+      tone({ type: 'sine', f: 700, f2: 1800, d: 0.1, v: 0.12 });
+      noise({ filter: 'highpass', f: 2400, d: 0.12, v: 0.12 });
+    },
+    // on glisse sur la bave : fwiii !
+    slip() { tone({ type: 'sine', f: 1300, f2: 600, d: 0.22, v: 0.05, vib: 22, vibDepth: 70 }); },
+    // claquer des dents : tac-tac-tac
+    chatter() {
+      for (let i = 0; i < 5; i++) noise({ filter: 'bandpass', f: 3200, d: 0.025, v: 0.16, q: 3, delay: i * 0.055 });
+    },
+    // un nénuphar qui tremble, puis qui coule (glouglou), puis qui remonte (bloup)
+    padShake() { tone({ type: 'triangle', f: 210, f2: 190, d: 0.4, v: 0.1, vib: 16, vibDepth: 25 }); },
+    padSink() {
+      for (let i = 0; i < 4; i++) tone({ type: 'sine', f: 520 - i * 70, f2: 200 - i * 20, d: 0.09, v: 0.1, delay: i * 0.1 });
+    },
+    padUp() { tone({ type: 'sine', f: 240, f2: 620, d: 0.12, v: 0.08 }); },
+    // l'escargot rentre dans sa coquille : pouic !
+    shellHide() {
+      tone({ type: 'sine', f: 1500, f2: 500, d: 0.16, v: 0.12 });
+      tone({ type: 'triangle', f: 330, f2: 260, d: 0.18, v: 0.12, delay: 0.12 });
     },
   };
 

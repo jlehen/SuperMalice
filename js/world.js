@@ -5,6 +5,11 @@ const LUTIN_BLOCKS = 'LFKCS';
 const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || LUTIN_BLOCKS.includes(ch);
 // plateformes qu'on traverse par dessous : planche, nuage… ou pont arc-en-ciel
 const isLedgeCh = (ch) => ch === '-' || ch === '=';
+// l'eau de la rivière (la Rivière aux Nénuphars)
+const WATER = '_';
+// la bave des escargots : elle glisse pendant SLIME_WET secondes, puis elle sèche (et disparaît à SLIME_TIME)
+const SLIME_WET = 7;
+const SLIME_TIME = 9;
 // les minerais de la grotte, dans l'ordre de Art.GEMS : or, rubis, émeraude, topaze, diamant
 const GEM_CHARS = 'gretd';
 const MAGIC_TIME = 6;
@@ -68,6 +73,12 @@ class World {
     // pissenlits géants, et courants d'air qui font monter : [première colonne, dernière colonne, rangée]
     this.puffs = [];
     this.updrafts = (def.updrafts || []).map(([a, b, row]) => ({ a, b, top: row * TILE - 12 }));
+    // la Rivière aux Nénuphars : la bave des escargots, les lapins, et le terrier secret
+    // (les rangées à partir de "terrier" sont sous terre : la caméra n'y descend que si Malice y va)
+    this.slime = [];
+    this.bunnies = [];
+    this.terrier = def.terrier || 0;
+    const bunnySpots = [];
 
     let start = { x: 3 * TILE, y: 11 * TILE };
     const flowerSpots = [];
@@ -109,6 +120,15 @@ class World {
             }
             break;
           case 'A': this.hazards.push(new Stalactite(this, x, y)); break;
+          case 'O': this.enemies.push(new Snail(this, mx - 22, by - 30)); break;
+          case 'n':
+          case 'c':
+            // un nénuphar posé sur l'eau (sous lui, la rivière continue)
+            this.platforms.push(new LilyPad(this, mx, y + 14, ch === 'c'));
+            this.tiles[r][c] = WATER;
+            keep = true;
+            break;
+          case 'l': bunnySpots.push({ x: mx, y: by, r }); break;
           case '*': {
             // planté sur une branche ou sur le sol, ou bien qui flotte en l'air
             const below = this.tileAt(c, r + 1);
@@ -133,6 +153,18 @@ class World {
       const Talker = def.sequel ? BirdTip : TalkFlower;
       this.flowers.push(new Talker(this, f.x, f.y, game.textFor(talk[i] || '')));
     });
+    // les lapins : ceux qui sont sur l'herbe sortent la tête de leur trou (sans rien dire) ;
+    // ceux du terrier parlent, dans l'ordre de gauche à droite ("lapins")
+    bunnySpots.sort((a, b) => a.x - b.x);
+    let said = 0;
+    bunnySpots.forEach((b) => {
+      const peek = !this.terrier || b.r < this.terrier - 2;
+      const msg = peek ? '' : (def.lapins || [])[said++] || '';
+      this.bunnies.push(new Bunny(this, b.x, b.y, peek, game.textFor(msg)));
+    });
+    // les drapeaux sont numérotés de gauche à droite (même s'il y en a un plus bas, dans un terrier)
+    this.checkpoints.sort((a, b) => a.x - b.x);
+    this.checkpoints.forEach((cp, i) => { cp.idx = i; });
     if (checkpointIdx >= 0 && this.checkpoints[checkpointIdx]) {
       const cp = this.checkpoints[checkpointIdx];
       start = { x: cp.x + 20, y: cp.y };
@@ -140,6 +172,16 @@ class World {
     }
     this.player = new Player(this, start.x - 14, start.y - 56);
     this.player.y = start.y - this.player.h;
+    // (si elle tombe à l'eau et que l'endroit où elle était a disparu, elle ressort ici)
+    this.startPos = { x: start.x, y: start.y, pad: null };
+    // les escargots partent du côté opposé à l'endroit où Malice apparaît (au début, ou à un drapeau) :
+    // ils ne foncent pas tout de suite sur elle
+    for (const e of this.enemies) {
+      if (e instanceof Snail) e.dir = e.cx < start.x ? -1 : 1;
+    }
+    // le terrier : les trous cachés sous un bloc lutin, et les cases des galeries (voir burrowCells)
+    this.shafts = this.findShafts();
+    this.burrowCache = null;
     this.crowns = this.findCrowns();
     this.updateCamera(0, true);
   }
@@ -245,7 +287,7 @@ class World {
     for (let r = Math.max(0, Math.floor(fromY / TILE)); r < this.rows; r++) {
       const ch = this.tileAt(c, r);
       if (isSolidCh(ch) || isLedgeCh(ch)) return r * TILE;
-      if (ch === '~') return r * TILE + 12;
+      if (ch === '~' || ch === WATER) return r * TILE + 12;
     }
     return this.height + 200;
   }
@@ -284,6 +326,23 @@ class World {
       }
     }
     return false;
+  }
+
+  // La rivière : si les pieds sont dans l'eau, plus bas que deep sous la surface, renvoie la hauteur
+  // de la surface (sinon null).
+  waterSurface(b, deep) {
+    const feet = b.y + b.h;
+    const r = Math.min(Math.floor((feet - 4) / TILE), this.rows - 1);
+    const c0 = Math.floor((b.x + 4) / TILE);
+    const c1 = Math.floor((b.x + b.w - 4) / TILE);
+    for (let c = c0; c <= c1; c++) {
+      if (this.tileAt(c, r) !== WATER) continue;
+      let top = r;
+      while (this.tileAt(c, top - 1) === WATER) top--;
+      const surface = top * TILE + 14;
+      if (feet > surface + deep) return surface;
+    }
+    return null;
   }
 
   boxSolid(x, y, w, h) {
@@ -371,6 +430,33 @@ class World {
     }
   }
 
+  // ---------- La bave des escargots ----------
+  addSlime(x, y) {
+    if (this.slime.length > 700) this.slime.shift();
+    this.slime.push({ x, y, t: 0, v: Math.random() });
+  }
+
+  updateSlime(dt) {
+    for (const s of this.slime) s.t += dt;
+    if (this.slime.length && this.slime[0].t >= SLIME_TIME) this.slime = this.slime.filter((s) => s.t < SLIME_TIME);
+  }
+
+  // De la bave encore toute fraîche sous les pieds ?
+  slimeUnder(b) {
+    const feet = b.y + b.h;
+    for (const s of this.slime) {
+      if (s.t < SLIME_WET && Math.abs(s.y - feet) < 3 && s.x > b.x - 4 && s.x < b.x + b.w + 4) return true;
+    }
+    return false;
+  }
+
+  drawSlime(ctx) {
+    for (const s of this.slime) {
+      if (s.x < this.cam.x - 20 || s.x > this.cam.x + VIEW_W + 20) continue;
+      Art.slimeDrop(ctx, s.x, s.y, s.t, s.v, SLIME_WET, SLIME_TIME);
+    }
+  }
+
   // ---------- Blocs magiques du Lutin ----------
   addMagicBlock(c, r) {
     const under = r >= 0 && r < this.rows && c >= 0 && c < this.cols ? this.tiles[r][c] : '#';
@@ -380,18 +466,12 @@ class World {
     if (this.enemies.some((e) => !e.dying && overlap(e, box))) return false;
     if (this.items.some((it) => !it.dead && overlap(it, box))) return false;
     if (this.critters.some((ce) => !ce.dead && overlap(ce, box))) return false;
-    // tout le trajet d'une plateforme qui bouge (et la place de celui qui est dessus)
-    for (const pl of this.platforms) {
-      const h = pl.kind === 'h';
-      const path = {
-        x: pl.x0, y: pl.y0 - (h ? 0 : pl.range) - 60,
-        w: pl.w + (h ? pl.range : 0), h: pl.h + 60 + (h ? 0 : pl.range),
-      };
-      if (overlap(path, box)) return false;
-    }
+    // pas sur le trajet d'une plateforme qui bouge, ni juste au-dessus d'un nénuphar (voir blockZone)
+    if (this.platforms.some((pl) => overlap(pl.blockZone(), box))) return false;
     // pas plus de 4 à la fois : le plus vieux s'en va
     if (this.magic.length >= MAGIC_MAX) this.removeMagic(this.magic[0]);
     this.tiles[r][c] = 'u';
+    this.burrowCache = null;
     this.magic.push({ c, r, t: 0, under });
     Sound.sfx.magic();
     for (let i = 0; i < 12; i++) {
@@ -403,6 +483,7 @@ class World {
   removeMagic(m) {
     this.magic = this.magic.filter((o) => o !== m);
     if (this.tiles[m.r][m.c] === 'u') this.tiles[m.r][m.c] = m.under || '.';
+    this.burrowCache = null;
     Sound.sfx.magicGone();
     this.puff(m.c * TILE + TILE / 2, m.r * TILE + TILE / 2, '#d8ffe0');
   }
@@ -470,6 +551,7 @@ class World {
   breakBlock(c, r) {
     const ch = this.tiles[r][c];
     this.tiles[r][c] = '.';
+    this.burrowCache = null;
     Sound.sfx.breakBlock();
     this.shake(4);
     const cx = c * TILE + TILE / 2;
@@ -609,12 +691,14 @@ class World {
     for (const ce of this.critters) ce.update(dt);
     for (const a of this.anchors) a.update(dt);
     for (const d of this.puffs) d.update(dt);
+    for (const b of this.bunnies) b.update(dt);
     if (this.goal) this.goal.update(dt);
     if (this.def.sequel) p.birdTalk = this.flowers.reduce((m, f) => Math.max(m, f.show), 0);
     this.updateMagic(dt);
     this.updateStorms(dt);
     this.updateWinds(dt);
     this.updateUpdrafts(dt);
+    this.updateSlime(dt);
     this.updateLight(dt);
     for (const [k, v] of this.springs) {
       if (v > 0.4) this.springs.delete(k); else this.springs.set(k, v + dt);
@@ -640,6 +724,8 @@ class World {
 
   interactions() {
     const p = this.player;
+    // (sous l'eau, on ne touche rien)
+    if (p.dive > 0) return;
     const pb = { x: p.x + 3, y: p.y + 4, w: p.w - 6, h: p.h - 4 };
     // Mesuré avant le premier rebond : en tombant sur une coccinelle et sur son point noir
     // en même temps, on écrase les deux.
@@ -831,13 +917,18 @@ class World {
     let tx = p.cx - VIEW_W * 0.45 + this.look;
     let ty = p.y + p.h / 2 - VIEW_H * 0.56;
     tx = clamp(tx, 0, Math.max(0, this.width - VIEW_W));
-    ty = clamp(ty, 0, Math.max(0, this.height - VIEW_H));
+    // le terrier secret : la caméra ne descend sous terre que quand Malice y est
+    const under = this.terrier && p.y + p.h > (this.terrier - 1) * TILE;
+    const bottom = this.terrier && !under ? this.terrier * TILE : this.height;
+    ty = clamp(ty, 0, Math.max(0, bottom - VIEW_H));
     if (snap) {
       this.cam.x = tx;
       this.cam.y = ty;
     } else {
       this.cam.x += (tx - this.cam.x) * Math.min(1, dt * 7);
       this.cam.y += (ty - this.cam.y) * Math.min(1, dt * 5);
+      // sous terre (en tombant dans le terrier), ses pieds ne sortent jamais de l'écran par le bas
+      if (under) this.cam.y = clamp(this.cam.y, p.y + p.h + 20 - VIEW_H, Math.max(0, bottom - VIEW_H));
     }
     this.shakeMag *= Math.pow(0.001, dt);
     if (this.shakeMag < 0.3) this.shakeMag = 0;
@@ -849,7 +940,17 @@ class World {
   render(ctx, s) {
     const camX = this.cam.x + this.shakeX;
     const camY = this.cam.y + this.shakeY;
-    Scenery.drawBackground(ctx, this.theme, this.cam.x, this.cam.y, this.t, this.flash);
+    // avec un terrier, sous la surface tout est caché par la terre, les galeries ou le fond de la rivière :
+    // on ne dessine le ciel et les collines que là où on les voit (jusqu'un peu sous l'herbe, pour l'eau)
+    const sky = this.terrier ? (this.terrier - 2) * TILE + 16 - this.cam.y : VIEW_H;
+    if (sky < VIEW_H) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, VIEW_W, Math.max(0, sky));
+      ctx.clip();
+    }
+    if (sky > 0) Scenery.drawBackground(ctx, this.theme, this.cam.x, this.cam.y, this.t, this.flash);
+    if (sky < VIEW_H) ctx.restore();
     ctx.save();
     ctx.translate(-camX, -camY);
     this.lights.length = 0;
@@ -858,6 +959,9 @@ class World {
     this.drawTrunks(ctx, camX, camY);
     this.drawCrowns(ctx);
     this.drawUpdrafts(ctx);
+    this.runs = this.waterRuns(camX);
+    this.drawBurrow(ctx, camX, camY);
+    this.drawRiverBeds(ctx);
     this.drawDecor(ctx, camX);
     for (const f of this.flowers) f.draw(ctx);
     ctx.restore();
@@ -867,6 +971,8 @@ class World {
     ctx.save();
     ctx.translate(-camX, -camY);
     this.drawPuddles(ctx, camX);
+    this.drawSlime(ctx);
+    this.drawReeds(ctx, false);
     this.drawLutinShine(ctx, camX, camY);
     this.drawMagic(ctx);
     for (const cp of this.checkpoints) cp.draw(ctx);
@@ -874,11 +980,17 @@ class World {
       if (d.x > camX - 140 && d.x < camX + VIEW_W + 140) d.draw(ctx);
     }
     if (this.goal) this.goal.draw(ctx);
-    for (const pl of this.platforms) pl.draw(ctx);
+    // (les nénuphars qui flottent sont dessinés par-dessus l'eau, plus loin)
+    for (const pl of this.platforms) {
+      if (!pl.onWater) pl.draw(ctx);
+    }
     for (const a of this.anchors) a.draw(ctx);
     for (const it of this.items) it.draw(ctx);
     for (const ce of this.critters) {
       if (this.onScreen(ce, 80)) ce.draw(ctx);
+    }
+    for (const b of this.bunnies) {
+      if (b.x > camX - 80 && b.x < camX + VIEW_W + 80) b.draw(ctx);
     }
     for (const e of this.enemies) {
       if (e.x + e.w > camX - 80 && e.x < camX + VIEW_W + 80) e.draw(ctx);
@@ -890,6 +1002,11 @@ class World {
     if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);
     this.drawLava(ctx, camX, camY);
+    this.drawWater(ctx);
+    for (const pl of this.platforms) {
+      if (pl.onWater) pl.draw(ctx);
+    }
+    this.drawReeds(ctx, true);
     if (this.dark) this.drawDarkness(ctx, camX, camY);
     this.drawParticles(ctx);
     this.drawBubbles(ctx);
@@ -906,22 +1023,26 @@ class World {
     const th = this.theme;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const isG = (c, r) => (r >= this.rows ? true : this.tileAt(c, r) === '#');
+    // (le trou caché sous un bloc lutin, dans le terrier, compte comme du sol : pas de bord dessiné)
+    const isG = (c, r) => (r >= this.rows ? true : this.tileAt(c, r) === '#' || this.hiddenShaft(c, r));
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         const ch = this.tiles[r][c];
         // (les troncs sont dessinés avant, avec le feuillage : voir drawTrunks)
-        if (ch === '.' || ch === '~' || ch === '|') continue;
+        if (ch === '.' || ch === '~' || ch === '|' || ch === WATER) continue;
         let img = null;
         if (ch === '#') {
-          const m = { t: !isG(c, r - 1) && r > 0, l: !isG(c - 1, r), r: !isG(c + 1, r), b: !isG(c, r + 1) };
-          img = Scenery.groundSprite(th, m, Math.floor(hash2(c, r) * 4));
+          // (pas d'herbe au fond de la rivière ; sous terre, dans le terrier, de la terre toute nue)
+          const m = { t: !isG(c, r - 1) && r > 0 && this.tileAt(c, r - 1) !== WATER, l: !isG(c - 1, r), r: !isG(c + 1, r), b: !isG(c, r + 1) };
+          img = Scenery.groundSprite(this.terrier && r >= this.terrier ? 'burrow' : th, m, Math.floor(hash2(c, r) * 4));
         } else if (ch === 'B') {
           img = Scenery.brickSprite(th);
         } else if (LUTIN_BLOCKS.includes(ch)) {
           img = Scenery.lutinSprite();
         } else if (ch === '-') {
-          img = Scenery.platformSprite(th, this.tileAt(c - 1, r) !== '-', this.tileAt(c + 1, r) !== '-', Math.floor(hash2(c, r) * 3));
+          // (dans le terrier, les plateformes sont des racines)
+          const pth = this.terrier && r >= this.terrier - 2 ? 'burrow' : th;
+          img = Scenery.platformSprite(pth, this.tileAt(c - 1, r) !== '-', this.tileAt(c + 1, r) !== '-', Math.floor(hash2(c, r) * 3));
         } else if (ch === '=') {
           img = Scenery.rainbowSprite(this.tileAt(c - 1, r) !== '=', this.tileAt(c + 1, r) !== '=');
         } else if (ch === 'M') {
@@ -1046,6 +1167,165 @@ class World {
           for (let k = c; k <= e; k++) this.lights.push({ x: k * TILE + TILE / 2, y: r * TILE + 10, r: 95, a: 0.7 });
         }
         c = e + 1;
+      }
+    }
+  }
+
+  // ---------- La Rivière aux Nénuphars ----------
+  // Les morceaux de rivière qu'on voit : [première colonne, dernière colonne, rangée de la surface, fond].
+  // (sous la surface, l'eau descend jusqu'à la première case qui n'est pas de l'eau ; calculés une fois par image)
+  waterRuns(camX) {
+    const c0 = Math.max(0, Math.floor(camX / TILE) - 2);
+    const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / TILE) + 2);
+    const runs = [];
+    for (let r = 1; r < this.rows; r++) {
+      let c = c0;
+      while (c <= c1) {
+        if (this.tiles[r][c] !== WATER || this.tiles[r - 1][c] === WATER) { c++; continue; }
+        let e = c;
+        while (e + 1 <= c1 && this.tiles[r][e + 1] === WATER && this.tiles[r - 1][e + 1] !== WATER) e++;
+        let b = r;
+        while (b + 1 < this.rows && this.tiles[b + 1][c] === WATER) b++;
+        runs.push({ c0: c, c1: e, r, bottom: (b + 1) * TILE + (b === this.rows - 1 ? 40 : 0) });
+        c = e + 1;
+      }
+    }
+    return runs;
+  }
+
+  // Le fond de la rivière (derrière tout) et l'eau elle-même (devant Malice : on voit la Sirène nager dedans,
+  // et les nénuphars qui ont coulé).
+  drawRiverBeds(ctx) {
+    for (const w of this.runs) {
+      Scenery.riverBed(ctx, w.c0 * TILE, (w.c1 + 1) * TILE, w.r * TILE, w.bottom, this.t);
+    }
+  }
+
+  drawWater(ctx) {
+    for (const w of this.runs) {
+      Scenery.drawWaterRun(ctx, w.c0 * TILE, (w.c1 + 1) * TILE, w.r * TILE, w.bottom, this.t);
+    }
+  }
+
+  // Les roseaux et les quenouilles au bord de l'eau (front : les petites herbes devant l'eau).
+  drawReeds(ctx, front) {
+    for (const w of this.runs) {
+      const y = w.r * TILE;
+      // une berge à gauche et à droite (s'il y a du sol)
+      if (this.tileAt(w.c0 - 1, w.r) === '#') Scenery.reeds(ctx, w.c0 * TILE, y, 1, hash2(w.c0, w.r), this.t, front);
+      if (this.tileAt(w.c1 + 1, w.r) === '#') Scenery.reeds(ctx, (w.c1 + 1) * TILE, y, -1, hash2(w.c1, w.r + 3), this.t, front);
+    }
+  }
+
+  // ---------- Le terrier secret ----------
+  // Les trous qui descendent au terrier, cachés sous un bloc lutin posé dans le sol (rangée "terrier" - 2) :
+  // case du trou -> case du bloc qui le bouche.
+  findShafts() {
+    const shafts = new Map();
+    if (!this.terrier) return shafts;
+    const top = this.terrier - 2;
+    for (let c = 0; c < this.cols; c++) {
+      if (!LUTIN_BLOCKS.includes(this.tiles[top][c])) continue;
+      for (let r = top + 1; r < this.terrier && !isSolidCh(this.tiles[r][c]); r++) shafts.set(r * this.cols + c, { c, r: top });
+    }
+    return shafts;
+  }
+
+  // Un trou caché : tant que son bloc lutin est là, on le dessine comme de la terre (sinon, on verrait le secret).
+  hiddenShaft(c, r) {
+    if (!this.shafts.size) return false;
+    const lid = this.shafts.get(r * this.cols + c);
+    return !!lid && LUTIN_BLOCKS.includes(this.tiles[lid.r][lid.c]);
+  }
+
+  // Les cases du terrier, colonne par colonne : les galeries (open) et la terre (pour la peindre derrière).
+  // Calculées une fois, puis à nouveau quand une case change (bloc cassé, bloc magique du Lutin).
+  burrowCells() {
+    if (this.burrowCache) return this.burrowCache;
+    const top = this.terrier - 2;
+    const open = (c, r) => {
+      const ch = this.tileAt(c, r);
+      return r >= top && !isSolidCh(ch) && ch !== WATER && !this.hiddenShaft(c, r);
+    };
+    const dirt = Scenery.THEMES[this.theme].dirt;
+    const cols = [];
+    for (let c = 0; c < this.cols; c++) {
+      const cells = [];
+      for (let r = top; r < this.rows; r++) {
+        if (open(c, r)) {
+          // (par terre : seulement sur la terre, pas sur un bloc lutin)
+          const floor = this.tileAt(c, r + 1) === '#';
+          cells.push({
+            r, open: true, v: hash2(c * 1.3, r * 2.1),
+            o: { ceil: !open(c, r - 1) && r > top, floor, surface: r === top },
+            lantern: floor && r !== top && hash2(c * 3.7, r) <= 0.34 ? hash2(c, r * 5) : -1,
+          });
+        } else if (this.tiles[r][c] === '#' || this.hiddenShaft(c, r)) {
+          const hidden = this.hiddenShaft(c, r);
+          cells.push({
+            r, open: false, hidden, v: Math.floor(hash2(c, r) * 4),
+            lip: this.tileAt(c, r - 1) === '#' || hidden ? 0 : 14, dirt: r >= this.terrier ? Scenery.THEMES.burrow.dirt : dirt,
+          });
+        }
+      }
+      // la lumière du jour tombe par un trou ouvert sur le ciel
+      cols.push({ cells, beam: open(c, top) && !isSolidCh(this.tileAt(c, top - 1)) });
+    }
+    this.burrowCache = cols;
+    return cols;
+  }
+
+  // Le terrier secret : des galeries de terre derrière tout ce qui n'est pas du sol (sous la rangée
+  // "terrier" - 2 : le trou qui y descend aussi), des racines, et une lumière toute douce.
+  drawBurrow(ctx, camX, camY) {
+    if (!this.terrier) return;
+    const T = TILE;
+    const top = this.terrier - 2;
+    const c0 = Math.max(0, Math.floor(camX / T) - 1);
+    const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / T) + 1);
+    const r0 = Math.max(top, Math.floor(camY / T) - 1);
+    const r1 = Math.min(this.rows - 1, Math.ceil((camY + VIEW_H) / T) + 1);
+    if (r0 > r1) return;
+    const cols = this.burrowCells();
+    const seen = (k) => k.r >= r0 && k.r <= r1;
+    // derrière la terre, de la terre aussi : on ne voit pas le ciel entre deux cases
+    // (mais pas derrière l'herbe du dessus, qui est arrondie)
+    let any = false;
+    for (let c = c0; c <= c1; c++) {
+      for (const k of cols[c].cells) {
+        if (!seen(k)) continue;
+        if (k.open) { any = true; continue; }
+        ctx.fillStyle = k.dirt;
+        ctx.fillRect(c * T, k.r * T + k.lip, T + 1, T - k.lip + 1);
+        // le trou sous le bloc lutin qui le bouche
+        if (k.hidden) {
+          const pad = Scenery.PAD;
+          const img = Scenery.groundSprite(this.theme, { t: false, l: false, r: false, b: false }, k.v);
+          ctx.drawImage(img, c * T - pad, k.r * T - pad, T + pad * 2, T + pad * 2);
+        }
+      }
+    }
+    if (!any) return;
+    // le fond de terre, d'un seul morceau (pas de trait entre les cases)
+    const g = ctx.createLinearGradient(0, top * T, 0, this.rows * T);
+    g.addColorStop(0, '#6a4628');
+    g.addColorStop(1, '#46301a');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    for (let c = c0; c <= c1; c++) {
+      for (const k of cols[c].cells) if (k.open && seen(k)) ctx.rect(c * T - 0.5, k.r * T - 0.5, T + 1, T + 1);
+    }
+    ctx.fill();
+    for (let c = c0; c <= c1; c++) {
+      for (const k of cols[c].cells) if (k.open && seen(k)) Scenery.burrowCell(ctx, c * T, k.r * T, k.v, this.t, k.o);
+    }
+    // la lumière du jour qui tombe par les trous, et la lumière douce des champignons qui brillent
+    for (let c = c0; c <= c1; c++) {
+      if (cols[c].beam) Scenery.burrowSunbeam(ctx, c * T, top * T, Math.min(this.rows, top + 9) * T, this.t + c);
+    }
+    for (let c = c0; c <= c1; c++) {
+      for (const k of cols[c].cells) {
+        if (k.open && k.lantern >= 0 && seen(k)) Scenery.burrowLantern(ctx, c * T + T / 2, (k.r + 1) * T, k.lantern, this.t);
       }
     }
   }
@@ -1308,6 +1588,13 @@ class World {
           // une graine de pissenlit qui se balance sous son parachute
           ctx.globalAlpha = Math.min(1, a * 2.5);
           Art.dandelionSeed(ctx, q.x + Math.sin(q.life * 3 + q.wob) * 6, q.y, q.size, Math.sin(q.life * 3 + q.wob) * 0.35);
+          break;
+        case 'fish':
+          // le petit poisson qui saute de la casquette de Malice (il frétille)
+          ctx.globalAlpha = Math.min(1, a * 4);
+          ctx.translate(q.x, q.y);
+          ctx.rotate(Math.atan2(q.vy, q.vx) + Math.sin(q.life * 30) * 0.25);
+          Art.fish(ctx, 0, 0, q.size, q.hue, q.life);
           break;
         case 'leaf': {
           // une feuille qui monte en tournoyant (courant d'air)

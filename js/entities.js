@@ -34,6 +34,13 @@ const PHYS = {
   puffRun: 250,
   puffLift: 300,
   puffRise: 140,
+  // bave d'escargot : on n'accroche plus, on garde son élan (accélération et freinage tout petits)
+  slimeAcc: 520,
+  slimeDec: 280,
+  // rivière : on reste un petit moment sous l'eau (on ne voit que des bulles), puis on ressort sur la berge ;
+  // la Sirène et le Pingouin nagent, enfoncés de swimDepth dans l'eau
+  diveTime: 0.6,
+  swimDepth: 18,
 };
 
 // Moustache-grappin : portée, vitesse de la moustache, vitesse de traction, longueur de la corde.
@@ -63,6 +70,11 @@ const OUCH = {
   soot: { dur: 2, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.6, text: 'Kof kof !', color: '#d0d0d0' },
   // la coccinelle lui colle ses points noirs, qui sautent un par un
   spots: { dur: 2.4, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.5, text: 'Plein de pois !', color: '#ff6a6a' },
+  // l'eau de la rivière est froide : elle ressort toute mouillée sur la berge, grelotte, claque des dents,
+  // et un petit poisson saute de sa casquette
+  wet: { dur: 1.8, pose: 1.1, lock: 0.45, vx: 0, vy: -330, hold: 0.6, text: 'Brrr, c\'est froid !', color: '#8fd8ff' },
+  // l'escargot : toute gluante de bave verte qui dégouline, elle tire la langue
+  slime: { dur: 1.7, pose: 0.45, lock: 0.25, vx: 240, vy: -420, hold: 0.4, text: 'Beurk, de la bave !', color: '#c8f59a' },
   // n'importe quoi d'autre
   hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
 };
@@ -126,6 +138,14 @@ class Player {
     this.beakT = 0;
     // le pissenlit géant qu'elle tient au-dessus de sa tête (les Grands Arbres)
     this.puff = null;
+    // la Rivière aux Nénuphars : sous l'eau (dive : le temps qu'il reste), en train de nager (swim),
+    // le dernier endroit bien solide où elle était (safe : on y ressort après être tombée à l'eau),
+    // et sur la bave d'un escargot (slick)
+    this.dive = 0;
+    this.swim = false;
+    this.safe = { x: x + this.w / 2, y: y + this.h, pad: null };
+    this.slick = false;
+    this.slipT = 0;
     // le personnage choisi et son pouvoir (voir heroes.js et pouvoirs.js)
     this.hero = world.game.hero || 'malice';
     this.pow = POWERS[this.hero] || {};
@@ -183,6 +203,11 @@ class Player {
       this.vx = this.stunVx;
       this.vy = this.stunVy;
     }
+    // tombée dans la rivière : quelques bulles, puis elle ressort sur la berge
+    if (this.dive > 0) {
+      this.underwater(dt);
+      return;
+    }
 
     if (this.superSpin > 0) this.superSpin -= dt;
     const I = Input;
@@ -199,6 +224,8 @@ class Player {
       return;
     }
     if (I.pressed.grapple && badgeGrappin && !this.pound && this.hurtT <= 0) this.startGrapple();
+    // la bave d'escargot sous les pieds : ça glisse ! (pas sur un nénuphar)
+    this.slick = this.onGround && !this.platform && !this.swim && w.slimeUnder(this);
     const pow = this.pow;
     if (this.pw.poseT > 0) this.pw.poseT -= dt;
     if (pow.update) pow.update(this, dt, I);
@@ -257,9 +284,13 @@ class Player {
       if (this.onGround) acc = dir ? PHYS.accGround : PHYS.decGround;
       else acc = dir ? PHYS.accAir : PHYS.decAir;
       if (dir && Math.sign(this.vx) === -dir) acc *= 1.6;
+      // sur la bave, on n'accroche plus : on démarre doucement, et on a du mal à s'arrêter
+      if (this.slick) acc = dir ? PHYS.slimeAcc : PHYS.slimeDec;
       this.vx = approach(this.vx, target, acc * dt);
       if (dir) this.facing = dir;
     }
+    this.slipping = this.slick && Math.abs(this.vx) > 60 && Math.sign(this.vx) !== dir;
+    if (this.slipping) this.slipFx(dt);
 
     // saut (avec un peu de tolérance pour les enfants)
     if (I.pressed.jump) this.jumpBuf = PHYS.buffer;
@@ -399,7 +430,170 @@ class Player {
       this.sinkT = 0;
       if (this.y > w.height + 60) this.die('fall');
     }
+    this.checkWater();
+    this.updateSafe();
     this.updateBird(dt);
+  }
+
+  // ---------- La rivière (la Rivière aux Nénuphars) ----------
+  // Les pieds dans l'eau ? Avec l'étoile, Malice ricoche dessus ; la Sirène et le Pingouin nagent ;
+  // les autres tombent dedans : plouf !
+  checkWater() {
+    const w = this.world;
+    const surf = w.waterSurface(this, 0);
+    // (debout sur un nénuphar, on n'est pas dans l'eau, même s'il s'enfonce un tout petit peu)
+    if (surf === null || this.dead || this.platform) {
+      this.swim = false;
+      return;
+    }
+    const feet = this.y + this.h;
+    if (this.star > 0) {
+      if (feet > surf + 4 && this.vy >= 0) this.ricochet(surf);
+    } else if (this.pow.swims) {
+      if (this.swim || feet > surf + 4) this.swimIn(surf);
+    } else if (feet > surf + 16) {
+      this.diveIn(surf);
+    }
+  }
+
+  // Ils flottent, à moitié dans l'eau, comme sur un sol tout doux : on nage avec les flèches,
+  // et on saute pour sortir.
+  swimIn(surf) {
+    const w = this.world;
+    const depth = surf + PHYS.swimDepth;
+    if (!this.swim) {
+      w.splash(this.cx, surf);
+      w.spawn({ type: 'ring', x: this.cx, y: surf, life: 0.5, size: 50, color: 'rgba(200,240,255,0.9)' });
+    }
+    this.swim = true;
+    if (this.y + this.h >= depth && this.vy >= 0) {
+      this.y = depth - this.h;
+      this.vy = 0;
+      this.pound = 0;
+      if (!this.onGround) this.land = 0.12;
+      this.onGround = true;
+      this.coyote = PHYS.coyote;
+      this.platform = null;
+      // des petites vagues quand on nage
+      if (Math.abs(this.vx) > 40 && Math.random() < 0.12) {
+        w.spawn({ type: 'ring', x: this.cx - this.facing * 14, y: surf, life: 0.45, size: 22, color: 'rgba(220,245,255,0.8)' });
+      }
+    }
+  }
+
+  // Plouf ! Elle disparaît sous l'eau (on ne voit plus que des bulles).
+  diveIn(surf) {
+    const w = this.world;
+    this.dropPuff();
+    this.stopPower();
+    this.grap = null;
+    this.pound = 0;
+    this.platform = null;
+    this.crouch = false;
+    this.dive = PHYS.diveTime;
+    this.diveAt = { x: this.cx, y: surf };
+    this.vx = 0;
+    this.vy = 0;
+    Sound.sfx.plouf();
+    w.splash(this.cx, surf);
+    w.spawn({ type: 'ring', x: this.cx, y: surf, life: 0.6, size: 70, color: 'rgba(200,240,255,0.95)' });
+    for (let i = 0; i < 10; i++) {
+      w.spawn({ type: 'dot', x: this.cx + rand(-18, 18), y: surf - 2, vx: rand(-120, 120), vy: rand(-520, -260), g: 1400, life: 0.7, size: rand(3, 5), color: i % 2 ? '#bfeaff' : '#ffffff' });
+    }
+    // Gizmo devient un Gremlin
+    if (this.pow.splash) this.pow.splash(this);
+  }
+
+  // Sous l'eau : des bulles remontent, puis elle ressort là où elle était bien au sec.
+  underwater(dt) {
+    const w = this.world;
+    this.dive -= dt;
+    if (Math.random() < dt * 14) {
+      w.spawn({ type: 'ring', x: this.diveAt.x + rand(-12, 12), y: this.diveAt.y + rand(-2, 2), life: 0.35, size: rand(8, 16), color: 'rgba(230,250,255,0.9)' });
+    }
+    if (this.dive > 0) return;
+    this.dive = 0;
+    const s = this.safeSpot();
+    this.x = s.x - this.w / 2;
+    this.y = s.y - this.h;
+    this.vx = 0;
+    this.vy = 0;
+    this.prevBottom = this.y + this.h;
+    this.onGround = true;
+    this.platform = s.pad || null;
+    this.jumping = false;
+    Sound.sfx.popOut();
+    // pouf ! elle ressort en s'ébrouant
+    for (let i = 0; i < 12; i++) {
+      w.spawn({ type: 'dot', x: this.cx + rand(-14, 14), y: this.y + rand(10, 40), vx: rand(-200, 200), vy: rand(-300, -60), g: 1200, life: 0.6, size: rand(2.5, 4), color: i % 3 ? '#8fd8ff' : '#ffffff' });
+    }
+    // (si elle était encore invincible après avoir eu mal, elle grelotte quand même, mais ne perd rien)
+    if (!this.hurt(null, 'wet')) {
+      this.ouch = { kind: 'wet', t: 0, dur: OUCH.wet.dur, seed: Math.random() * 100 };
+      this.vy = OUCH.wet.vy;
+      this.onGround = false;
+      this.platform = null;
+    }
+    // un petit poisson saute de la casquette et retourne dans la rivière
+    w.spawn({ type: 'fish', x: this.cx, y: this.y + 2, vx: (this.diveAt.x > this.cx ? 1 : -1) * rand(110, 170), vy: -560, g: 1500, life: 1.1, vr: 9, size: 1, hue: choose([20, 35, 200]) });
+  }
+
+  // Le dernier endroit bien solide où elle se tenait (le sol, une planche, un nénuphar qui ne coule pas).
+  updateSafe() {
+    if (!this.onGround || this.dive > 0 || this.swim || this.dead || this.won) return;
+    const pl = this.platform;
+    if (pl) {
+      if (pl.solid) this.safe = { pad: pl, x: 0, y: 0 };
+      return;
+    }
+    const w = this.world;
+    const c = Math.floor(this.cx / TILE);
+    const r = Math.floor((this.y + this.h + 2) / TILE);
+    const ch = w.tileAt(c, r);
+    // (pas sur un bloc magique du Lutin ni sur un bloc lutin : ils disparaissent, ou sont perchés au-dessus de l'eau)
+    if ((isSolidCh(ch) || isLedgeCh(ch)) && ch !== 'u' && !LUTIN_BLOCKS.includes(ch)) this.safe = { x: (c + 0.5) * TILE, y: r * TILE, pad: null };
+  }
+
+  safeSpot() {
+    const w = this.world;
+    const s = this.safe;
+    if (s.pad) return { x: s.pad.x + s.pad.w / 2, y: s.pad.y, pad: s.pad };
+    // (si la case a disparu entre-temps, on repart du début du niveau ou du drapeau)
+    const ch = w.tileAt(Math.floor(s.x / TILE), Math.floor(s.y / TILE));
+    if (!isSolidCh(ch) && !isLedgeCh(ch)) return w.startPos;
+    // si la place est prise (un bloc magique du Lutin posé là), on ressort par-dessus
+    let y = s.y;
+    for (let k = 0; k < 4 && w.boxSolid(s.x - this.w / 2, y - this.h, this.w, this.h); k++) y -= TILE;
+    if (w.boxSolid(s.x - this.w / 2, y - this.h, this.w, this.h)) return w.startPos;
+    return { x: s.x, y, pad: null };
+  }
+
+  // Avec l'étoile, elle ricoche sur l'eau comme un caillou plat.
+  ricochet(surf) {
+    const w = this.world;
+    this.vy = -PHYS.jump * 0.8;
+    this.jumping = false;
+    this.pound = 0;
+    this.onGround = false;
+    this.platform = null;
+    Sound.sfx.ricochet();
+    w.spawn({ type: 'ring', x: this.cx, y: surf, life: 0.45, size: 46, color: 'rgba(220,245,255,0.95)' });
+    for (let i = 0; i < 8; i++) {
+      w.spawn({ type: 'dot', x: this.cx + rand(-14, 14), y: surf - 2, vx: rand(-160, 160), vy: rand(-380, -160), g: 1300, life: 0.5, size: rand(2.5, 4), color: i % 2 ? '#8fd8ff' : '#ffffff' });
+    }
+  }
+
+  // Elle glisse sur la bave : des petites gouttes brillantes, et un « fwiii » de temps en temps.
+  slipFx(dt) {
+    const w = this.world;
+    this.slipT -= dt;
+    if (this.slipT <= 0) {
+      this.slipT = 0.45;
+      Sound.sfx.slip();
+    }
+    if (Math.random() < dt * 22) {
+      w.spawn({ type: 'dot', x: this.cx + rand(-8, 8), y: this.y + this.h - 2, vx: -Math.sign(this.vx) * rand(20, 90) + this.vx * 0.2, vy: rand(-140, -40), g: 900, life: 0.4, size: rand(1.8, 3), color: choose(['#d8ffc8', '#ffffff', '#b8f0a0']) });
+    }
   }
 
   // Une flaque d'eau : plouf ! (et Gizmo devient un Gremlin)
@@ -727,6 +921,8 @@ class Player {
   checkPlatforms() {
     if (this.vy < 0) return;
     for (const p of this.world.platforms) {
+      // (un nénuphar qui a coulé, on passe à travers : on tombe dans l'eau)
+      if (p.sunk) continue;
       if (this.x + this.w > p.x + 3 && this.x < p.x + p.w - 3) {
         const bottom = this.y + this.h;
         if (bottom >= p.y && this.prevBottom <= p.y + 8) {
@@ -775,8 +971,8 @@ class Player {
     if (!OUCH[kind]) kind = 'hit';
     const O = OUCH[kind];
     this.stopPower();
-    // le Gremlin redevient Gizmo au lieu d'avoir mal
-    if (this.pow.shield && this.pow.shield(this)) {
+    // le Gremlin redevient Gizmo au lieu d'avoir mal (mais pas dans l'eau : il y reste un Gremlin)
+    if (kind !== 'wet' && this.pow.shield && this.pow.shield(this)) {
       this.invuln = 1.6;
       this.hurtT = 0.25;
       this.grap = null;
@@ -872,6 +1068,21 @@ class Player {
       case 'scramble':
         if (Art.SCRAMBLE_BACK.some(passed)) Sound.sfx.click();
         break;
+      case 'wet':
+        // elle s'égoutte, et claque des dents
+        if (Math.random() < dt * 16) {
+          const p = at(rand(-12, 12), rand(-62, -8));
+          w.spawn({ type: 'dot', x: p.x, y: p.y, vx: rand(-20, 20), vy: rand(20, 90), g: 900, life: 0.5, size: rand(1.8, 2.8), color: '#8fd8ff' });
+        }
+        if ([0.35, 0.95].some(passed)) Sound.sfx.chatter();
+        break;
+      case 'slime':
+        // la bave dégouline
+        if (Math.random() < dt * 9) {
+          const p = at(rand(-10, 10), rand(-60, -20));
+          w.spawn({ type: 'dot', x: p.x, y: p.y, vx: rand(-10, 10), vy: rand(10, 50), g: 500, life: 0.7, size: rand(2, 3.2), color: '#b8f08a' });
+        }
+        break;
       case 'spots':
         Art.MALICE_SPOTS.forEach(([x, y], i) => {
           if (!passed(Art.spotPop(i))) return;
@@ -905,6 +1116,8 @@ class Player {
   }
 
   draw(ctx) {
+    // sous l'eau : on ne la voit pas (seulement des bulles)
+    if (this.dive > 0) return;
     let pose = 'idle';
     const hanging = this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing');
     const k = this.ouch;
@@ -919,6 +1132,7 @@ class Player {
     else if (ouching) pose = 'ouch';
     else if (!this.onGround) pose = this.vy < 0 ? 'jump' : 'fall';
     else if (this.throwAnim > 0) pose = 'throw';
+    else if (this.slipping) pose = 'slip';
     else if (Math.abs(this.vx) > 15) pose = Math.abs(this.vx) > PHYS.run + 20 ? 'run' : 'walk';
     if (this.throwAnim > 0 && !this.onGround && !this.pound) pose = 'throw';
     // les poses des pouvoirs
@@ -1066,7 +1280,7 @@ class Throwable {
     }
     for (const e of w.enemies) {
       if (e.dying || e.dead) continue;
-      if (overlap(this, e)) {
+      if (overlap(this, e.shotBox ? e.shotBox() : e)) {
         e.hitBy(this.kind);
         this.dead = true;
         for (let i = 0; i < 8; i++) {
@@ -1141,10 +1355,11 @@ class Enemy {
     this.t += dt;
     if (this.dying) {
       this.dieT += dt;
-      if (this.deathType === 'stomp') {
-        if (this.dieT > 0.45) {
+      if (this.deathType === 'stomp' || this.deathType === 'shell') {
+        // écrasé ; ou (l'escargot) rentré dans sa coquille, qui tremble un peu plus longtemps
+        if (this.dieT > (this.deathType === 'shell' ? 0.75 : 0.45)) {
           this.dead = true;
-          w.puff(this.cx, this.y + this.h - 10);
+          w.puff(this.cx, this.y + this.h - 10, this.deathType === 'shell' ? '#ffe0f4' : null);
         }
       } else {
         this.vy += PHYS.gravity * dt;
@@ -1175,6 +1390,12 @@ class Enemy {
       this.dead = true;
       w.puff(this.cx, this.y + this.h, '#555');
     }
+    // tombé dans la rivière : plouf, il s'en va avec le courant
+    const surf = w.waterSurface(this, 8);
+    if (surf !== null) {
+      this.dead = true;
+      if (w.onScreen(this)) w.splash(this.cx, surf);
+    }
   }
 
   updateFat(dt) {
@@ -1195,7 +1416,7 @@ class Enemy {
         w.spawn({ type: 'drop', x: this.cx + rand(-18, 18), y: this.y - 4, vx: rand(-60, 60), vy: rand(-140, -60), g: 600, life: 0.6, size: 1 });
       }
     } else {
-      this.vx = this.dir * 32;
+      this.vx = this.dir * (this.fatSpeed || 32);
       this.legPhase += dt * 4;
       if (this.fatT <= 0) {
         this.fatRest = true;
@@ -1763,6 +1984,91 @@ class GummyBear extends Enemy {
   mouth() { return { x: this.dir * 2.5, y: this.fat ? -23.5 : -24.5 }; }
 }
 
+// Escargot (la Rivière aux Nénuphars) : il avance tout doucement et laisse derrière lui une traînée
+// de bave qui brille, où Malice glisse (elle sèche au bout d'un moment). Quand on lui saute dessus,
+// il rentre dans sa coquille… et pouf ! Le caramel le colle, les chips le font gonfler.
+const SLIME_STEP = 6;
+
+class Snail extends Enemy {
+  constructor(world, x, y) {
+    super(world, x, y, 44, 30);
+    this.ouch = 'slime'; // il laisse plein de bave sur Malice (voir OUCH)
+    this.hue = choose([330, 280, 200, 30]);
+    this.fatSpeed = 12;
+    this.slimeD = 0;
+    this.look = { x: -1, y: 0 };
+  }
+
+  ai(dt) {
+    this.vx = this.dir * this.world.diff.snailSpeed;
+    this.legPhase += dt * 3.2;
+    this.walkPhysics(dt, true);
+    this.lookAt(dt);
+    this.drool(dt);
+  }
+
+  // Il est tout petit : les chips, le caramel et les tirs des pouvoirs le touchent un peu plus haut
+  // (sinon, ils passeraient par-dessus sa coquille).
+  shotBox() {
+    return { x: this.x, y: this.y - 18, w: this.w, h: this.h + 18 };
+  }
+
+  // tout gros (chips), il bave encore
+  updateFat(dt) {
+    super.updateFat(dt);
+    this.drool(dt);
+  }
+
+  // ses yeux, tout au bout de ses cornes, suivent Malice
+  lookAt(dt) {
+    const p = this.world.player;
+    const dx = p.cx - this.cx;
+    const dy = p.cy - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const sees = !p.dead && d < 360;
+    this.look.x += ((sees ? dx / d : this.dir) - this.look.x) * Math.min(1, dt * 5);
+    this.look.y += ((sees ? dy / d : 0) - this.look.y) * Math.min(1, dt * 5);
+  }
+
+  // une goutte de bave tous les quelques pixels, sous sa queue
+  drool(dt) {
+    if (!this.onGround || Math.abs(this.vx) < 1) return;
+    this.slimeD += Math.abs(this.vx) * dt;
+    if (this.slimeD < SLIME_STEP) return;
+    this.slimeD = 0;
+    this.world.addSlime(this.cx - this.dir * 12, this.y + this.h);
+  }
+
+  // on lui saute dessus : il rentre dans sa coquille, la coquille tremble… et pouf !
+  stomp() {
+    const w = this.world;
+    this.kill('stomp');
+    this.deathType = 'shell';
+    Sound.sfx.shellHide();
+    w.popText(this.cx, this.y - 24, 'Pouic !', '#ffd0f0', 20);
+    for (let i = 0; i < 8; i++) {
+      w.spawn({ type: 'spark', x: this.cx, y: this.y + 14, vx: rand(-160, 160), vy: rand(-220, -40), life: 0.45, size: rand(3, 6), color: choose(['#fff6a0', '#ffc8ec', '#ffffff']) });
+    }
+  }
+
+  draw(ctx) {
+    if (this.dying && this.deathType === 'shell') {
+      Art.snail(ctx, this.cx, this.y + this.h, { dir: this.dir, t: this.t, hue: this.hue, look: this.look, hide: Math.min(1, this.dieT / 0.15), wobble: this.dieT });
+      return;
+    }
+    super.draw(ctx);
+  }
+
+  drawBody(ctx, x, y) {
+    Art.snail(ctx, x, y, {
+      dir: this.dir, t: this.t, hue: this.hue, look: this.look, phase: this.legPhase,
+      moving: Math.abs(this.vx) > 1, fat: this.fat, rest: this.fatRest && this.stuck <= 0,
+    });
+  }
+
+  mouth() { return { x: this.dir * (this.fat ? 19 : 17), y: -13 }; }
+}
+
 // Gros œil bonbon : il est gentil mais timide. Il s'enfuit quand Malice approche ;
 // si on l'attrape, on gagne une vie (et tous ses cœurs).
 class CandyEye {
@@ -2309,6 +2615,16 @@ class MovingPlatform {
     this.range = TILE * 3;
     this.period = 4.6;
     this.t = 0;
+  }
+
+  // Là où le Lutin ne peut pas poser de bloc magique : tout le trajet de la plateforme
+  // (et la place de celui qui est dessus).
+  blockZone() {
+    const h = this.kind === 'h';
+    return {
+      x: this.x0, y: this.y0 - (h ? 0 : this.range) - 60,
+      w: this.w + (h ? this.range : 0), h: this.h + 60 + (h ? 0 : this.range),
+    };
   }
 
   update(dt) {
@@ -3028,6 +3344,190 @@ class Dandelion {
     const h = this.world.player.puffHead();
     Art.dandelionStem(ctx, h.hand.x, h.hand.y + 4, h.x, h.y + 8, Math.sin(this.t * 2.6) * 4);
     Art.dandelion(ctx, h.x, h.y, PUFF_R, this.t, { tilt: h.tilt });
+  }
+}
+
+// Nénuphar (la Rivière aux Nénuphars) : il flotte sur la rivière et se balance doucement.
+// Ceux qui ont une fleur sont solides. Les autres (grignotés par les escargots) tremblent quand
+// Malice reste dessus, puis s'enfoncent dans l'eau, et remontent un peu plus tard.
+const PAD_W = 72;
+const PAD_SINK = 34;
+const PAD_DEEP = 40;
+
+class LilyPad {
+  constructor(world, cx, surface, sinks) {
+    this.world = world;
+    this.sinks = sinks;
+    // un nénuphar solide : on y ressort si on tombe à l'eau
+    this.solid = !sinks;
+    this.w = PAD_W;
+    this.h = 12;
+    this.home = cx - PAD_W / 2;
+    this.surface = surface;
+    this.x = this.home;
+    this.y = surface - 5;
+    this.dx = 0;
+    this.dy = 0;
+    this.t = rand(0, 6);
+    // 'float' : il flotte, 'shake' : il tremble, 'sink' : il coule, 'under' : il est sous l'eau, 'rise' : il remonte
+    this.state = 'float';
+    this.timer = 0;
+    this.depth = 0;
+    this.dip = 0;
+    this.load = false;
+  }
+
+  // assez enfoncé pour qu'on passe à travers (on tombe dans l'eau)
+  get sunk() { return this.depth > 18; }
+
+  // il flotte (dessiné par-dessus l'eau) ; plus bas, on le voit sous l'eau
+  get onWater() { return this.depth < 6; }
+
+  // Là où le Lutin ne peut pas poser de bloc magique : juste au-dessus du nénuphar (et là où il se balance).
+  blockZone() {
+    return { x: this.home - 6, y: this.surface - 70, w: this.w + 12, h: 80 };
+  }
+
+  update(dt) {
+    const p = this.world.player;
+    const on = p.platform === this && !p.dead;
+    // il s'enfonce un tout petit peu quand on atterrit dessus
+    if (on && !this.load) this.dip = 1;
+    this.load = on;
+    this.t += dt;
+    this.dip = Math.max(0, this.dip - dt * 2.5);
+    if (this.sinks) this.updateSink(dt);
+    const nx = this.home + Math.sin(this.t * 0.55) * 5;
+    const ny = this.surface - 5 + this.depth + Math.sin(this.t * 1.7) * 1.2 + Math.sin(this.dip * Math.PI) * 4;
+    this.dx = nx - this.x;
+    this.dy = ny - this.y;
+    this.x = nx;
+    this.y = ny;
+  }
+
+  updateSink(dt) {
+    const w = this.world;
+    const cx = this.x + this.w / 2;
+    const seen = w.onScreen(this, 60);
+    switch (this.state) {
+      case 'float':
+        if (this.load) {
+          this.state = 'shake';
+          this.timer = 0;
+          if (seen) Sound.sfx.padShake();
+        }
+        break;
+      case 'shake':
+        // il tremble de plus en plus ; si on s'en va, il se calme
+        if (this.load) this.timer += dt;
+        else if ((this.timer -= dt * 1.5) <= 0) this.state = 'float';
+        if (seen && Math.random() < dt * 8) {
+          w.spawn({ type: 'ring', x: cx + rand(-30, 30), y: this.surface, life: 0.4, size: rand(8, 14), color: 'rgba(230,250,255,0.8)' });
+        }
+        if (this.timer >= w.diff.padShake) {
+          this.state = 'sink';
+          if (seen) Sound.sfx.padSink();
+        }
+        break;
+      case 'sink':
+        this.depth = Math.min(PAD_DEEP, this.depth + PAD_SINK * dt);
+        if (seen && Math.random() < dt * 12) {
+          w.spawn({ type: 'ring', x: cx + rand(-26, 26), y: this.surface, life: 0.35, size: rand(6, 12), color: 'rgba(230,250,255,0.9)' });
+        }
+        if (this.depth >= PAD_DEEP) {
+          this.state = 'under';
+          this.timer = 0;
+        }
+        break;
+      case 'under':
+        this.timer += dt;
+        if (this.timer > 1.6) this.state = 'rise';
+        break;
+      case 'rise':
+        this.depth = Math.max(0, this.depth - 26 * dt);
+        if (this.depth <= 0) {
+          this.state = this.load ? 'shake' : 'float';
+          this.timer = 0;
+          if (seen) Sound.sfx.padUp();
+        }
+        break;
+      default: break;
+    }
+  }
+
+  draw(ctx) {
+    const shake = this.state === 'shake' ? Math.sin(this.t * 55) * (0.8 + this.timer * 1.6) : 0;
+    Art.lilyPad(ctx, this.x + this.w / 2 + shake, this.y, this.w, {
+      t: this.t, sinks: this.sinks, surface: this.surface, tilt: shake * 0.015,
+    });
+  }
+}
+
+// Lapin (le terrier secret) : il est gentil, il fait partie du décor. Il remue le nez et les oreilles,
+// et fait des petits bonds autour de chez lui. Sur l'herbe, il sort la tête de son trou de temps en temps
+// (et s'y cache quand Malice arrive). Il peut aussi dire quelque chose (msg : voir "lapins" dans levels.js).
+class Bunny {
+  constructor(world, x, y, peek, msg) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+    this.homeX = x;
+    this.peek = peek;
+    this.msg = msg || '';
+    this.t = rand(0, 6);
+    this.dir = choose([-1, 1]);
+    // un bond (de 0 à 1), ou -1 quand il est assis
+    this.hop = -1;
+    this.hopT = rand(0.5, 2.5);
+    // dans son trou : combien il sort la tête (de 0 à 1)
+    this.out = 0;
+    this.up = false;
+    this.outT = rand(0.5, 2);
+    this.show = 0;
+    this.v = Math.random();
+  }
+
+  update(dt) {
+    const p = this.world.player;
+    this.t += dt;
+    const near = !p.dead && Math.abs(p.cx - this.x) < 160 && Math.abs(p.cy - this.y) < 150;
+    if (this.peek) {
+      // il sort la tête, regarde à droite et à gauche, puis redescend (tout de suite, si Malice arrive)
+      const scared = !p.dead && Math.abs(p.cx - this.x) < 100 && Math.abs(p.y + p.h - this.y) < 120;
+      this.outT -= dt;
+      if (this.outT <= 0) {
+        this.up = !this.up;
+        this.outT = this.up ? rand(2, 3) : rand(1.2, 2);
+      }
+      const want = this.up && !scared ? 1 : 0;
+      this.out = approach(this.out, want, dt * (want ? 2.2 : 7));
+      if (Math.random() < dt * 0.6) this.dir = -this.dir;
+    } else if (this.hop >= 0) {
+      this.hop += dt / 0.42;
+      this.x += this.dir * 70 * dt;
+      if (this.hop >= 1) {
+        this.hop = -1;
+        this.hopT = rand(0.6, 2.2);
+      }
+    } else {
+      this.hopT -= dt;
+      if (near) this.dir = Math.sign(p.cx - this.x) || this.dir;
+      if (this.hopT <= 0) {
+        // jamais trop loin de chez lui
+        if (Math.abs(this.x - this.homeX) > 40) this.dir = Math.sign(this.homeX - this.x);
+        else if (Math.random() < 0.5) this.dir = -this.dir;
+        this.hop = 0;
+      }
+    }
+    this.show = approach(this.show, near && this.msg ? 1 : 0, dt * 5);
+  }
+
+  draw(ctx) {
+    const lift = this.hop >= 0 ? Math.sin(this.hop * Math.PI) * 18 : 0;
+    Art.bunny(ctx, this.x, this.y - lift, {
+      t: this.t, dir: this.dir, hop: this.hop, peek: this.peek ? this.out : -1, v: this.v,
+    });
+    if (this.show > 0.05) this.world.bubble(this.x, this.y - 58, this.msg, this.show);
   }
 }
 

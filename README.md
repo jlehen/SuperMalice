@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a deux niveaux, et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a trois niveaux, et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -19,6 +19,17 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a deu
      en planant (← → pour se diriger, ↓ pour lâcher ; on le lâche aussi en atterrissant). Le pissenlit s'envole
      en graines, puis repousse. Là où des feuilles s'envolent, un courant d'air fait remonter le pissenlit.
      Pendant qu'on tient un pissenlit, on a les mains prises : pas de pouvoir.
+   - 1-3 **La Rivière aux Nénuphars** : on saute de nénuphar en nénuphar. Ceux qui ont une fleur sont solides ;
+     les autres, grignotés, tremblent quand on reste dessus, puis coulent (et remontent un peu plus tard).
+     Si on tombe dans l'eau : plouf ! Malice ressort sur le dernier endroit bien solide où elle était, toute
+     mouillée, avec un cœur en moins (avec l'étoile, elle ricoche sur l'eau ; la **Sirène** et le **Pingouin**
+     nagent, eux). Les **escargots** avancent tout doucement et laissent une traînée de bave qui brille :
+     dessus, on glisse, on garde son élan et on a du mal à s'arrêter (attention près de l'eau !). La bave sèche
+     au bout d'un moment. Quand on saute sur un escargot, il rentre dans sa coquille… et pouf ! Le caramel et
+     les chips marchent aussi (et sur la bave, la glissade du Pingouin va encore plus loin).
+     Il y a un **trou secret** : un lapin sort la tête de l'herbe à côté d'un bloc lutin posé dans le sol…
+     en l'écrasant, on tombe dans le terrier des lapins, sous la rivière, plein de bonbons. On en ressort
+     plus loin en grimpant sur les racines.
 2. **La Forêt** — 2-1 **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
@@ -70,9 +81,9 @@ parmi 13 : on choisit son personnage après « Jouer ». Chacun a un pouvoir (to
 | Messi | garder B (ou courir) : il dribble à travers les ennemis |
 | La Licorne | charge arc-en-ciel avec sa corne, même en l'air |
 | Bébé Dragon | crache des bulles de feu, et la lave ne lui fait rien |
-| Le Pingouin | glisse sur le ventre et renverse tout |
+| Le Pingouin | glisse sur le ventre et renverse tout ; il nage dans la rivière |
 | Le Chat Ninja | s'accroche aux murs et saute de mur en mur |
-| La Sirène | une vague qui renverse les ennemis ; en l'air, une bulle l'emporte vers le haut |
+| La Sirène | une vague qui renverse les ennemis ; en l'air, une bulle l'emporte vers le haut ; elle nage dans la rivière |
 | Le Dinosaure | BOUM : le sol tremble (aussi en écrasant vers le bas) |
 
 Tous gardent le caramel et les chips. Les **badges**, eux, ne sont que pour Super Malice (voir plus bas).
@@ -120,6 +131,8 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Rubik's cube | toutes ses couleurs sont mélangées, puis reviennent une par une (clic, clic…) |
 | Morceaux de cube qui explose | toute noire de suie, cheveux en pétard, elle tousse des petits nuages |
 | Coccinelle | couverte de points noirs, qui sautent un par un (le dernier sur le nez) |
+| Eau de la rivière | toute mouillée et un peu bleue, elle grelotte en claquant des dents, l'eau dégouline de sa casquette, et un petit poisson en saute pour retourner dans la rivière |
+| Escargot | couverte de bave verte qui dégouline, elle tire la langue : « Beurk ! » |
 
 ## Commandes
 
@@ -173,7 +186,8 @@ sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
-`*` = pissenlit géant, `|` = tronc d'arbre…).
+`*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
+`O` = escargot, `l` = lapin…). Un niveau peut avoir un terrier secret sous terre (`terrier` : voir la légende).
 Il suffit de modifier les lettres et de recharger la page.
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
@@ -200,7 +214,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Monde | Variation |
   |---|---|
   | Écran titre et grande carte | la version d'origine, façon console 8 bits |
-  | La Prairie (la Prairie Fleurie, les Grands Arbres) | calypso au steel drum, basse 3+3+2 |
+  | La Prairie (la Prairie Fleurie, les Grands Arbres, la Rivière aux Nénuphars) | calypso au steel drum, basse 3+3+2 |
   | La Forêt des Épines | do mineur en 12/8, flûte et harpe, entrées en canon |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |

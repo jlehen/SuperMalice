@@ -13,6 +13,22 @@ const Scenery = (() => {
       plat: '#ff7fb6', platDark: '#d24f8c', platLight: '#ffd0e6', platDots: '#ffffff',
       bramble: '#8a3f8a', brambleDark: '#3d1640', thorn: '#ffffff',
     },
+    // la rivière aux nénuphars : comme la prairie, mais les plateformes sont des rondins
+    river: {
+      dirt: '#c98545', dirtDark: '#9a5a2a', dirtLight: '#e3a565', stripe: 'rgba(120,60,20,0.16)',
+      top: '#5fd44a', topDark: '#33a535', topLight: '#b4f57c', blades: true,
+      brick: '#f08a3e', brickDark: '#b2531f', brickLight: '#ffc07a',
+      plat: '#a8784a', platDark: '#6e4a26', platLight: '#d2a06a', log: true,
+      bramble: '#8a3f8a', brambleDark: '#3d1640', thorn: '#ffffff',
+    },
+    // le terrier secret (sous la rivière) : de la terre tassée, sans herbe, et des racines pour grimper
+    burrow: {
+      dirt: '#a8703e', dirtDark: '#7a4a24', dirtLight: '#c48a52', stripe: 'rgba(80,40,10,0.2)',
+      top: '#8a6236', topDark: '#634221', topLight: '#b08850', blades: false,
+      brick: '#c08a50', brickDark: '#7a4a22', brickLight: '#e6b878',
+      plat: '#b07a48', platDark: '#6a4424', platLight: '#d8a874', root: true,
+      bramble: '#8a3f8a', brambleDark: '#3d1640', thorn: '#ffffff',
+    },
     // les grands arbres : les gros troncs (#) ont de l'écorce et de la mousse dessus,
     // les plateformes (-) sont des branches avec des feuilles
     treetops: {
@@ -613,6 +629,33 @@ const Scenery = (() => {
         }
         return;
       }
+      if (th.root) {
+        // des racines emmêlées (le terrier) : on grimpe dessus, et on passe à travers par en dessous
+        // (deux vagues par case, toujours les mêmes : les racines se raccordent d'une case à l'autre)
+        const f = (TAU * 2) / T;
+        g.lineCap = 'round';
+        for (const [y0, amp, lw, col, ph] of [[8, 2.6, 7.5, th.platDark, 0], [6, 2.2, 5, th.plat, 1.6], [9.5, 1.6, 2.6, th.platLight, 3.4]]) {
+          g.strokeStyle = col;
+          g.lineWidth = lw;
+          g.beginPath();
+          for (let x = x0; x <= x1 + 0.1; x += 3) {
+            const y = y0 + Math.sin(x * f + ph) * amp;
+            if (x === x0) g.moveTo(x, y); else g.lineTo(x, y);
+          }
+          g.stroke();
+        }
+        // des radicelles qui pendent dessous
+        g.strokeStyle = th.platDark;
+        g.lineWidth = 1.4;
+        for (let i = 0; i < 3; i++) {
+          const rx = 6 + hash(v * 3.3 + i * 1.7) * 36;
+          g.beginPath();
+          g.moveTo(rx, 11);
+          g.quadraticCurveTo(rx + 3, 16, rx - 1, 20 + hash(i + v * 5) * 7);
+          g.stroke();
+        }
+        return;
+      }
       if (th.cloud) {
         g.fillStyle = th.platDark;
         for (let i = 0; i < 4; i++) {
@@ -1031,6 +1074,330 @@ const Scenery = (() => {
     }
   }
 
+  // ---------- La rivière aux nénuphars ----------
+  // Le fond de la rivière (derrière tout) : de l'eau bien bleue, des herbes qui ondulent, des galets,
+  // et l'ombre de petits poissons qui passent. y : le haut de la case de la surface.
+  function riverBed(ctx, x0, x1, y, bottom, t) {
+    const s = y + 14;
+    const g = ctx.createLinearGradient(0, s, 0, bottom);
+    g.addColorStop(0, '#47a8dc');
+    g.addColorStop(0.5, '#2c7cb6');
+    g.addColorStop(1, '#1d5684');
+    ctx.fillStyle = g;
+    ctx.fillRect(x0, s - 3, x1 - x0, bottom - s + 3);
+    ctx.lineCap = 'round';
+    for (let c = Math.floor(x0 / TILE); c < Math.ceil(x1 / TILE); c++) {
+      const h = hash(c * 2.7);
+      const bx = c * TILE + 6 + h * 34;
+      if (h < 0.65) {
+        ctx.strokeStyle = h < 0.3 ? '#2f9a6a' : '#3aaa5a';
+        ctx.lineWidth = 3;
+        for (let k = 0; k < 2; k++) {
+          const hh = 24 + hash(c * 5.1 + k) * 24;
+          ctx.beginPath();
+          ctx.moveTo(bx + k * 6, bottom);
+          ctx.quadraticCurveTo(bx + k * 6 + Math.sin(t * 1.6 + c + k) * 6, bottom - hh * 0.6, bx + k * 6 + Math.sin(t * 1.6 + c + k + 1) * 5, bottom - hh);
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = '#3e6a8a';
+      ellipsePath(ctx, c * TILE + 30 - h * 20, bottom - 3, 6 + h * 4, 3.5);
+      ctx.fill();
+    }
+    // des petits poissons qui passent (seulement leur ombre)
+    ctx.fillStyle = 'rgba(15,50,90,0.35)';
+    const n = Math.max(1, Math.round((x1 - x0) / 340));
+    for (let i = 0; i < n; i++) {
+      const span = x1 - x0 + 80;
+      const dir = i % 2 ? -1 : 1;
+      const k = (t * (30 + i * 7) + hash(i * 7.7 + x0) * span) % span;
+      const fx = dir > 0 ? x0 - 40 + k : x1 + 40 - k;
+      if (fx < x0 + 10 || fx > x1 - 10) continue;
+      const fy = s + 26 + hash(i * 3.1 + x0) * Math.max(4, bottom - s - 44);
+      ctx.beginPath();
+      ctx.ellipse(fx, fy, 9, 4, 0, 0, TAU);
+      ctx.moveTo(fx - dir * 7, fy);
+      ctx.lineTo(fx - dir * 15, fy - 5 + Math.sin(t * 12 + i) * 1.5);
+      ctx.lineTo(fx - dir * 15, fy + 5 + Math.sin(t * 12 + i) * 1.5);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // L'eau de la rivière, par-dessus (un peu transparente) : la surface qui brille, et le courant
+  // qui file vers la droite (petits traits, reflets, et une feuille qui flotte au fil de l'eau).
+  function drawWaterRun(ctx, x0, x1, y, bottom, t) {
+    const wave = (x) => y + 14 + Math.sin(x * 0.045 + t * 2.2) * 1.6 + Math.sin(x * 0.12 - t * 1.4) * 1;
+    const w = x1 - x0;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x0, bottom);
+    for (let x = x0; x <= x1 + 0.1; x += 6) ctx.lineTo(Math.min(x, x1), wave(Math.min(x, x1)));
+    ctx.lineTo(x1, bottom);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, y + 10, 0, bottom);
+    g.addColorStop(0, 'rgba(160,230,255,0.6)');
+    g.addColorStop(0.25, 'rgba(80,175,230,0.42)');
+    g.addColorStop(1, 'rgba(30,95,165,0.55)');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.clip();
+    // le courant
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    for (const [dy, sp, gap, len] of [[7, 46, 64, 16], [20, 34, 90, 22], [38, 24, 120, 14]]) {
+      for (let i = 0; i * gap < w + gap; i++) {
+        const x = x0 + ((i * gap + hash(i * 3.7 + dy) * 30 + t * sp) % (w + gap)) - gap / 2;
+        const yy = wave(x) + dy + hash(i + dy) * 4;
+        ctx.globalAlpha = 0.45 + 0.35 * Math.sin(t * 2 + i);
+        ctx.beginPath();
+        ctx.moveTo(x, yy);
+        ctx.quadraticCurveTo(x + len / 2, yy - 2, x + len, yy);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+    // la ligne brillante de la surface, et des reflets qui scintillent
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    for (let x = x0; x <= x1 + 0.1; x += 6) {
+      const xx = Math.min(x, x1);
+      if (x === x0) ctx.moveTo(xx, wave(xx)); else ctx.lineTo(xx, wave(xx));
+    }
+    ctx.stroke();
+    for (let c = Math.floor(x0 / TILE); c < Math.ceil(x1 / TILE); c++) {
+      const ph = (t * 0.8 + hash(c * 4.1)) % 1;
+      if (ph > 0.4) continue;
+      const sx = c * TILE + 10 + hash(c * 1.9) * 28;
+      ctx.fillStyle = `rgba(255,255,255,${0.9 * (1 - ph / 0.4)})`;
+      glint(ctx, sx, wave(sx) + 3, 3.5);
+      ctx.fill();
+    }
+    // une feuille (ou un pétale) qui flotte au fil de l'eau
+    const n = Math.max(1, Math.round(w / 420));
+    for (let i = 0; i < n; i++) {
+      const lx = x0 + ((t * 22 + hash(i * 9.1 + x0) * w) % w);
+      if (lx > x1 - 14) continue;
+      ctx.save();
+      ctx.translate(lx, wave(lx) - 1);
+      ctx.rotate(Math.sin(t * 1.5 + i) * 0.2);
+      ctx.fillStyle = i % 2 ? '#ffb4d8' : '#7fd05a';
+      ellipsePath(ctx, 0, 0, 7, 2.6);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Un petit reflet à 4 branches (sur l'eau).
+  function glint(ctx, x, y, r) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.quadraticCurveTo(x, y, x, y + r);
+    ctx.quadraticCurveTo(x, y, x - r, y);
+    ctx.quadraticCurveTo(x, y, x, y - r);
+    ctx.closePath();
+  }
+
+  // Les roseaux et les quenouilles au bord de l'eau. x : le bord de la berge, y : le haut de la case,
+  // side : 1 si l'eau est à droite (berge de gauche), -1 si elle est à gauche.
+  // front : seulement les petites herbes de devant (dessinées par-dessus l'eau et Malice).
+  function reeds(ctx, x, y, side, v, t, front) {
+    ctx.save();
+    ctx.lineCap = 'round';
+    const blade = (bx, by, h, lean, col, lw) => {
+      const sw = Math.sin(t * 1.6 + bx * 0.05) * 3;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.quadraticCurveTo(bx + lean * 0.4, by - h * 0.6, bx + lean + sw, by - h);
+      ctx.stroke();
+    };
+    if (front) {
+      // quelques brins devant, au ras de l'eau
+      for (let i = 0; i < 4; i++) {
+        const bx = x + side * (4 + i * 6 + hash(v * 9 + i) * 4);
+        blade(bx, y + 26, 22 + hash(v + i) * 12, side * (4 + i * 2), i % 2 ? '#3fae45' : '#58c24e', 2.4);
+      }
+      ctx.restore();
+      return;
+    }
+    // des quenouilles sur la berge (de longues tiges, et leur gros épi brun)
+    for (let i = 0; i < 3; i++) {
+      const bx = x - side * (6 + i * 11 + hash(v * 5 + i) * 6);
+      const h = 44 + hash(v * 3 + i * 2) * 26;
+      const sw = Math.sin(t * 1.6 + bx * 0.05) * 3;
+      blade(bx, y + 4, h, side * 5, '#3f9a3a', 2.4);
+      ctx.save();
+      ctx.translate(bx + side * 5 + sw, y + 4 - h);
+      ctx.rotate(side * 0.08);
+      ctx.fillStyle = '#7a4a24';
+      roundRectPath(ctx, -3.5, 2, 7, 18, 3.5);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,220,180,0.3)';
+      roundRectPath(ctx, -2, 4, 2, 12, 1);
+      ctx.fill();
+      ctx.restore();
+      // les longues feuilles
+      blade(bx + 2, y + 4, h * 0.7, side * 14, '#4fb84a', 2.2);
+      blade(bx - 2, y + 4, h * 0.55, -side * 9, '#5fca52', 2);
+    }
+    // des roseaux qui sortent de l'eau, tout près du bord
+    for (let i = 0; i < 3; i++) {
+      const bx = x + side * (5 + i * 7 + hash(v * 11 + i) * 4);
+      blade(bx, y + 40, 46 + hash(v * 7 + i) * 20, side * (3 + i * 3), i % 2 ? '#2f9a3e' : '#48b84a', 2.6);
+    }
+    ctx.restore();
+  }
+
+  // ---------- Le terrier secret ----------
+  // Une case de galerie : des taches de terre, des cailloux, des racines qui pendent du plafond,
+  // et par terre, de l'herbe pâle ou une carotte cachée par les lapins.
+  function burrowCell(ctx, x, y, v, t, o) {
+    const T = TILE;
+    if (v < 0.55) {
+      ctx.fillStyle = 'rgba(25,12,4,0.2)';
+      ellipsePath(ctx, x + 10 + v * 50, y + 12 + hash(v * 7) * 24, 9 + v * 8, 5 + v * 4);
+      ctx.fill();
+    }
+    if (v > 0.72) {
+      ctx.fillStyle = '#7a5434';
+      ellipsePath(ctx, x + 8 + hash(v * 3) * 32, y + 16 + hash(v * 5) * 20, 3.5, 2.6);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,220,170,0.25)';
+      ellipsePath(ctx, x + 7 + hash(v * 3) * 32, y + 15 + hash(v * 5) * 20, 1.6, 1);
+      ctx.fill();
+    }
+    ctx.lineCap = 'round';
+    if (o.ceil && v < 0.8) {
+      // des racines qui pendent (elles bougent à peine)
+      for (let i = 0; i < (v < 0.35 ? 2 : 1); i++) {
+        const rx = x + 8 + hash(v * 13 + i) * 32;
+        const len = 16 + hash(v * 17 + i) * 22;
+        const sw = Math.sin(t * 0.9 + v * 20 + i) * 2;
+        ctx.strokeStyle = '#b8844e';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(rx, y - 2);
+        ctx.quadraticCurveTo(rx + 4, y + len * 0.5, rx + sw, y + len);
+        ctx.stroke();
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(rx + 2, y + len * 0.45);
+        ctx.quadraticCurveTo(rx + 8, y + len * 0.55, rx + 9 + sw, y + len * 0.8);
+        ctx.stroke();
+      }
+    }
+    if (o.floor) {
+      const fy = y + T;
+      if (v < 0.22) {
+        // une carotte cachée par les lapins (on ne voit que le haut et les fanes)
+        const cx = x + 14 + v * 60;
+        ctx.fillStyle = '#ff8a2a';
+        ctx.beginPath();
+        ctx.moveTo(cx - 5, fy + 2);
+        ctx.lineTo(cx + 5, fy + 2);
+        ctx.lineTo(cx + 3, fy - 8);
+        ctx.lineTo(cx - 3, fy - 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#4fbf4a';
+        ctx.lineWidth = 2;
+        for (const a of [-0.5, 0, 0.5]) {
+          ctx.beginPath();
+          ctx.moveTo(cx, fy - 8);
+          ctx.lineTo(cx + Math.sin(a + Math.sin(t * 2 + v) * 0.1) * 10, fy - 8 - Math.cos(a) * 10);
+          ctx.stroke();
+        }
+      } else if (v > 0.6) {
+        // de l'herbe toute pâle
+        ctx.strokeStyle = '#a8b878';
+        ctx.lineWidth = 1.6;
+        const gx = x + 10 + hash(v * 9) * 28;
+        for (let k = -2; k <= 2; k++) {
+          ctx.beginPath();
+          ctx.moveTo(gx + k * 3, fy);
+          ctx.quadraticCurveTo(gx + k * 4, fy - 6, gx + k * 5 + Math.sin(t + k) * 1.5, fy - 9 + Math.abs(k));
+          ctx.stroke();
+        }
+      }
+    }
+    if (o.surface) {
+      // juste sous l'herbe : la terre est plus claire
+      const g = ctx.createLinearGradient(0, y, 0, y + T);
+      g.addColorStop(0, 'rgba(160,110,60,0.5)');
+      g.addColorStop(1, 'rgba(160,110,60,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y, T, T);
+    }
+  }
+
+  // La lumière du jour qui tombe par un trou, avec des poussières qui flottent dedans.
+  function burrowSunbeam(ctx, x, top, bottom, t) {
+    const T = TILE;
+    ctx.save();
+    const g = ctx.createLinearGradient(0, top, 0, bottom);
+    g.addColorStop(0, 'rgba(255,245,200,0.38)');
+    g.addColorStop(1, 'rgba(255,245,200,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x + 4, top);
+    ctx.lineTo(x + T - 4, top);
+    ctx.lineTo(x + T + 22, bottom);
+    ctx.lineTo(x - 22, bottom);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,250,220,0.7)';
+    for (let i = 0; i < 5; i++) {
+      const k = (t * 0.08 + hash(i * 3.3 + x)) % 1;
+      const px = x + 8 + hash(i * 1.7 + x) * (T - 16) + Math.sin(t + i) * 6;
+      circlePath(ctx, px, top + k * (bottom - top) * 0.7, 1.4);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Des champignons qui brillent tout doucement, posés par terre (x, y : le sol).
+  // (le halo et les champignons sont dessinés une fois pour toutes, puis recopiés : c'est bien plus rapide)
+  function burrowLantern(ctx, x, y, v, t) {
+    const pulse = 0.85 + 0.15 * Math.sin(t * 1.7 + v * 10);
+    const glow = sprite('lanterne-halo', 160, 160, (g) => {
+      const gl = g.createRadialGradient(80, 80, 2, 80, 80, 80);
+      gl.addColorStop(0, 'rgba(255,210,120,0.3)');
+      gl.addColorStop(1, 'rgba(255,210,120,0)');
+      g.fillStyle = gl;
+      g.fillRect(0, 0, 160, 160);
+    });
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha *= pulse;
+    ctx.drawImage(glow, x - 80, y - 94, 160, 160);
+    ctx.restore();
+    const k = Math.floor(v * 3) % 3;
+    const img = sprite('lanterne:' + k, 40, 20, (g) => {
+      const cols = [['#ffe27a', '#ffb43a'], ['#ffb0d8', '#ff7ab8'], ['#a8f0ff', '#5ad0f0']][k];
+      g.translate(16, 18);
+      for (const [dx, sc] of [[-7, 0.8], [3, 1.1], [11, 0.65]]) {
+        g.fillStyle = '#fff0dc';
+        roundRectPath(g, dx - 1.8 * sc, -10 * sc, 3.6 * sc, 10 * sc, 1.5);
+        g.fill();
+        const cg = g.createRadialGradient(dx, -11 * sc, 1, dx, -10 * sc, 8 * sc);
+        cg.addColorStop(0, '#ffffff');
+        cg.addColorStop(0.4, cols[0]);
+        cg.addColorStop(1, cols[1]);
+        g.fillStyle = cg;
+        g.beginPath();
+        g.ellipse(dx, -10 * sc, 7.5 * sc, 5.5 * sc, 0, Math.PI, 0);
+        g.closePath();
+        g.fill();
+      }
+    });
+    ctx.drawImage(img, x - 16, y - 18, 40, 20);
+  }
+
   // ---------- Arrière-plans ----------
   function hillPath(ctx, off, baseY, amp, f, seed, step) {
     ctx.beginPath();
@@ -1042,6 +1409,12 @@ const Scenery = (() => {
     }
     ctx.lineTo(VIEW_W + 30, VIEW_H + 10);
     ctx.closePath();
+  }
+
+  // La hauteur d'une colline de hillPath à l'écran (en sx).
+  function hillY(off, sx, baseY, amp, f, seed) {
+    const wx = sx + off;
+    return baseY - amp * (0.55 * Math.sin(wx * f + seed) + 0.3 * Math.sin(wx * f * 2.3 + seed * 1.7) + 0.15 * Math.sin(wx * f * 5.1 + seed * 2.9));
   }
 
   function forEachItem(off, spacing, seed, fn) {
@@ -1110,6 +1483,38 @@ const Scenery = (() => {
     ctx.fill();
   }
 
+  // Un saule pleureur au loin : un tronc, et de longues branches qui pendent et se balancent.
+  function willow(ctx, x, y, h, v, t) {
+    ctx.fillStyle = '#8a6a48';
+    ctx.beginPath();
+    ctx.moveTo(x - 5, y);
+    ctx.quadraticCurveTo(x - 2, y - h * 0.4, x - 6, y - h * 0.7);
+    ctx.lineTo(x + 4, y - h * 0.7);
+    ctx.quadraticCurveTo(x + 2, y - h * 0.4, x + 6, y);
+    ctx.closePath();
+    ctx.fill();
+    const top = y - h * 0.82;
+    const r = h * 0.42;
+    ctx.fillStyle = '#6fbf5a';
+    ellipsePath(ctx, x, top, r, r * 0.55);
+    ctx.fill();
+    ctx.strokeStyle = '#7fcf62';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    for (let i = 0; i <= 8; i++) {
+      const bx = x - r * 0.95 + (i / 8) * r * 1.9;
+      const len = h * (0.45 + hash(v * 7 + i) * 0.25) * (1 - Math.abs(i / 8 - 0.5) * 0.6);
+      const sw = Math.sin(t * 1.2 + i + v * 5) * 4;
+      ctx.beginPath();
+      ctx.moveTo(bx, top - r * 0.2);
+      ctx.quadraticCurveTo(bx + (bx - x) * 0.15, top + len * 0.5, bx + (bx - x) * 0.1 + sw, top + len);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ellipsePath(ctx, x - r * 0.3, top - r * 0.2, r * 0.4, r * 0.18);
+    ctx.fill();
+  }
+
   // ---------- Feuillage en haut d'un tronc (les Grands Arbres) ----------
   // Une grosse touffe de feuilles autour du haut du tronc (x, y), large de w (le tronc), qui bouge un peu.
   function crown(ctx, x, y, w, v, t) {
@@ -1158,6 +1563,54 @@ const Scenery = (() => {
       }
     }
     ctx.restore();
+  }
+
+  // Le ciel de la prairie : soleil, nuages et montagnes au loin (aussi derrière la rivière).
+  function meadowSky(ctx, cx, cy, t) {
+    sky(ctx, [[0, '#45b4ff'], [0.55, '#9fdcff'], [1, '#e6f8ff']]);
+    // soleil
+    ctx.save();
+    ctx.translate(820, 90 - cy * 0.05);
+    ctx.rotate(t * 0.15);
+    ctx.fillStyle = 'rgba(255,250,200,0.35)';
+    for (let i = 0; i < 12; i++) {
+      ctx.rotate(TAU / 12);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-12, 110);
+      ctx.lineTo(12, 110);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    const sg = ctx.createRadialGradient(820, 90 - cy * 0.05, 10, 820, 90 - cy * 0.05, 52);
+    sg.addColorStop(0, '#fffde0');
+    sg.addColorStop(0.6, '#ffe45c');
+    sg.addColorStop(1, 'rgba(255,220,80,0)');
+    ctx.fillStyle = sg;
+    circlePath(ctx, 820, 90 - cy * 0.05, 52);
+    ctx.fill();
+    forEachItem(cx * 0.06 - t * 8, 340, 1, (x, i, h) => fluffyCloud(ctx, x, 60 + h * 110 - cy * 0.05, 0.8 + h * 0.6, '#ffffff', '#cfe6ff'));
+    // montagnes lointaines
+    const off1 = cx * 0.12;
+    forEachItem(off1, 260, 7, (x, i, h) => {
+      const mh = 150 + h * 110;
+      const by = 400 - cy * 0.1;
+      ctx.fillStyle = '#9fb7ff';
+      ctx.beginPath();
+      ctx.moveTo(x - mh * 0.9, by);
+      ctx.quadraticCurveTo(x - 20, by - mh * 1.1, x, by - mh);
+      ctx.quadraticCurveTo(x + 20, by - mh * 1.1, x + mh * 0.9, by);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(x - mh * 0.28, by - mh * 0.68);
+      ctx.quadraticCurveTo(x, by - mh * 1.06, x + mh * 0.28, by - mh * 0.68);
+      ctx.quadraticCurveTo(x + 10, by - mh * 0.6, x, by - mh * 0.66);
+      ctx.quadraticCurveTo(x - 10, by - mh * 0.6, x - mh * 0.28, by - mh * 0.68);
+      ctx.fill();
+    });
   }
 
   const BG = {
@@ -1231,51 +1684,65 @@ const Scenery = (() => {
       });
     },
 
-    meadow(ctx, cx, cy, t) {
-      sky(ctx, [[0, '#45b4ff'], [0.55, '#9fdcff'], [1, '#e6f8ff']]);
-      // soleil
-      ctx.save();
-      ctx.translate(820, 90 - cy * 0.05);
-      ctx.rotate(t * 0.15);
-      ctx.fillStyle = 'rgba(255,250,200,0.35)';
-      for (let i = 0; i < 12; i++) {
-        ctx.rotate(TAU / 12);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(-12, 110);
-        ctx.lineTo(12, 110);
-        ctx.closePath();
-        ctx.fill();
-      }
-      ctx.restore();
-      const sg = ctx.createRadialGradient(820, 90 - cy * 0.05, 10, 820, 90 - cy * 0.05, 52);
-      sg.addColorStop(0, '#fffde0');
-      sg.addColorStop(0.6, '#ffe45c');
-      sg.addColorStop(1, 'rgba(255,220,80,0)');
-      ctx.fillStyle = sg;
-      circlePath(ctx, 820, 90 - cy * 0.05, 52);
+    // la rivière aux nénuphars : le ciel de la prairie, des collines avec des saules pleureurs,
+    // la rivière qui serpente au loin, et des roseaux tout près
+    river(ctx, cx, cy, t) {
+      meadowSky(ctx, cx, cy, t);
+      const off2 = cx * 0.3;
+      const base = 400 - cy * 0.2;
+      hillPath(ctx, off2, base, 55, 0.006, 2.2);
+      stripedFill(ctx, '#86de62', 'rgba(255,255,255,0.12)', off2);
+      // la rivière au loin, qui serpente au pied des collines
+      const ry = (sx) => base + 44 + Math.sin((sx + off2) * 0.004) * 16;
+      ctx.fillStyle = '#86d4f6';
+      ctx.beginPath();
+      for (let sx = -10; sx <= VIEW_W + 30; sx += 20) ctx.lineTo(sx, ry(sx));
+      for (let sx = VIEW_W + 30; sx >= -10; sx -= 20) ctx.lineTo(sx, ry(sx) + 12 + Math.sin((sx + off2) * 0.009) * 4);
+      ctx.closePath();
       ctx.fill();
-      forEachItem(cx * 0.06 - t * 8, 340, 1, (x, i, h) => fluffyCloud(ctx, x, 60 + h * 110 - cy * 0.05, 0.8 + h * 0.6, '#ffffff', '#cfe6ff'));
-      // montagnes lointaines
-      const off1 = cx * 0.12;
-      forEachItem(off1, 260, 7, (x, i, h) => {
-        const mh = 150 + h * 110;
-        const by = 400 - cy * 0.1;
-        ctx.fillStyle = '#9fb7ff';
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      forEachItem(off2 - t * 12, 90, 17, (x, i, h) => {
         ctx.beginPath();
-        ctx.moveTo(x - mh * 0.9, by);
-        ctx.quadraticCurveTo(x - 20, by - mh * 1.1, x, by - mh);
-        ctx.quadraticCurveTo(x + 20, by - mh * 1.1, x + mh * 0.9, by);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.moveTo(x - mh * 0.28, by - mh * 0.68);
-        ctx.quadraticCurveTo(x, by - mh * 1.06, x + mh * 0.28, by - mh * 0.68);
-        ctx.quadraticCurveTo(x + 10, by - mh * 0.6, x, by - mh * 0.66);
-        ctx.quadraticCurveTo(x - 10, by - mh * 0.6, x - mh * 0.28, by - mh * 0.68);
-        ctx.fill();
+        ctx.moveTo(x, ry(x) + 4 + h * 5);
+        ctx.lineTo(x + 14, ry(x + 14) + 4 + h * 5);
+        ctx.stroke();
       });
+      forEachItem(off2, 190, 11, (x, i, h) => {
+        if (h < 0.55) willow(ctx, x, hillY(off2, x, base, 55, 0.006, 2.2) + 6, 70 + h * 40, h, t);
+      });
+      // tout près : des buissons, des roseaux et des quenouilles
+      const off3 = cx * 0.55;
+      const nb = 470 - cy * 0.45;
+      hillPath(ctx, off3, nb, 26, 0.012, 1.7);
+      ctx.fillStyle = '#3fb34a';
+      ctx.fill();
+      forEachItem(off3, 44, 13, (x, i, h) => {
+        const by = hillY(off3, x, nb, 26, 0.012, 1.7) + 8;
+        if (h < 0.45) {
+          ctx.strokeStyle = '#2f9a3e';
+          ctx.lineWidth = 2;
+          for (const [dx, hh] of [[-4, 30], [0, 40], [5, 26]]) {
+            ctx.beginPath();
+            ctx.moveTo(x + dx, by);
+            ctx.quadraticCurveTo(x + dx + 2, by - hh * 0.6, x + dx + Math.sin(t * 1.5 + i + dx) * 3, by - hh);
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#8a5a2e';
+          roundRectPath(ctx, x - 2.5 + Math.sin(t * 1.5 + i) * 3, by - 44, 5, 13, 2.5);
+          ctx.fill();
+        } else {
+          const cols = ['#7fc8ff', '#ffffff', '#ffd21f', '#ff8fc8'];
+          ctx.fillStyle = cols[i & 3];
+          circlePath(ctx, x, by - 2, 3.2);
+          ctx.fill();
+        }
+      });
+    },
+
+    meadow(ctx, cx, cy, t) {
+      meadowSky(ctx, cx, cy, t);
       // collines rayées
       const off2 = cx * 0.3;
       hillPath(ctx, off2, 400 - cy * 0.2, 60, 0.006, 1.3);
@@ -1891,7 +2358,7 @@ const Scenery = (() => {
     const sway = Math.sin(t * 2 + v * 10) * 0.12;
     ctx.save();
     ctx.translate(x, y);
-    if (theme === 'meadow' || theme === 'mountain') {
+    if (theme === 'meadow' || theme === 'mountain' || theme === 'river') {
       if (v < 0.5) {
         // fleur
         ctx.rotate(sway);
@@ -1901,7 +2368,8 @@ const Scenery = (() => {
         ctx.moveTo(0, 0);
         ctx.lineTo(0, -16);
         ctx.stroke();
-        const cols = theme === 'meadow' ? ['#ff5fa8', '#ffd21f', '#ffffff', '#b06bff'] : ['#ffd21f', '#ff8a3a', '#ffffff', '#ff5f5f'];
+        const cols = theme === 'meadow' ? ['#ff5fa8', '#ffd21f', '#ffffff', '#b06bff']
+          : theme === 'river' ? ['#7fc8ff', '#ffffff', '#ffd21f', '#ff8fc8'] : ['#ffd21f', '#ff8a3a', '#ffffff', '#ff5f5f'];
         ctx.fillStyle = cols[Math.floor(v * 8) % 4];
         for (let i = 0; i < 5; i++) {
           const a = (i / 5) * TAU;
@@ -1913,7 +2381,7 @@ const Scenery = (() => {
         ctx.fill();
       } else {
         // touffe d'herbe
-        ctx.fillStyle = theme === 'meadow' ? '#3fbf4a' : '#9aa84a';
+        ctx.fillStyle = theme === 'mountain' ? '#9aa84a' : '#3fbf4a';
         for (let k = -2; k <= 2; k++) {
           ctx.beginPath();
           ctx.moveTo(k * 4 - 2, 0);
@@ -2108,6 +2576,6 @@ const Scenery = (() => {
   return {
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
     rainbowSprite, bounceSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
-    trunkSprite, crown,
+    trunkSprite, crown, riverBed, drawWaterRun, reeds, burrowCell, burrowSunbeam, burrowLantern,
   };
 })();

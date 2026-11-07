@@ -14,6 +14,7 @@
 //   wall(p, side)       en l'air contre un mur (side : 1 à droite, -1 à gauche)
 //   knocks(p)           true : les ennemis touchés sont renversés
 //   lavaProof           la lave ne brûle pas
+//   swims               il nage dans la rivière (au lieu de tomber dedans)
 //   bounce              rebondit plus haut sur les ennemis
 //   pose(p)             une pose spéciale pour le dessin (voir js/persos/)
 //   stop(p)             le pouvoir s'arrête (grappin, ou quand on a mal)
@@ -268,13 +269,14 @@ const POWERS = {
     },
   },
 
-  // ---- Le Pingouin : il glisse sur le ventre ----
+  // ---- Le Pingouin : il glisse sur le ventre (encore plus loin sur la bave), et il nage ----
   pingouin: {
+    swims: true,
     update(p, dt, I) {
       const pw = p.pw;
       pw.cd = Math.max(0, (pw.cd || 0) - dt);
       if (pw.slide > 0) {
-        pw.slide -= dt;
+        pw.slide -= dt * (p.slick ? 0.35 : 1);
         if (I.pressed.jump || p.hurtT > 0) pw.slide = 0;
         if (Math.random() < dt * 30) {
           p.world.spawn({ type: 'spark', x: p.cx - p.facing * 20, y: p.y + p.h - 2, vx: -p.facing * rand(60, 160), vy: rand(-80, -20), life: 0.35, size: rand(2, 4), color: '#e8f8ff' });
@@ -350,8 +352,9 @@ const POWERS = {
     pose(p) { return p.pw.wall ? 'wall' : null; },
   },
 
-  // ---- La Sirène : une vague par terre, une bulle en l'air ----
+  // ---- La Sirène : une vague par terre, une bulle en l'air, et elle nage dans la rivière ----
   sirene: {
+    swims: true,
     update(p, dt, I) {
       const pw = p.pw;
       pw.cd = Math.max(0, (pw.cd || 0) - dt);
@@ -660,7 +663,7 @@ class PowerShot {
     if (this.y > w.height || w.inLava(this)) this.dead = true;
     if (this.dead) return;
     for (const e of w.enemies) {
-      if (e.dying || e.dead || this.hit.has(e) || !overlap(this, e)) continue;
+      if (e.dying || e.dead || this.hit.has(e) || !overlap(this, e.shotBox ? e.shotBox() : e)) continue;
       this.hit.add(e);
       knockEnemy(w.player, e, this.kind === 'ballon' ? 'Goal !' : this.kind === 'gremlin' ? 'Hi hi !' : null);
       if (this.kind === 'feu') {

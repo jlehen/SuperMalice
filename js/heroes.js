@@ -168,6 +168,8 @@ const Heroes = (() => {
       case 'hold': Object.assign(R, { armF: -1.0, armB: -0.8 }); break;
       case 'crouch': Object.assign(R, { crouch: 7, legF: -1.25, legB: -0.85, armF: -0.6, armB: 0.3 }); break;
       case 'hang': Object.assign(R, { armF: 0.25, armB: -0.25, legF: 0.25, legB: -0.2 }); break;
+      // il glisse sur la bave : les bras qui moulinent, penché en arrière
+      case 'slip': Object.assign(R, { armF: -2.3 + Math.sin(t * 18) * 0.6, armB: 1.9 + Math.cos(t * 18) * 0.6, legF: -0.6, legB: 0.5, lean: -0.2 }); break;
       case 'float': {
         // pendu à un pissenlit géant : les bras en l'air, les jambes qui se balancent
         const s = Math.sin(t * 2.2) * 0.18;
@@ -229,6 +231,8 @@ const Heroes = (() => {
         return { color: '#2a2020', a: 0.45 * clamp(left / 0.5, 0, 1) };
       case 'scramble': return { color: `hsl(${Math.floor(k.t * 900) % 360},90%,55%)`, a: 0.55 * clamp(left / 0.5, 0, 1) };
       case 'hypno': return { color: '#b070ff', a: 0.25 * clamp(left / 0.5, 0, 1) };
+      case 'wet': return { color: '#3a8ae8', a: 0.3 * clamp(left / 0.5, 0, 1) };
+      case 'slime': return { color: '#8ee05a', a: 0.38 * clamp(left / 0.5, 0, 1) };
       default: return null;
     }
   }
@@ -273,6 +277,8 @@ const Heroes = (() => {
     const sc = o.scale || 1;
     ctx.scale((o.facing || 1) * sc * (o.sx || 1), sc * (o.sy || 1));
     if (shock) ctx.translate(rand(-1.2, 1.2), rand(-0.8, 0.8));
+    // tout mouillé : il grelotte
+    if (k && k.kind === 'wet' && k.t < k.dur - 0.3) ctx.translate(Math.sin(k.t * 80) * 0.9, 0);
     const paintIt = (c) => {
       c.save();
       def.draw(c, opts, R);
@@ -290,6 +296,8 @@ const Heroes = (() => {
       ctx.restore();
     }
     if (k && k.kind === 'spots') Art.spotsOverlay(ctx, k);
+    if (k && k.kind === 'wet') Art.wetOverlay(ctx, k, info.headY - 12);
+    if (k && k.kind === 'slime') Art.slimeOverlay(ctx, k, info.headY - 12);
     // le bébé oiseau assis sur la tête
     if (o.onHead) {
       const [hx, hy] = (def.hat && def.hat(o)) || HERO_HAT[id] || HERO_HAT.malice;
