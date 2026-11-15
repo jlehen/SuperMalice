@@ -13,6 +13,8 @@
 //   M  champignon qui fait rebondir (guimauve au monde des bonbons)
 //      (dans les Champignons Géants, "theme: mushrooms" : chaque rangée de - ou de M côte à côte est un grand
 //      chapeau de champignon sur son grand pied ; les M sont les chapeaux bleus à pois qui font rebondir)
+//      (dans le Marais aux Cabanes, "theme: marsh" : ~ est de la boue où l'on s'enfonce, comme le chocolat ;
+//      chaque rangée de 3 - ou plus est le plancher d'une cabane sur pilotis, et = est un pont de corde)
 //   w  flaque d'eau, posée sur le sol (plouf ! et Gizmo devient un Gremlin)
 //   |  tronc d'arbre (dans le décor : on passe devant ; dans les Grands Arbres, - est une branche)
 //   *  pissenlit géant, planté sur une branche ou qui flotte en l'air : on l'attrape en le touchant,
@@ -24,6 +26,8 @@
 //   O  escargot (il laisse de la bave qui glisse)
 //   m  taupe (cachée sous l'herbe ; quand Malice passe, elle file sous ses pieds et jaillit du sol)
 //   h  hérisson (quand Malice approche, il se met en boule : ça pique ! On lui saute dessus quand il se déroule)
+//   s  sanglier (quand il voit Malice, il gratte le sol, puis il fonce tout droit jusqu'à se cogner ou jusqu'au
+//      bord : on lui saute dessus pendant qu'il gratte, ou quand il est étourdi ; seul le sanglier qui fonce fait mal)
 //   i  lucioles (un petit groupe qui éclaire la nuit, et qui suit Malice un moment)
 //   j  grande fleur-lanterne qui brille (elle éclaire tout autour, la nuit)
 //   l  lapin (gentil ; sur l'herbe, il sort la tête de son trou ; dans un terrier, il parle : voir "lapins")
@@ -59,6 +63,9 @@
 //             "nuit" : c'est la nuit, en plus doux (la lune, les lucioles et les fleurs éclairent).
 //  "clairDeLune" : [première colonne, dernière colonne] : la nuit, la lune éclaire ce grand champ
 //             (il y fait bien moins noir).
+//  "basVisible" : la caméra montre le bas du niveau (la boue sous les ponts du marais : le niveau n'a que
+//             12 rangées, presque la hauteur de l'écran) ; elle ne monte que pendant un très haut saut, pour que
+//             la tête de Malice reste à l'écran (même au-dessus du haut du niveau : voir World.updateCamera).
 //  "galeries" : les passages bas sous un plafond (une ou deux cases de haut, entre deux cases solides)
 //             sont dessinés comme des galeries de terre : une butte se lit comme une colline percée d'un tunnel.
 //  "music" : la musique du niveau, si ce n'est pas celle de son monde (voir SONGS dans music.js).
@@ -330,6 +337,36 @@ const LEVELS = [
       '..P..T..ooo........T....................T...MMM....oooT........########.....!..T........###########.ooo....................!.T..MM..............D.....########......!.T.........^^^^.....MMM.........!.....#####...G....',
       '##################################....################################################################............#################..........######...########...#######################################################',
       '##################################....################################################################............#################..........######...########...#######################################################',
+    ],
+  },
+  {
+    world: 2,
+    name: "Le Marais aux Cabanes",
+    theme: "marsh",
+    intro: "Gare aux sangliers dans la brume !",
+    storms: [],
+    basVisible: true,
+    talk: [
+      "Bienvenue au Marais aux Cabanes\u00a0! Ici, on passe de cabane en cabane par les ponts de corde… et attention à la boue\u00a0!",
+      "La boue, ça ne brûle pas, mais on s'y enfonce tout doucement\u00a0! Si tu tombes dedans, saute vite pour en sortir\u00a0!",
+      "Attention, un sanglier\u00a0! Quand il gratte le sol avec sa patte, c'est qu'il va foncer\u00a0! Saute-lui vite dessus pendant qu'il gratte… ou grimpe sur une cabane\u00a0!",
+      "Un sanglier qui fonce, on ne peut pas l'arrêter\u00a0: saute par-dessus\u00a0! Mais s'il se cogne contre les caisses, il voit des étoiles\u00a0: c'est le moment de lui sauter dessus\u00a0!",
+      "Le caramel colle les sangliers par terre\u00a0: ils ne peuvent plus foncer\u00a0! Casse le bloc lutin pour en avoir.",
+      "Avec les chips, les sangliers deviennent tout gros\u00a0: bien trop lourds pour foncer\u00a0!",
+    ],
+    map: [
+      '............................................................................................................................................................................................................................................',
+      '............................................................................................................................................................................................................................................',
+      '.......................BLB............................................................................................................................................................BFB...................................................',
+      '.........................................................y...........................................y......................................................................................................................................',
+      '............................................................................................................................................................................................................................................',
+      '............................................................................................................................................................................................................................................',
+      '...............o.....ooo..o.o.o....oo...................ooo.................BSB.............oo.......h...............BKB.......oo......oo.............BCB.....................oo..o.o.ooo............oo..o.o.h...o.o........................',
+      '....................-----=====----====----.............-----........................oooooo.----=====-----===..................----====----...................................----=====----...!......----====----====........................',
+      '..............o.o...................................................B..................h...................................B.................B................ooo............................######................................B........',
+      '..P..T..oooT.........................T...T...!...............s......B...!..o.o......######............o........!....T......B.o.o....s........B...!..T............^^...D................s.....######.....................ooo...s....B...G....',
+      '##############...#################....#########....##############################...#######.....#.....##...#..############################################...###########...########################.....#.....##.....#######################',
+      '##############~~~#################~~~~#########~~~~##############################~~~#######~~~~~#~~~~~##~~~#~~############################################~~~###########~~~########################~~~~~#~~~~~##~~~~~#######################',
     ],
   },
   {

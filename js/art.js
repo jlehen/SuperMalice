@@ -1289,6 +1289,43 @@ const Art = (() => {
     }
   }
 
+  // ---- Projetée par le sanglier (OUCH.spin, voir Player.updateSpin) ----
+  // La phase : 'up' (elle monte en tournant comme une toupie), 'flip' (elle se retourne en retombant),
+  // 'head' (la tête en bas, les jambes en l'air), 'back' (elle se remet sur ses pieds).
+  // (dans la galerie, sans phase : d'abord la toupie, puis la tête en bas)
+  function spinPhase(k) {
+    return k.phase || (k.t < 0.24 ? 'up' : 'head');
+  }
+
+  // Comment dessiner le personnage : retourné de a (autour du milieu de son corps), écrasé de sx (la toupie :
+  // on le voit de face, puis de dos…), avec un tourbillon autour de lui (whirl, de 0 à 1).
+  function spinTurn(k) {
+    const ph = spinPhase(k);
+    if (ph === 'up') return { a: 0, sx: Math.cos(k.t * 26), whirl: 1 };
+    if (ph === 'flip') return { a: k.a || 0, sx: 1, whirl: clamp(1 - (k.pt || 0) / 0.15, 0, 1) };
+    if (ph === 'head') return { a: k.a === undefined ? Math.PI : k.a, sx: 1, whirl: 0 };
+    if (ph === 'back') return { a: k.a, sx: 1, whirl: 0 };
+    return { a: 0, sx: 1, whirl: 0 };
+  }
+
+  // Le tourbillon autour de la toupie : des traits blancs qui tournent, en (x, y), r de haut.
+  function spinWhirl(ctx, x, y, r, t, k) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = `rgba(255,255,255,${0.85 * k})`;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const yy = (i - 1) * r * 0.62;
+      const rx = r * (0.78 - Math.abs(i - 1) * 0.16);
+      const a = t * 22 + i * 2.1;
+      ctx.lineWidth = 2.6 - Math.abs(i - 1) * 0.6;
+      ctx.beginPath();
+      ctx.ellipse(0, yy, rx, rx * 0.26, 0, a, a + 2.2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // Bras et jambes pendant que Malice a mal : [jambe avant, jambe arrière, bras avant, bras arrière, penché].
   function ouchPose(k) {
     const ot = k.t;
@@ -1316,6 +1353,16 @@ const Art = (() => {
       // aïe ! les bras et les jambes écartés, toute raide, qui tremble
       const j = Math.sin(ot * 60) * 0.07;
       return { legF: -0.45 + j, legB: 0.5 - j, armF: -2.1 + j, armB: 1.95 - j, lean: -0.08 };
+    }
+    if (k.kind === 'spin') {
+      const ph = spinPhase(k);
+      const s = Math.sin(ot * 16);
+      // la tête en bas : les jambes tendues en l'air qui gigotent, les mains posées par terre près de la tête
+      if (ph === 'head') return { legF: -0.22 + s * 0.28, legB: 0.26 - s * 0.28, armF: -2.75 + s * 0.08, armB: 2.7 - s * 0.08, lean: 0 };
+      // elle se remet sur ses pieds : en boule, d'une petite cabriole
+      if (ph === 'back') return { legF: -1.5, legB: -1.15, armF: -1.1, armB: -0.8, lean: 0.2 };
+      // projetée en l'air comme une toupie : les bras en l'air, les jambes écartées
+      return { legF: -0.55 + s * 0.2, legB: 0.6 - s * 0.2, armF: -2.6 + s * 0.3, armB: 2.5 - s * 0.3, lean: 0 };
     }
     if (k.kind === 'wet') {
       // elle se serre dans ses bras, les genoux qui s'entrechoquent
@@ -1374,6 +1421,22 @@ const Art = (() => {
         fx.eye = t < 0.45 ? 'wide' : 'squeeze';
         fx.mouth = t < 0.45 ? 'wide' : 'tongue';
         break;
+      case 'spin': {
+        // tout tourne ! Puis la tête en bas, toute étonnée (elle cligne des yeux), et une grimace en se relevant
+        const ph = spinPhase(k);
+        if (ph === 'up' || ph === 'flip') {
+          fx.eye = 'spiral';
+          fx.mouth = 'wide';
+        } else if (ph === 'head') {
+          const pt = k.pt === undefined ? t : k.pt;
+          fx.eye = pt > 0.35 && pt % 0.7 < 0.1 ? 'blink' : 'wide';
+          fx.mouth = 'o';
+        } else if (ph === 'back') {
+          fx.eye = 'squeeze';
+          fx.mouth = 'wide';
+        }
+        break;
+      }
       case 'pins':
         // d'abord tout surprise, puis elle grimace à chaque piquant qu'elle enlève
         if (t < 0.4) {
@@ -5033,6 +5096,234 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // Sanglier maléfique, les pieds en (x, y) : tout hirsute, une crête de poils noirs sur le dos, de petites
+  // défenses blanches, un groin rose, et des yeux rouges qui brillent (sous un gros sourcil tout froncé).
+  // o : dir, t, phase (les pattes), moving, scratch (il gratte le sol de la patte avant, la tête baissée),
+  //     rush (il fonce, la tête en avant), dizzy (étourdi : les yeux qui tournent et des étoiles),
+  //     kind (il redevient gentil : de doux yeux noirs), fat, rest (essoufflé)
+  function boar(ctx, x, y, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const dir = o.dir || 1;
+    const fat = !!o.fat;
+    const line = '#24160e';
+    const fur = '#6e4c36';
+    const furDark = '#4a3224';
+    const furLight = '#94704e';
+    const ph = o.phase || 0;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    // la tête baissée quand il gratte le sol ou qu'il fonce
+    const low = o.rush ? 1 : o.scratch ? 0.7 : 0;
+    const bob = o.rush ? -Math.abs(Math.sin(ph)) * 2.5 : o.moving ? -Math.abs(Math.sin(ph)) : 0;
+    // étourdi, il tangue
+    if (o.dizzy) ctx.rotate(Math.sin(t * 6) * 0.05);
+    // les pattes : derrière, celles de l'autre côté (plus sombres)
+    const legs = [[-17, 0, true], [12, Math.PI * 0.5, true], [-9, Math.PI, false], [19, Math.PI * 1.5, false]];
+    for (const [lx, s, back] of legs) {
+      let a = o.moving || o.rush ? Math.sin(ph + s) * (o.rush ? 0.75 : 0.35) : 0;
+      // il gratte le sol : la patte avant racle vers l'arrière, encore et encore
+      if (o.scratch && lx === 19) a = 0.15 + Math.max(0, Math.sin(t * 17)) * 0.95;
+      ctx.save();
+      ctx.translate(lx, -13 + bob);
+      ctx.rotate(a);
+      roundRectPath(ctx, -3.6, -2, 7.2, 13, 3);
+      paint(ctx, back ? furDark : fur, line, 1.1);
+      // le sabot
+      ctx.beginPath();
+      ctx.moveTo(-3.8, 9.5);
+      ctx.lineTo(3.8, 9.5);
+      ctx.lineTo(4.2, 13.2);
+      ctx.lineTo(-4.2, 13.2);
+      ctx.closePath();
+      paint(ctx, '#2a1a12', line, 0.9);
+      ctx.restore();
+    }
+    // la petite queue en tire-bouchon, avec sa touffe
+    ctx.strokeStyle = furDark;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-27, -27 + bob);
+    ctx.quadraticCurveTo(-34, -31 + bob + Math.sin(t * 9) * 1.5, -31, -35 + bob);
+    ctx.quadraticCurveTo(-28, -37 + bob, -30, -32 + bob);
+    ctx.stroke();
+    // le corps tout rond (et tout gros avec les chips)
+    const bx = fat ? -1 : -3;
+    const by = -25 + bob;
+    const rx = fat ? 31 : 26;
+    const ry = fat ? 18 : 15;
+    // la crête de poils sur le dos (elle se hérisse quand il est en colère)
+    const crest = o.kind ? 3 : o.rush || o.scratch ? 8 : 5.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 9; i++) {
+      const a = Math.PI * (1.12 + i * 0.075);
+      const r = i % 2 ? 0 : crest;
+      const px = bx + Math.cos(a) * (rx + r * 0.4);
+      const py = by + Math.sin(a) * (ry + r);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.lineTo(bx + rx * 0.4, by);
+    ctx.lineTo(bx - rx * 0.6, by);
+    ctx.closePath();
+    paint(ctx, '#2e1e16', line, 1.1);
+    ellipsePath(ctx, bx, by, rx, ry);
+    const g = ctx.createLinearGradient(0, by - ry, 0, by + ry);
+    g.addColorStop(0, furLight);
+    g.addColorStop(0.55, fur);
+    g.addColorStop(1, furDark);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+    // des mèches de poils hirsutes
+    ctx.strokeStyle = 'rgba(36,22,14,0.5)';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const px = bx - rx * 0.7 + i * rx * 0.28;
+      const py = by - ry * 0.25 + (i % 2) * 5;
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - 3, py + 5);
+    }
+    ctx.stroke();
+    // la tête, au bout du corps (plus bas quand il gratte ou qu'il fonce)
+    const hx = (fat ? 22 : 19) + low * 3;
+    const hy = -25 + low * 6 + bob;
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(0.12 + low * 0.22);
+    // l'oreille pointue
+    ctx.beginPath();
+    ctx.moveTo(-6, -8);
+    ctx.lineTo(-9 - (o.kind ? 2 : 0), -19 + (o.kind ? 4 : 0));
+    ctx.lineTo(0, -10);
+    ctx.closePath();
+    paint(ctx, furDark, line, 1.1);
+    ctx.fillStyle = '#c88a80';
+    ctx.beginPath();
+    ctx.moveTo(-5.5, -9.5);
+    ctx.lineTo(-7.8, -16 + (o.kind ? 3 : 0));
+    ctx.lineTo(-2, -10.5);
+    ctx.closePath();
+    ctx.fill();
+    // la tête et le museau, jusqu'au groin
+    ctx.beginPath();
+    ctx.moveTo(-8, -11);
+    ctx.quadraticCurveTo(4, -14, 13, -6);
+    ctx.lineTo(16, -5);
+    ctx.lineTo(16, 5);
+    ctx.quadraticCurveTo(5, 10, -6, 8);
+    ctx.quadraticCurveTo(-13, 0, -8, -11);
+    paint(ctx, fur, line, 1.2);
+    if (fat) chubbyCheeks(ctx, 2, 3, 5, 4, furLight, line);
+    // le groin rose, avec ses deux narines
+    ellipsePath(ctx, 17, 0, 3.6, 5.6);
+    paint(ctx, '#e8a8a0', line, 1.1);
+    ctx.fillStyle = '#5a2a2a';
+    ellipsePath(ctx, 17.6, -2, 1, 1.5);
+    ctx.fill();
+    ellipsePath(ctx, 17.6, 2.2, 1, 1.5);
+    ctx.fill();
+    // les petites défenses blanches
+    ctx.beginPath();
+    ctx.moveTo(9.5, 6);
+    ctx.quadraticCurveTo(13.5, 5, 13, -0.5);
+    ctx.quadraticCurveTo(11.5, 3.5, 8.5, 3.5);
+    ctx.closePath();
+    paint(ctx, '#fff8e8', line, 0.9);
+    // la bouche (étourdi : la langue qui pend)
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    if (o.kind) ctx.arc(7, 3.5, 3, 0.2, Math.PI - 0.4);
+    else {
+      ctx.moveTo(3, 6);
+      ctx.lineTo(9, 5.5);
+    }
+    ctx.stroke();
+    if (o.dizzy) {
+      ellipsePath(ctx, 6.5, 8.5, 2.2, 3.2, 0.2);
+      paint(ctx, '#ff7a8a', '#a83a4a', 0.8);
+    }
+    // l'œil : rouge et qui brille (sous un gros sourcil froncé) ; étourdi, il tourne ; gentil, il est tout doux
+    const ex = 1.5;
+    const ey = -5.5;
+    if (o.kind) {
+      circlePath(ctx, ex, ey, 2.4);
+      paint(ctx, '#1a1010', null);
+      ctx.fillStyle = '#ffffff';
+      circlePath(ctx, ex - 0.8, ey - 0.9, 0.9);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,130,150,0.5)';
+      ellipsePath(ctx, 3, 2.5, 3, 1.8);
+      ctx.fill();
+    } else if (o.dizzy) {
+      circlePath(ctx, ex, ey, 3.4);
+      paint(ctx, '#ffffff', line, 1);
+      ctx.strokeStyle = '#c02020';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < 14; i++) {
+        const a = t * 9 + i * 0.7;
+        const r = i * 0.2;
+        if (i === 0) ctx.moveTo(ex, ey); else ctx.lineTo(ex + Math.cos(a) * r, ey + Math.sin(a) * r);
+      }
+      ctx.stroke();
+    } else if (fat && o.rest) {
+      ctx.strokeStyle = line;
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(ex - 2.5, ey);
+      ctx.lineTo(ex + 2.5, ey);
+      ctx.stroke();
+    } else {
+      // (la lueur rouge, par-dessus)
+      glow(ctx, ex, ey, o.rush || o.scratch ? 13 : 10, '255,50,30', 0.75 + Math.sin(t * 5) * 0.15);
+      circlePath(ctx, ex, ey, 2.7);
+      paint(ctx, '#ff2a1a', '#7a0a0a', 0.9);
+      ctx.fillStyle = '#ffe8a0';
+      circlePath(ctx, ex + 0.5, ey - 0.4, 1);
+      ctx.fill();
+      // le sourcil tout froncé
+      ctx.strokeStyle = '#1a0e08';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(ex - 4, ey - 5.5);
+      ctx.lineTo(ex + 4.5, ey - 2.2);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // il fonce : des traits de vitesse derrière lui
+    if (o.rush) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const len = 10 + ((t * 40 + i * 7) % 12);
+        ctx.beginPath();
+        ctx.moveTo(-34 - i * 3, -32 + i * 8 + bob);
+        ctx.lineTo(-34 - i * 3 - len, -32 + i * 8 + bob);
+        ctx.stroke();
+      }
+    }
+    // étourdi : des étoiles tournent au-dessus de sa tête
+    if (o.dizzy) {
+      for (let i = 0; i < 3; i++) {
+        const a = t * 6 + (i * TAU) / 3;
+        ctx.save();
+        ctx.translate(hx - 2 + Math.cos(a) * 15, hy - 22 + Math.sin(a) * 4);
+        ctx.rotate(t * 4 + i);
+        starShape(ctx, 4, 0.45);
+        paint(ctx, '#ffe94a', '#b07800', 0.9);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+
   // Le petit tas de terre au-dessus d'une taupe qui creuse, posé sur l'herbe en (x, y).
   // La lumière de sa lampe passe entre les mottes. o : t, moving, dir, shake (de 0 à 1 : la terre tremble).
   function moleHill(ctx, x, y, o) {
@@ -5389,9 +5680,9 @@ const Art = (() => {
     eclair, sparks, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
     bat, grumpyBird, gummyBear, candyEye, gem, GEMS, bigBird, birdNest,
     dandelion, dandelionStem, dandelionLeaves, dandelionFlower, dandelionSeed,
-    snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow, hedgehog,
+    snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow, hedgehog, boar,
     // pour les autres personnages (heroes.js)
     paint, mixColor, ouchPose, koStars, spotsOverlay, wetOverlay, slimeOverlay, dirtOverlay,
-    PIN_PULLS, PIN_REACH_POSES, pinAt, pinsWince, pinsReach, pinsOverlay,
+    PIN_PULLS, PIN_REACH_POSES, pinAt, pinsWince, pinsReach, pinsOverlay, spinTurn, spinWhirl,
   };
 })();

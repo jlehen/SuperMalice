@@ -160,6 +160,10 @@ const Sound = (() => {
           tone({ type: 'triangle', f: 260, f2: 900, d: 0.35, v: 0.2 });
           for (let i = 0; i < 4; i++) noise({ filter: 'bandpass', f: 1200 - i * 150, d: 0.05, v: 0.12, q: 2, delay: 0.3 + i * 0.08 });
           break;
+        case 'spin': // pouf ! et elle s'envole en tournant comme une toupie : wiou-wiou-wiou
+          noise({ filter: 'lowpass', f: 700, f2: 150, d: 0.2, v: 0.35 });
+          for (let i = 0; i < 4; i++) tone({ type: 'triangle', f: 500 + i * 120, f2: 1100 + i * 160, d: 0.1, v: 0.1, delay: 0.05 + i * 0.1 });
+          break;
         case 'pins': // tchic-tchic-tchic : plein de piquants plantés d'un coup, et un petit cri tout aigu
           for (let i = 0; i < 5; i++) noise({ filter: 'highpass', f: 4200, d: 0.03, v: 0.16, delay: i * 0.035 });
           tone({ type: 'triangle', f: 900, f2: 1700, d: 0.18, v: 0.1, delay: 0.05, vib: 30, vibDepth: 90 });
@@ -407,6 +411,61 @@ const Sound = (() => {
       tone({ type: 'triangle', f: 1300, f2: 900, d: 0.12, v: 0.2 });
       tone({ type: 'sine', f: 2600, d: 0.3, v: 0.05, delay: 0.02 });
     },
+    // ---- Le Marais aux Cabanes ----
+    // le sanglier souffle de la fumée par les naseaux : pfff-rrr
+    boarSnort() {
+      noise({ filter: 'bandpass', f: 700, f2: 380, d: 0.22, v: 0.16, q: 1.5 });
+      tone({ type: 'sawtooth', f: 90, f2: 70, d: 0.18, v: 0.05, vib: 30, vibDepth: 12 });
+    },
+    // il gratte le sol de son sabot : scritch
+    boarScratch() {
+      noise({ filter: 'highpass', f: 1800, f2: 900, d: 0.09, v: 0.14 });
+      noise({ filter: 'bandpass', f: 400, d: 0.06, v: 0.1, q: 2, delay: 0.04 });
+    },
+    // « ! » il a vu Malice : grrrouik !
+    boarAngry() {
+      tone({ type: 'sawtooth', f: 120, f2: 210, d: 0.25, v: 0.09, vib: 24, vibDepth: 20 });
+      tone({ type: 'square', f: 420, f2: 300, d: 0.15, v: 0.04, delay: 0.18 });
+    },
+    // il fonce : un cri de cochon, et le galop
+    boarRush() {
+      tone({ type: 'square', f: 700, f2: 1100, d: 0.18, v: 0.06, vib: 18, vibDepth: 60 });
+      for (let i = 0; i < 6; i++) noise({ filter: 'lowpass', f: 380, d: 0.05, v: 0.2, delay: 0.1 + i * 0.09 });
+    },
+    // il freine des quatre fers au bord de la boue : skriiitch
+    boarSkid() {
+      noise({ filter: 'bandpass', f: 2400, f2: 1200, d: 0.3, v: 0.14, q: 3 });
+    },
+    // bonk ! il s'est cogné
+    boarBonk() {
+      tone({ type: 'sine', f: 160, f2: 90, d: 0.3, v: 0.35 });
+      tone({ type: 'triangle', f: 1300, f2: 800, d: 0.15, v: 0.12, delay: 0.02 });
+      for (let i = 0; i < 3; i++) tone({ type: 'sine', f: 1800 + i * 300, d: 0.08, v: 0.04, delay: 0.2 + i * 0.1 });
+    },
+    // il repousse Malice d'un coup de groin : groin !
+    boarGrunt() {
+      tone({ type: 'sawtooth', f: 150, f2: 110, d: 0.14, v: 0.08, vib: 40, vibDepth: 25 });
+      noise({ filter: 'bandpass', f: 600, d: 0.08, v: 0.08, q: 2 });
+    },
+    // Malice retombe sur la tête : boum !
+    spinLand() {
+      tone({ type: 'sine', f: 220, f2: 80, d: 0.2, v: 0.3 });
+      noise({ filter: 'lowpass', f: 600, f2: 150, d: 0.15, v: 0.2 });
+    },
+    // et se remet sur ses pieds d'une petite cabriole : hop !
+    spinBack() {
+      tone({ type: 'triangle', f: 500, f2: 900, d: 0.1, v: 0.12 });
+    },
+    // la taupe sort la tête de son trou : pop !
+    molePeek() {
+      tone({ type: 'sine', f: 300, f2: 700, d: 0.08, v: 0.14 });
+      noise({ filter: 'bandpass', f: 900, d: 0.06, v: 0.08, q: 2 });
+    },
+    // « Hein ? » : une petite voix qui monte
+    moleHuh() {
+      tone({ type: 'triangle', f: 380, f2: 620, d: 0.22, v: 0.1, vib: 9, vibDepth: 15 });
+    },
+
     // ---- Les Champignons Géants ----
     // le hérisson se met en boule : frrt ! (ses piquants se dressent d'un coup)
     hogCurl() {

@@ -62,6 +62,15 @@ const Scenery = (() => {
       plat: '#f08a3a', platDark: '#b8521c', platLight: '#ffc890', caps: true,
       bramble: '#7a3a8a', brambleDark: '#2f1236', thorn: '#ffffff',
     },
+    // le marais aux cabanes : de la terre sombre et mouillée, de l'herbe vert olive, des caisses, et les planchers des
+    // cabanes sur pilotis (cabins : voir World.findCabins) ; la lave (~) est de la boue où l'on s'enfonce
+    marsh: {
+      dirt: '#5e4a36', dirtDark: '#3e3022', dirtLight: '#7a6248', stripe: 'rgba(30,20,8,0.22)',
+      top: '#6aa64a', topDark: '#3e7a3a', topLight: '#a8d07a', blades: true,
+      brick: '#9a7448', brickDark: '#5e4224', brickLight: '#c49a66', crate: true,
+      plat: '#a07448', platDark: '#62452a', platLight: '#caa070', cabins: true,
+      bramble: '#6a3a7a', brambleDark: '#2a1232', thorn: '#ffffff',
+    },
     storm: {
       dirt: '#b77a4a', dirtDark: '#7d4b28', dirtLight: '#d89a62', stripe: 'rgba(90,40,10,0.2)',
       top: '#ff9fd0', topDark: '#d466a6', topLight: '#ffe0f1', blades: false, cream: true,
@@ -1219,6 +1228,324 @@ const Scenery = (() => {
     }
   }
 
+  // ---------- Le Marais aux Cabanes ----------
+  // La boue (comme la rivière de chocolat : on s'y enfonce) : vert-brun, toute lisse, avec de grosses bulles
+  // qui font « blop » tout doucement et quelques feuilles qui flottent.
+  function drawMudRun(ctx, x0, x1, y, surface, bottom, t) {
+    const g = ctx.createLinearGradient(0, y, 0, bottom);
+    g.addColorStop(0, '#8a7a4a');
+    g.addColorStop(0.18, '#5e5232');
+    g.addColorStop(1, '#342c18');
+    ctx.fillStyle = g;
+    const wave = (x) => y + 12 + Math.sin(x * 0.04 + t * 0.9) * 1.8 + Math.sin(x * 0.09 - t * 0.6) * 1.2;
+    ctx.beginPath();
+    if (surface) {
+      ctx.moveTo(x0, bottom);
+      for (let x = x0; x <= x1 + 0.1; x += 8) ctx.lineTo(x, wave(x));
+      ctx.lineTo(x1, bottom);
+    } else {
+      ctx.rect(x0, y, x1 - x0, bottom - y);
+    }
+    ctx.fill();
+    if (!surface) return;
+    // le bord, un peu luisant
+    ctx.strokeStyle = 'rgba(210,220,160,0.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = x0; x <= x1 + 0.1; x += 8) {
+      if (x === x0) ctx.moveTo(x, wave(x) + 1); else ctx.lineTo(x, wave(x) + 1);
+    }
+    ctx.stroke();
+    for (let c = Math.floor(x0 / TILE); c < Math.ceil(x1 / TILE); c++) {
+      // une feuille qui flotte (une case sur deux)
+      if (hash(c * 4.1) < 0.5) {
+        const lx = c * TILE + 10 + hash(c * 2.9) * 26 + Math.sin(t * 0.5 + c) * 3;
+        ctx.fillStyle = hash(c) < 0.5 ? '#6a8a3a' : '#8a7a34';
+        ellipsePath(ctx, lx, wave(lx) + 3, 6, 2.2, hash(c * 7) - 0.5);
+        ctx.fill();
+      }
+      // grosses bulles qui font « blop »
+      const ph = (t * 0.32 + hash(c * 3.3)) % 1;
+      if (ph < 0.4) {
+        const bx = c * TILE + 10 + hash(c * 1.7) * 28;
+        const k = ph / 0.4;
+        ctx.fillStyle = `rgba(150,140,90,${1 - k})`;
+        ellipsePath(ctx, bx, wave(bx) + 2 - k * 3, 2 + k * 9, 1.5 + k * 6);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(230,230,190,${0.7 * (1 - k)})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(bx - 1, wave(bx) - k * 3, 1 + k * 4, Math.PI * 1.1, Math.PI * 1.6);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Une bande de brume toute douce, qui se répète de gauche à droite (dessinée une fois).
+  // (w de large, h de haut ; plus épaisse en bas, et rien du tout en haut)
+  const FOG = new Map();
+  function fogStrip(w, h, seed) {
+    const key = w + ':' + h + ':' + seed;
+    let c = FOG.get(key);
+    if (c) return c;
+    c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const g = c.getContext('2d');
+    for (let i = 0; i < 26; i++) {
+      const r = h * (0.35 + hash(i * 1.3 + seed) * 0.4);
+      const px = hash(i * 2.7 + seed) * w;
+      const py = h - r * 0.55 - hash(i * 3.1 + seed) * h * 0.25;
+      for (const ox of [-w, 0, w]) {
+        const gr = g.createRadialGradient(px + ox, py, 0, px + ox, py, r);
+        gr.addColorStop(0, 'rgba(255,255,255,0.5)');
+        gr.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = gr;
+        g.fillRect(px + ox - r, py - r, r * 2, r * 2);
+      }
+    }
+    // tout en bas, un voile égal
+    const lg = g.createLinearGradient(0, h * 0.45, 0, h);
+    lg.addColorStop(0, 'rgba(255,255,255,0)');
+    lg.addColorStop(1, 'rgba(255,255,255,0.55)');
+    g.fillStyle = lg;
+    g.fillRect(0, 0, w, h);
+    FOG.set(key, c);
+    return c;
+  }
+
+  // La brume sur toute la largeur de l'écran, posée en y (son bas), qui glisse doucement (off).
+  function fogBand(ctx, y, h, off, a, seed) {
+    const img = fogStrip(512, h, seed);
+    const ga = ctx.globalAlpha;
+    ctx.globalAlpha = ga * a;
+    const sx = -(((off % 512) + 512) % 512);
+    for (let x = sx; x < VIEW_W; x += 512) ctx.drawImage(img, x, y - h);
+    ctx.globalAlpha = ga;
+  }
+
+  // Une bouffée de brume toute ronde et toute douce (dessinée une fois).
+  let PUFF = null;
+  function mistPuff() {
+    if (!PUFF) {
+      PUFF = document.createElement('canvas');
+      PUFF.width = 64;
+      PUFF.height = 64;
+      const g = PUFF.getContext('2d');
+      const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(255,255,255,0.75)');
+      gr.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+      gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr;
+      g.fillRect(0, 0, 64, 64);
+    }
+    return PUFF;
+  }
+
+  // La brume au ras de la boue, de x0 à x1 (y : la surface) : des bouffées légères qui glissent tout doucement
+  // au-dessus de la boue (jamais plus haut qu'une demi-case : elle ne cache ni la boue, ni ce qui s'y passe).
+  function mudMist(ctx, x0, x1, y, t) {
+    const img = mistPuff();
+    const ga = ctx.globalAlpha;
+    const n = Math.max(2, Math.round((x1 - x0) / 30));
+    for (let i = 0; i <= n; i++) {
+      const h = hash(i * 1.9 + x0 * 0.013);
+      const k = ((t * (0.05 + h * 0.04) + h) % 1);
+      // chaque bouffée glisse un peu, grossit, puis s'efface
+      const x = x0 + ((i + k * 1.5) / n) * (x1 - x0) - 10;
+      if (x < x0 - 12 || x > x1 + 12) continue;
+      const a = Math.sin(k * Math.PI);
+      const w = 50 + h * 30;
+      ctx.globalAlpha = ga * 0.42 * a;
+      ctx.drawImage(img, x - w / 2, y - 22 - h * 6, w, 30);
+    }
+    ctx.globalAlpha = ga;
+  }
+
+  // Un pilotis de cabane, de top jusqu'à bottom (dans le sol, ou dans la boue).
+  function stilt(ctx, x, top, bottom) {
+    const h = bottom - top;
+    ctx.fillStyle = '#4e3824';
+    ctx.fillRect(x - 5, top, 10, h);
+    ctx.fillStyle = '#7a5a3a';
+    ctx.fillRect(x - 3, top, 3, h);
+    // des cordes enroulées
+    ctx.fillStyle = '#c8b078';
+    for (let yy = top + 26; yy < bottom - 10; yy += 54) {
+      ctx.fillRect(x - 6, yy, 12, 3);
+      ctx.fillRect(x - 6, yy + 5, 12, 2);
+    }
+  }
+
+  // Une cabane posée sur son plancher (n cases de large ; le bas de l'image est le dessus du plancher) :
+  // des murs en planches, une porte où brille une lumière, une fenêtre, un toit de paille plein de mousse
+  // et une petite lanterne. Elle est dans le décor : on passe devant.
+  const CABIN_H = 2 * TILE + 58;
+  function cabinSprite(n, v) {
+    const W = n * TILE + 24;
+    return sprite(`cabin:${n}:${v}`, W, CABIN_H + 4, (g) => {
+      const H = CABIN_H;
+      const wx0 = 22;
+      const wx1 = W - 22;
+      const wy = H - 2 * TILE + 10;
+      // les murs en planches
+      g.fillStyle = '#7e5e3e';
+      g.fillRect(wx0, wy, wx1 - wx0, H - wy);
+      g.strokeStyle = '#5a4028';
+      g.lineWidth = 2;
+      g.beginPath();
+      for (let x = wx0 + 12; x < wx1; x += 12) {
+        g.moveTo(x, wy);
+        g.lineTo(x, H);
+      }
+      g.stroke();
+      g.fillStyle = 'rgba(255,230,180,0.12)';
+      for (let x = wx0 + 2; x < wx1; x += 12) g.fillRect(x, wy, 3, H - wy);
+      // l'ombre sous le toit
+      const sh = g.createLinearGradient(0, wy, 0, wy + 22);
+      sh.addColorStop(0, 'rgba(30,18,8,0.55)');
+      sh.addColorStop(1, 'rgba(30,18,8,0)');
+      g.fillStyle = sh;
+      g.fillRect(wx0, wy, wx1 - wx0, 22);
+      // la porte (une lumière dorée brille dedans)
+      const dw = 24;
+      const dx = wx0 + (wx1 - wx0) * (v === 1 ? 0.3 : 0.62) - dw / 2;
+      const dy = H - 50;
+      const lg = g.createLinearGradient(0, dy, 0, H);
+      lg.addColorStop(0, '#ffcf6a');
+      lg.addColorStop(1, '#e08a3a');
+      g.fillStyle = lg;
+      roundRectPath(g, dx, dy, dw, 52, 10);
+      g.fill();
+      g.strokeStyle = '#3e2a18';
+      g.lineWidth = 3;
+      g.stroke();
+      // la fenêtre, avec ses croisillons
+      const fx = v === 1 ? wx1 - 34 : wx0 + 12;
+      if (n >= 3) {
+        g.fillStyle = '#ffe08a';
+        g.fillRect(fx, wy + 22, 20, 18);
+        g.strokeStyle = '#3e2a18';
+        g.lineWidth = 2.5;
+        g.strokeRect(fx, wy + 22, 20, 18);
+        g.beginPath();
+        g.moveTo(fx + 10, wy + 22);
+        g.lineTo(fx + 10, wy + 40);
+        g.moveTo(fx, wy + 31);
+        g.lineTo(fx + 20, wy + 31);
+        g.stroke();
+      }
+      // le toit de paille
+      g.beginPath();
+      g.moveTo(6, wy + 6);
+      g.lineTo(W * 0.5 - 10, 8);
+      g.lineTo(W * 0.5 + 10, 8);
+      g.lineTo(W - 6, wy + 6);
+      g.quadraticCurveTo(W * 0.5, wy + 14, 6, wy + 6);
+      g.closePath();
+      g.fillStyle = '#b8995a';
+      g.fill();
+      g.strokeStyle = '#6e5630';
+      g.lineWidth = 2;
+      g.stroke();
+      g.strokeStyle = 'rgba(110,86,48,0.6)';
+      g.lineWidth = 1.4;
+      g.beginPath();
+      for (let i = 1; i < 12; i++) {
+        const k = i / 12;
+        g.moveTo(W * 0.5 + (k - 0.5) * 18, 10);
+        g.lineTo(6 + k * (W - 12), wy + 8);
+      }
+      g.stroke();
+      // de la mousse sur le toit
+      g.fillStyle = '#6a9a48';
+      for (let i = 0; i < 4; i++) {
+        const mx = 18 + hash(n * 3 + v + i * 1.7) * (W - 36);
+        const my = wy + 4 - (1 - Math.abs(mx / W - 0.5) * 2) * (wy - 12) * 0.9;
+        ellipsePath(g, mx, my, 9, 4, 0);
+        g.fill();
+      }
+      // une petite lanterne accrochée au bord du toit
+      const lx = v === 1 ? W - 16 : 16;
+      g.strokeStyle = '#3e2a18';
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(lx, wy + 6);
+      g.lineTo(lx, wy + 16);
+      g.stroke();
+      const lgl = g.createRadialGradient(lx, wy + 22, 0, lx, wy + 22, 16);
+      lgl.addColorStop(0, 'rgba(255,220,120,0.7)');
+      lgl.addColorStop(1, 'rgba(255,220,120,0)');
+      g.fillStyle = lgl;
+      g.fillRect(lx - 16, wy + 6, 32, 32);
+      g.fillStyle = '#ffd86a';
+      roundRectPath(g, lx - 4, wy + 16, 8, 11, 3);
+      g.fill();
+      g.strokeStyle = '#3e2a18';
+      g.stroke();
+    });
+  }
+
+  // Un pont de corde de x0 à x1, accroché en y (le dessus des planches). Les cordes pendent et se balancent un peu ;
+  // les planches s'enfoncent sous les pieds de Malice (dip(x) : de combien, en pixels).
+  function ropeBridge(ctx, x0, x1, y, t, dip) {
+    const sway = Math.sin(t * 1.4) * 1.5;
+    // les poteaux aux deux bouts
+    for (const px of [x0 - 3, x1 + 3]) {
+      ctx.fillStyle = '#4e3824';
+      roundRectPath(ctx, px - 4, y - 36, 8, 52, 3);
+      ctx.fill();
+      ctx.fillStyle = '#7a5a3a';
+      ctx.fillRect(px - 2, y - 34, 2, 48);
+    }
+    const n = Math.max(2, Math.round((x1 - x0) / 13));
+    const step = (x1 - x0) / n;
+    // les deux cordes du bas (sous les planches)
+    ctx.strokeStyle = '#a88a52';
+    ctx.lineWidth = 2;
+    for (const oy of [4, 8]) {
+      ctx.beginPath();
+      for (let i = 0; i <= n; i++) {
+        const x = x0 + i * step;
+        const yy = y + oy + dip(x) + Math.sin((i / n) * Math.PI) * sway * 0.4;
+        if (i === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+    }
+    // la rampe (qui pend entre les poteaux), et les petites cordes qui tiennent les planches
+    const rail = (x) => {
+      const k = (x - x0) / (x1 - x0);
+      return y - 32 + Math.sin(k * Math.PI) * (12 + sway) + dip(x) * 0.7;
+    };
+    ctx.strokeStyle = '#8a6e40';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    for (let i = 1; i < n; i += 2) {
+      const x = x0 + i * step;
+      ctx.moveTo(x, rail(x));
+      ctx.lineTo(x, y + 2 + dip(x));
+    }
+    ctx.stroke();
+    ctx.strokeStyle = '#b89a5e';
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    for (let i = 0; i <= 16; i++) {
+      const x = x0 - 3 + (i / 16) * (x1 - x0 + 6);
+      if (i === 0) ctx.moveTo(x, rail(x)); else ctx.lineTo(x, rail(x));
+    }
+    ctx.stroke();
+    // les planches (une sur deux un peu plus claire)
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * step + 1;
+      const d = dip(x + step / 2) + Math.sin(((i + 0.5) / n) * Math.PI) * sway * 0.4;
+      ctx.fillStyle = i % 2 ? '#a07448' : '#8a6038';
+      roundRectPath(ctx, x, y + 1 + d, step - 2, 8, 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,230,180,0.35)';
+      ctx.fillRect(x + 1, y + 1.5 + d, step - 4, 1.5);
+    }
+  }
+
   // ---------- La rivière aux nénuphars ----------
   // Le fond de la rivière (derrière tout) : de l'eau bien bleue, des herbes qui ondulent, des galets,
   // et l'ombre de petits poissons qui passent. y : le haut de la case de la surface.
@@ -2167,6 +2494,87 @@ const Scenery = (() => {
       }
     },
 
+    // le marais aux cabanes : un ciel pâle tout brumeux, un soleil voilé, des cyprès et des saules qui pendent au loin,
+    // des roseaux tout près, et des bandes de brume qui glissent tout doucement entre eux
+    marsh(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#a4c2b6'], [0.55, '#cfdcc8'], [1, '#e4e8d4']]);
+      ctx.fillStyle = 'rgba(255,250,220,0.45)';
+      circlePath(ctx, 720 - cx * 0.02, 110 - cy * 0.05, 46);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,250,220,0.18)';
+      circlePath(ctx, 720 - cx * 0.02, 110 - cy * 0.05, 80);
+      ctx.fill();
+      // tout au loin : des cyprès pâles, dans la brume (de la mousse pend de leurs branches)
+      forEachItem(cx * 0.08, 130, 51, (x, i, h) => {
+        const by = 430 - cy * 0.1;
+        const th = 170 + h * 120;
+        ctx.fillStyle = '#b2c6b8';
+        ctx.beginPath();
+        ctx.moveTo(x - 16, by);
+        ctx.quadraticCurveTo(x - 4, by - th * 0.3, x - 5, by - th);
+        ctx.lineTo(x + 5, by - th);
+        ctx.quadraticCurveTo(x + 4, by - th * 0.3, x + 16, by);
+        ctx.closePath();
+        ctx.fill();
+        ellipsePath(ctx, x, by - th, 34 + h * 16, 16);
+        ctx.fill();
+        ellipsePath(ctx, x + 6, by - th * 0.72, 26, 12);
+        ctx.fill();
+        ctx.strokeStyle = '#bccfc2';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let k = -2; k <= 2; k++) {
+          ctx.moveTo(x + k * 12, by - th + 8);
+          ctx.lineTo(x + k * 12 + Math.sin(t + i + k) * 2, by - th + 34 + Math.abs(k) * 6);
+        }
+        ctx.stroke();
+      });
+      ctx.fillStyle = '#b6c8ba';
+      ctx.fillRect(0, 425 - cy * 0.1, VIEW_W, 200);
+      fogBand(ctx, 440 - cy * 0.1, 110, t * 6 + cx * 0.1, 0.8, 1);
+      // plus près : des saules pleureurs, un peu plus foncés
+      forEachItem(cx * 0.25, 220, 53, (x, i, h) => {
+        const by = 470 - cy * 0.25;
+        const th = 150 + h * 90;
+        ctx.fillStyle = '#7f9a86';
+        ctx.fillRect(x - 6, by - th * 0.75, 12, th * 0.75 + 10);
+        ellipsePath(ctx, x, by - th * 0.8, 60 + h * 20, 30);
+        ctx.fill();
+        ctx.strokeStyle = '#7f9a86';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        for (let k = -4; k <= 4; k++) {
+          const sx = x + k * 13;
+          ctx.moveTo(sx, by - th * 0.8);
+          ctx.quadraticCurveTo(sx + Math.sin(t * 0.9 + k) * 4, by - th * 0.5, sx + Math.sin(t * 0.7 + k + i) * 6, by - th * 0.8 + 50 + (4 - Math.abs(k)) * 10);
+        }
+        ctx.stroke();
+      });
+      ctx.fillStyle = '#7f9886';
+      ctx.fillRect(0, 465 - cy * 0.25, VIEW_W, 200);
+      fogBand(ctx, 490 - cy * 0.25, 90, t * 10 + cx * 0.25, 0.75, 2);
+      // tout près : des roseaux et des massettes
+      forEachItem(cx * 0.5, 70, 57, (x, i, h) => {
+        if (h < 0.3) return;
+        const by = 540 - cy * 0.45;
+        const len = 60 + h * 50;
+        const sw = Math.sin(t * 1.2 + i) * 3;
+        ctx.strokeStyle = '#5e7a5a';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x, by);
+        ctx.quadraticCurveTo(x + sw * 0.5, by - len * 0.5, x + sw, by - len);
+        ctx.moveTo(x + 6, by);
+        ctx.quadraticCurveTo(x + 9, by - len * 0.4, x + 14 + sw, by - len * 0.7);
+        ctx.stroke();
+        if (h > 0.6) {
+          ctx.fillStyle = '#6a5a40';
+          roundRectPath(ctx, x + sw - 3, by - len - 2, 6, 16, 3);
+          ctx.fill();
+        }
+      });
+    },
+
     storm(ctx, cx, cy, t, flash) {
       sky(ctx, [[0, '#3d2a6b'], [0.55, '#8e6bb8'], [1, '#e6b3d6']]);
       const off1 = cx * 0.08;
@@ -2890,6 +3298,60 @@ const Scenery = (() => {
           ctx.restore();
         }
       }
+    } else if (theme === 'marsh') {
+      if (v < 0.3) {
+        // des massettes (leurs épis bruns tout doux) et leurs longues feuilles
+        ctx.rotate(sway * 0.6);
+        ctx.strokeStyle = '#4e7a3a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (const [dx, h] of [[-4, 26], [3, 32]]) {
+          ctx.moveTo(dx, 0);
+          ctx.lineTo(dx, -h);
+        }
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(-8, -12, -13, -20);
+        ctx.moveTo(1, 0);
+        ctx.quadraticCurveTo(9, -10, 12, -24);
+        ctx.stroke();
+        ctx.fillStyle = '#6a4a2a';
+        roundRectPath(ctx, -6.5, -24, 5, 12, 2.5);
+        ctx.fill();
+        roundRectPath(ctx, 0.5, -30, 5, 13, 2.5);
+        ctx.fill();
+      } else if (v < 0.55) {
+        // une touffe de joncs
+        ctx.strokeStyle = '#5a8a40';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let k = -3; k <= 3; k++) {
+          ctx.moveTo(k * 1.5, 0);
+          ctx.quadraticCurveTo(k * 3, -8, k * 5 + sway * 10, -14 - (3 - Math.abs(k)) * 3);
+        }
+        ctx.stroke();
+      } else if (v < 0.75) {
+        // de petits champignons tout pâles
+        for (const [dx, s] of [[-5, 0.8], [4, 1]]) {
+          ctx.fillStyle = '#efe6d0';
+          roundRectPath(ctx, dx - 2 * s, -9 * s, 4 * s, 9 * s, 2);
+          ctx.fill();
+          ctx.fillStyle = '#c8a878';
+          ctx.beginPath();
+          ctx.ellipse(dx, -9 * s, 7 * s, 5 * s, 0, Math.PI, 0);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else {
+        // des cailloux couverts de mousse
+        ctx.fillStyle = '#8a8a7a';
+        ellipsePath(ctx, -4, -4, 8, 5);
+        ctx.fill();
+        ellipsePath(ctx, 6, -3, 5, 3.5);
+        ctx.fill();
+        ctx.fillStyle = '#6a9a48';
+        ellipsePath(ctx, -5, -8, 6, 2.2);
+        ctx.fill();
+      }
     } else if (theme === 'storm') {
       if (v < 0.5) {
         // petite sucette décorative
@@ -3027,6 +3489,7 @@ const Scenery = (() => {
   return {
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
     rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
+    drawMudRun, mudMist, stilt, cabinSprite, CABIN_H, ropeBridge,
     trunkSprite, crown, riverBed, drawWaterRun, reeds, burrowCell, burrowSunbeam, burrowLantern,
     moonPos, glowFlower, glowFlowerShine,
   };

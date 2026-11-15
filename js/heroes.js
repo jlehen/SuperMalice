@@ -232,7 +232,7 @@ const Heroes = (() => {
   function tintFor(o) {
     const k = o.ouch;
     if (o.lava) return { color: '#3a2420', a: 0.75 };
-    if (o.choco) return { color: '#6a3a1c', a: 0.8 };
+    if (o.choco) return { color: o.chocoTint || '#6a3a1c', a: 0.8 };
     if (o.star) return { rainbow: o.t, a: 0.5 };
     if (!k) return null;
     const left = k.dur - k.t;
@@ -268,9 +268,28 @@ const Heroes = (() => {
 
   // ---------- Dessiner un personnage ----------
   // Les pieds au point (x, y). o : facing, pose, t, ph, sx/sy (écrasement), scale, ouch,
-  //   star (pendant l'étoile), lava (brûlé par la lave), holding (le bébé oiseau), pw (état du pouvoir).
+  //   star (pendant l'étoile), lava (brûlé par la lave), choco (enfoncé dans le chocolat ou la boue : chocoTint,
+  //   voir SINK), holding (le bébé oiseau), pw (état du pouvoir).
   function draw(ctx, id, x, y, o) {
     o = o || {};
+    // projeté par un sanglier : il tourne comme une toupie, puis se retrouve la tête en bas (autour du milieu
+    // de son corps : sa tête touche le sol là où étaient ses pieds), voir Art.spinTurn
+    if (o.ouch && o.ouch.kind === 'spin' && !o.spun) {
+      const top = id === 'malice' || !HERO_BY_ID[id] ? -62 : HERO_BY_ID[id].headY - 16;
+      const turn = Art.spinTurn(o.ouch);
+      const f = o.facing || 1;
+      const sc = o.scale || 1;
+      const cy = y + (top / 2) * sc;
+      ctx.save();
+      ctx.translate(x, cy);
+      ctx.rotate(turn.a * f);
+      ctx.scale(turn.sx, 1);
+      ctx.translate(-x, -cy);
+      draw(ctx, id, x, y, Object.assign({}, o, { spun: true }));
+      ctx.restore();
+      if (turn.whirl > 0) Art.spinWhirl(ctx, x, cy, (-top / 2 + 10) * sc, o.ouch.t, turn.whirl);
+      return;
+    }
     if (id === 'malice' || !DRAW[id]) {
       Art.malice(ctx, x, y, Object.assign({}, o, {
         palette: o.star ? Art.maliceRainbow(o.t || 0) : o.palette,

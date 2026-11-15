@@ -14,6 +14,10 @@ const SLIME_TIME = 9;
 const GEM_CHARS = 'gretd';
 const MAGIC_TIME = 6;
 const MAGIC_MAX = 4;
+// la caméra "basVisible" (voir updateCamera) : elle monte quand le haut de Malice arrive à CAM_HEAD pixels du
+// haut de l'écran, et le haut de Malice n'est jamais à moins de CAM_HEAD_MIN pixels du haut de l'écran
+const CAM_HEAD = 100;
+const CAM_HEAD_MIN = 40;
 // Une tache de lumière (pour percer le noir) : dessinée une fois, puis agrandie à la taille de chaque lumière.
 let LIGHT_BLOB = null;
 function lightBlob() {
@@ -76,7 +80,11 @@ class World {
     this.cam = { x: 0, y: 0 };
     this.look = 60;
     // monde des bonbons : la lave est une rivière de chocolat
-    this.choco = def.theme === 'candy';
+    // (le Marais aux Cabanes : c'est de la boue, où l'on s'enfonce pareil)
+    this.mud = def.theme === 'marsh';
+    this.choco = def.theme === 'candy' || this.mud;
+    // (ses couleurs : les gouttes, les éclaboussures, Malice enfoncée dedans… voir SINK)
+    this.sink = this.mud ? SINK.mud : SINK.choco;
     // grotte : il fait noir, sauf autour de Malice et de ce qui brille ;
     // la nuit (dark: 'nuit'), c'est plus doux, et la lune, les lucioles et les fleurs qui brillent éclairent
     this.dark = !!def.dark;
@@ -100,6 +108,10 @@ class World {
     // la Rivière aux Nénuphars : la bave des escargots, les lapins, et le terrier secret
     // (les rangées à partir de "terrier" sont sous terre : la caméra n'y descend que si Malice y va)
     this.slime = [];
+    // les petites scènes pour rire, qui ne touchent à rien (la taupe qui sort voir Malice la tête en bas)
+    this.gags = [];
+    // le pont de corde qui s'enfonce sous les pieds de Malice : où (x, rangée), et de combien (k, de 0 à 1)
+    this.sag = { x: 0, r: -1, k: 0 };
     this.bunnies = [];
     this.terrier = def.terrier || 0;
     const bunnySpots = [];
@@ -150,6 +162,7 @@ class World {
           case 'O': this.enemies.push(new Snail(this, mx - 22, by - 30)); break;
           case 'm': this.enemies.push(new Mole(this, mx, by)); break;
           case 'h': this.enemies.push(new Hedgehog(this, mx - 20, by - 30)); break;
+          case 's': this.enemies.push(new Boar(this, mx - 28, by - 40)); break;
           case '&':
             this.boss = Boss.create(this, def.boss, mx, by);
             if (this.boss) this.enemies.push(this.boss);
@@ -211,10 +224,10 @@ class World {
     this.player.y = start.y - this.player.h;
     // (si elle tombe à l'eau et que l'endroit où elle était a disparu, elle ressort ici)
     this.startPos = { x: start.x, y: start.y, pad: null };
-    // les escargots et les hérissons partent du côté opposé à l'endroit où Malice apparaît (au début, ou à
-    // un drapeau) : ils ne foncent pas tout de suite sur elle
+    // les escargots, les hérissons et les sangliers partent du côté opposé à l'endroit où Malice apparaît
+    // (au début, ou à un drapeau) : ils ne foncent pas tout de suite sur elle
     for (const e of this.enemies) {
-      if (e instanceof Snail || e instanceof Hedgehog) e.dir = e.cx < start.x ? -1 : 1;
+      if (e instanceof Snail || e instanceof Hedgehog || e instanceof Boar) e.dir = e.cx < start.x ? -1 : 1;
     }
     // le terrier : les trous cachés sous un bloc lutin, et les cases des galeries (voir burrowCells)
     this.shafts = this.findShafts();
@@ -222,6 +235,11 @@ class World {
     this.crowns = this.findCrowns();
     // les Champignons Géants : les grands chapeaux de champignons (voir findCaps)
     this.caps = Scenery.THEMES[this.theme].caps ? this.findCaps() : [];
+    // le Marais aux Cabanes : les cabanes sur pilotis et les ponts de corde (voir findCabins)
+    this.cabins = Scenery.THEMES[this.theme].cabins ? this.findCabins() : null;
+    this.bridges = this.cabins ? this.findBridges() : [];
+    // (et la brume au ras de la boue : les suites de cases de boue à la surface, voir drawMist)
+    this.mists = this.mud ? this.runsOf((c, r) => this.tiles[r][c] === '~' && (r === 0 || this.tiles[r - 1][c] !== '~')) : [];
     this.updateCamera(0, true);
   }
 
@@ -497,6 +515,120 @@ class World {
       const dx2 = Math.round((x1 + 8 - camX) * s);
       const dy2 = Math.round((k.r * T + Scenery.capRim(k.bouncy) + 22 + squash - camY) * s);
       ctx.drawImage(img, dx, dy, dx2 - dx, dy2 - dy);
+    }
+  }
+
+  // ---------- Le Marais aux Cabanes ----------
+  // Chaque rangée de "-" côte à côte est le plancher d'une cabane sur pilotis (3 cases ou plus, et de la place
+  // au-dessus : la cabane est dans le décor, on passe devant), ou une petite plate-forme sur un pilotis. Les pilotis
+  // descendent jusqu'au sol, jusqu'à un autre plancher, ou s'enfoncent dans la boue.
+  findCabins() {
+    const T = TILE;
+    const free = (c, r) => r < 0 || this.tileAt(c, r) === '.';
+    return this.runsOf((c, r) => this.tiles[r][c] === '-').map(({ r, c0: c, c1: e }) => {
+      const n = e - c + 1;
+      let hut = n >= 3;
+      for (let k = c - 1; k <= e + 1 && hut; k++) {
+        for (let rr = r - 3; rr < r; rr++) if (!free(k, rr)) hut = false;
+      }
+      const x0 = c * T;
+      const x1 = (e + 1) * T;
+      const xs = n >= 3 ? [x0 + 9, x1 - 9] : [(x0 + x1) / 2];
+      if (n >= 6) xs.push((x0 + x1) / 2);
+      const legs = xs.map((x) => {
+        const lc = Math.floor(x / T);
+        let rb = r + 1;
+        while (rb < this.rows && !isSolidCh(this.tiles[rb][lc]) && !isLedgeCh(this.tiles[rb][lc]) && this.tiles[rb][lc] !== '~') rb++;
+        const bottom = rb >= this.rows ? this.height + 40 : this.tiles[rb][lc] === '~' ? rb * T + 40 : rb * T + 4;
+        return { x, top: r * T + 10, bottom };
+      });
+      return { c0: c, c1: e, r, n, hut, legs, v: Math.floor(hash2(c, r) * 3) };
+    });
+  }
+
+  // Les ponts de corde (les "=" côte à côte), avec leurs poteaux aux deux bouts.
+  findBridges() {
+    return this.runsOf((c, r) => this.tiles[r][c] === '=').map(({ r, c0, c1 }) => (
+      { x0: c0 * TILE, x1: (c1 + 1) * TILE, r, ph: hash2(c0, r) * 6 }
+    ));
+  }
+
+  // Les suites de cases côte à côte, sur une même rangée, pour lesquelles is(c, r) est vrai : [{ r, c0, c1 }].
+  runsOf(is) {
+    const out = [];
+    for (let r = 0; r < this.rows; r++) {
+      let c = 0;
+      while (c < this.cols) {
+        if (!is(c, r)) { c++; continue; }
+        let e = c;
+        while (e + 1 < this.cols && is(e + 1, r)) e++;
+        out.push({ r, c0: c, c1: e });
+        c = e + 1;
+      }
+    }
+    return out;
+  }
+
+  // Le pont s'enfonce un peu sous les pieds de Malice (ça se voit aussi un peu plus loin, et ça remonte doucement).
+  updateSag(dt) {
+    const p = this.player;
+    const r = Math.round((p.y + p.h) / TILE);
+    const on = p.onGround && !p.platform && !p.dead && this.tileAt(Math.floor(p.cx / TILE), r) === '=';
+    const S = this.sag;
+    if (on) {
+      if (S.r !== r) S.k = 0;
+      S.r = r;
+      S.x = p.cx;
+      // (il s'enfonce vite sous ses pieds ; quand elle s'en va, il remonte plus doucement)
+      S.k = Math.min(1, S.k + dt * 9);
+    } else {
+      S.k = Math.max(0, S.k - dt * 4);
+    }
+  }
+
+  // De combien le pont de la rangée r est enfoncé en x (en pixels).
+  bridgeDip(x, r) {
+    const S = this.sag;
+    if (!this.cabins || S.k <= 0 || r !== S.r || this.tileAt(Math.floor(x / TILE), r) !== '=') return 0;
+    const b = this.bridges.find((bb) => bb.r === r && x >= bb.x0 && x <= bb.x1);
+    if (!b) return 0;
+    // (jamais aux deux bouts, attachés aux poteaux)
+    const ends = Math.min(1, (x - b.x0) / TILE, (b.x1 - x) / TILE);
+    const near = Math.max(0, 1 - Math.abs(x - S.x) / (TILE * 2.2));
+    return 5 * S.k * ends * (0.35 + 0.65 * near);
+  }
+
+  // Les pilotis et les cabanes (derrière tout le reste ; les planchers sont des cases, voir drawTiles).
+  drawCabins(ctx, camX) {
+    if (!this.cabins) return;
+    for (const k of this.cabins) {
+      const x0 = k.c0 * TILE;
+      const x1 = (k.c1 + 1) * TILE;
+      if (x1 + 40 < camX || x0 - 40 > camX + VIEW_W) continue;
+      for (const leg of k.legs) Scenery.stilt(ctx, leg.x, leg.top, leg.bottom);
+      if (k.hut) {
+        const img = Scenery.cabinSprite(k.n, k.v);
+        const w = k.n * TILE + 24;
+        ctx.drawImage(img, x0 - 12, k.r * TILE - Scenery.CABIN_H, w, Scenery.CABIN_H + 4);
+      }
+    }
+  }
+
+  // Les ponts de corde : des planches attachées entre deux cordes qui pendent, et qui se balancent un peu.
+  drawBridges(ctx, camX) {
+    for (const b of this.bridges) {
+      if (b.x1 + 30 < camX || b.x0 - 30 > camX + VIEW_W) continue;
+      Scenery.ropeBridge(ctx, b.x0, b.x1, b.r * TILE, this.t + b.ph, (x) => this.bridgeDip(x, b.r));
+    }
+  }
+
+  // La brume tout au ras de la boue (par-dessus : elle est légère, on voit toujours bien la boue et ce qui s'y passe).
+  drawMist(ctx, camX) {
+    for (const m of this.mists) {
+      const x0 = m.c0 * TILE;
+      const x1 = (m.c1 + 1) * TILE;
+      if (x1 + 2 * TILE < camX || x0 - 2 * TILE > camX + VIEW_W) continue;
+      Scenery.mudMist(ctx, x0, x1, m.r * TILE + 12, this.t);
     }
   }
 
@@ -803,6 +935,8 @@ class World {
     for (const a of this.anchors) a.update(dt);
     for (const d of this.puffs) d.update(dt);
     for (const b of this.bunnies) b.update(dt);
+    for (const g of this.gags) g.update(dt);
+    if (this.cabins) this.updateSag(dt);
     for (const f of this.fireflies) f.update(dt);
     if (this.goal) this.goal.update(dt);
     if (this.def.sequel) p.birdTalk = this.flowers.reduce((m, f) => Math.max(m, f.show), 0);
@@ -821,6 +955,7 @@ class World {
     this.projectiles = this.projectiles.filter((h) => !h.dead);
     this.items = this.items.filter((h) => !h.dead);
     this.eclairs = this.eclairs.filter((h) => !h.dead);
+    this.gags = this.gags.filter((g) => !g.dead);
     this.critters = this.critters.filter((h) => !h.dead);
     this.updateParticles(dt);
     this.updateCamera(dt, false);
@@ -878,8 +1013,16 @@ class World {
       }
       // en boule (la roulade), Malice passe sous les ennemis ou à travers : ni elle ni eux n'ont mal
       if (p.ball) continue;
+      // projetée par un sanglier (la tête en bas), elle ne touche plus à rien tant qu'elle n'est pas debout
+      if (p.tumbling()) continue;
       // (stompDepth : sur un grand boss tout affaissé, on compte qu'on lui saute dessus même en arrivant un peu bas)
       if (stomps(e.y + (e.stompDepth || 18))) {
+        // un sanglier qui fonce : on rebondit sur son dos, sans rien lui faire (il faut attendre qu'il s'arrête)
+        if (e.stompable && !e.stompable()) {
+          p.bounceOff();
+          Sound.sfx.boing(false);
+          continue;
+        }
         // un hérisson en boule : on se pique ! (si elle ne peut pas avoir mal, elle rebondit sur ses piquants)
         // Dans les deux cas, elle repart vers l'avant, par-dessus : en arrière, elle retomberait dans le trou
         // qu'elle vient de sauter, et sans la pousser, elle rebondirait dessus comme sur un trampoline.
@@ -897,7 +1040,13 @@ class World {
         p.bounceOff();
         continue;
       }
-      if (e.harmful()) p.hurt(e, e.ouch);
+      // (le sanglier projette Malice par-dessus son dos ; quand il ne fonce pas, il la repousse sans lui faire mal)
+      // (attention : onHit est déjà pris par les boss, voir boss.js : « il vient de perdre une vie »)
+      if (e.harmful()) {
+        if (p.hurt(e, e.ouch) && e.tossed) e.tossed(p);
+      } else if (e.nudge) {
+        e.nudge(p);
+      }
     }
     for (const h of this.hazards) {
       if (h.dead || (h.harmful && !h.harmful()) || !overlap(pb, h)) continue;
@@ -1072,6 +1221,10 @@ class World {
     const under = this.terrier && p.y + p.h > (this.terrier - 1) * TILE;
     const bottom = this.terrier && !under ? this.terrier * TILE : this.height;
     ty = clamp(ty, 0, Math.max(0, bottom - VIEW_H));
+    // (le bas du niveau reste à l'écran : la boue sous les ponts, voir "basVisible" dans levels.js ; la caméra ne
+    // monte que quand Malice saute très haut, même au-dessus du haut du niveau : sa tête ne sort pas de l'écran)
+    const high = this.def.basVisible;
+    if (high) ty = Math.min(Math.max(0, bottom - VIEW_H), p.y - CAM_HEAD);
     if (snap) {
       this.cam.x = tx;
       this.cam.y = ty;
@@ -1080,6 +1233,8 @@ class World {
       this.cam.y += (ty - this.cam.y) * Math.min(1, dt * 5);
       // sous terre (en tombant dans le terrier), ses pieds ne sortent jamais de l'écran par le bas
       if (under) this.cam.y = clamp(this.cam.y, p.y + p.h + 20 - VIEW_H, Math.max(0, bottom - VIEW_H));
+      // (et avec basVisible, sa tête ne sort jamais de l'écran par le haut, même si la caméra est en retard)
+      if (high) this.cam.y = Math.min(this.cam.y, p.y - CAM_HEAD_MIN);
     }
     this.shakeMag *= Math.pow(0.001, dt);
     if (this.shakeMag < 0.3) this.shakeMag = 0;
@@ -1109,6 +1264,7 @@ class World {
     this.drawWinds(ctx);
     this.drawTrunks(ctx, camX, camY);
     this.drawStalks(ctx, camX);
+    this.drawCabins(ctx, camX);
     this.drawCrowns(ctx);
     this.drawUpdrafts(ctx);
     this.runs = this.waterRuns(camX);
@@ -1126,6 +1282,7 @@ class World {
 
     ctx.save();
     ctx.translate(-camX, -camY);
+    this.drawBridges(ctx, camX);
     this.drawPuddles(ctx, camX);
     this.drawSlime(ctx);
     this.drawReeds(ctx, false);
@@ -1156,10 +1313,12 @@ class World {
     for (const ec of this.eclairs) ec.draw(ctx);
     for (const h of this.hazards) h.draw(ctx);
     for (const pr of this.projectiles) pr.draw(ctx);
+    for (const g of this.gags) g.draw(ctx);
     this.player.draw(ctx);
     if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);
     this.drawLava(ctx, camX, camY);
+    if (this.mud) this.drawMist(ctx, camX);
     this.drawWater(ctx);
     for (const pl of this.platforms) {
       if (pl.onWater) pl.draw(ctx);
@@ -1196,6 +1355,8 @@ class World {
         // (les troncs sont dessinés avant, avec le feuillage : voir drawTrunks)
         if (ch === '.' || ch === '~' || ch === '|' || ch === WATER) continue;
         if (capped && (ch === '-' || ch === 'M')) continue;
+        // (les ponts de corde du marais sont dessinés à part : voir drawBridges)
+        if (ch === '=' && this.cabins) continue;
         let img = null;
         if (ch === '#') {
           // (pas d'herbe au fond de la rivière ; sous terre, dans le terrier, de la terre toute nue)
@@ -1318,7 +1479,7 @@ class World {
     const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / TILE) + 1);
     const r0 = Math.max(0, Math.floor(camY / TILE));
     const r1 = Math.min(this.rows - 1, Math.ceil((camY + VIEW_H) / TILE));
-    const run = this.choco ? Scenery.drawChocoRun : Scenery.drawLavaRun;
+    const run = this.mud ? Scenery.drawMudRun : this.choco ? Scenery.drawChocoRun : Scenery.drawLavaRun;
     for (let r = r0; r <= r1; r++) {
       let c = c0;
       while (c <= c1) {

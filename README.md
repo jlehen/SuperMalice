@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses deux premiers niveaux, et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses trois premiers niveaux, et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -92,6 +92,19 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      les ennemis marchent même sur un hérisson en boule, et en roulade on passe à travers lui sans se piquer.
      On y retrouve les ronces et les coccinelles. En Bébé, les hérissons voient Malice de moins loin, restent moins
      longtemps en boule et plus longtemps déroulés ; en Difficile, c'est le contraire.
+   - 2-3 **Le Marais aux Cabanes** : un marais tout brumeux, avec des **cabanes sur pilotis** reliées par des
+     **ponts de corde** qui s'enfoncent un peu sous les pieds. Dans la **boue**, on ne se brûle pas, mais on
+     s'enfonce tout doucement (comme dans le chocolat) : il faut vite sauter pour en sortir. Les **sangliers
+     maléfiques** ont des yeux rouges qui brillent et soufflent de la fumée par les naseaux. Quand ils voient
+     Malice, « ! » : ils **grattent le sol** (c'est le moment de leur sauter dessus !), puis ils foncent tout droit,
+     jusqu'à freiner au bord de la boue ou se cogner contre des caisses : ils voient alors des étoiles, et on peut
+     leur sauter dessus (groin ! ils redeviennent gentils). Seul un sanglier qui fonce fait mal ; sur son dos, on
+     rebondit sans rien lui faire, et sinon il repousse Malice d'un coup de groin, sans lui faire mal (jamais
+     dans la boue : au bord, c'est lui qui recule). Si elle est collée à lui quand il va foncer, il recule
+     d'abord un peu : elle a le temps de sauter. Les cabanes et les ponts sont un bon refuge, tout en haut. Le caramel les colle par terre, avec les chips ils sont
+     trop lourds pour foncer, et les pouvoirs qui renversent les ennemis marchent aussi sur eux. On y retrouve les
+     hérissons, les ronces et les coccinelles. En Bébé, les sangliers voient Malice de moins loin, grattent le sol
+     plus longtemps, foncent moins vite et restent étourdis plus longtemps ; en Difficile, c'est le contraire.
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
@@ -217,6 +230,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Escargot | couverte de bave verte qui dégouline, elle tire la langue : « Beurk ! » |
 | Taupe qui jaillit du sol | projetée en l'air dans une gerbe de terre, elle retombe toute sale, des mottes sur la tête, et un petit ver de terre rose en sort pour lui faire coucou |
 | Hérisson | couverte de piquants comme une pelote d'épingles ! Elle les enlève un par un, en grimaçant : « Aïe ! Aïe ! Aïe ! » |
+| Sanglier qui fonce | projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe la tête en bas, les jambes en l'air ; une taupe sort de terre à côté d'elle, toute interloquée (« ? »), et replonge aussitôt. Dans la boue, plof : elle s'y enfonce tout de suite (vite, il faut sauter !) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre) |
 
 ## Commandes
 
@@ -279,7 +293,7 @@ sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
-`O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `i` = lucioles, `j` = fleur-lanterne…). Un niveau peut avoir un terrier
+`O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `i` = lucioles, `j` = fleur-lanterne…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), ou se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
 par la lune : `clairDeLune`).
 Il suffit de modifier les lettres et de recharger la page.
@@ -338,7 +352,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | La Prairie la Nuit | la même calypso, plus lente et tout doucement, comme une berceuse : vibraphone, marimba en écho, contrebasse, et des grillons |
   | Le combat contre l'Épouvantail | la calypso en do mineur et plus vite, comme une danse de squelettes : xylophone, orgue qui ricane sur les contretemps, pizzicati, wood-blocks et timbales ; au refrain, les cuivres |
   | Stage de la Roulade | ska : guitare et orgue sur les contretemps, contrebasse qui sautille, la mélodie aux cuivres (le trombone en dessous), solo de saxophone au milieu |
-  | La Forêt (la Forêt des Épines, les Champignons Géants) | do mineur en 12/8, flûte et harpe, entrées en canon |
+  | La Forêt (la Forêt des Épines, les Champignons Géants, le Marais aux Cabanes) | do mineur en 12/8, flûte et harpe, entrées en canon |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |

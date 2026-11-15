@@ -88,9 +88,18 @@ const OUCH = {
   // (« Aïe ! » à chaque piquant, voir Art.PIN_PULLS)
   // (textY : son texte part plus haut, sinon elle rebondit à travers et il lui cache la figure)
   pins: { dur: 2.25, pose: 0.4, lock: 0.25, vx: 230, vy: -560, hold: 0.35, text: 'Ça pique !', color: '#e8c090', textY: -84 },
+  // le sanglier qui fonce : projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe
+  // la tête en bas, les jambes en l'air (et une taupe sort de terre pour voir). Toute l'animation suit
+  // le vrai vol : voir SPIN et Player.updateSpin (dur est fixé quand elle s'est remise sur ses pieds).
+  spin: { dur: 9, pose: 9, lock: 0.3, vx: 150, vy: -880, hold: 0.2, text: 'Wouaaah !', color: '#ffb08a', textY: -70 },
   // n'importe quoi d'autre
   hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
 };
+
+// Projetée par le sanglier (OUCH.spin) : en retombant, elle se retourne en flip secondes ; la tête en bas, elle
+// attend au plus head secondes (au bout de headMin, on peut se relever en bougeant ou en sautant), puis elle
+// se remet sur ses pieds d'une petite cabriole (back secondes). Elle ne peut rien faire avant.
+const SPIN = { flip: 0.24, head: 1.0, headMin: 0.45, back: 0.24 };
 
 // ======================= MALICE =======================
 class Player {
@@ -194,7 +203,7 @@ class Player {
         w.spawn({ type: 'smoke', x: this.cx + rand(-10, 10), y: this.y + this.h, vy: -60, life: 0.9, size: 10, color: '#555' });
       }
       if (this.cause === 'choco' && Math.random() < dt * 12) {
-        w.spawn({ type: 'dot', x: this.cx + rand(-12, 12), y: this.y + this.h - rand(0, 30), vy: 60, g: 600, life: 0.8, size: rand(2.5, 4), color: '#6a3418' });
+        w.spawn({ type: 'dot', x: this.cx + rand(-12, 12), y: this.y + this.h - rand(0, 30), vy: 60, g: 600, life: 0.8, size: rand(2.5, 4), color: w.sink.drip });
       }
       return;
     }
@@ -262,7 +271,9 @@ class Player {
     }
 
     let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0);
-    if (this.hurtT > 0) dir = 0;
+    // (projetée par un sanglier, elle ne fait rien tant qu'elle n'est pas sur ses pieds : voir updateSpin)
+    const tumbling = this.tumbling();
+    if (this.hurtT > 0 || tumbling) dir = 0;
 
     // ---- La roulade (badge Roulade) : ↓ en tenant ← ou → ----
     // (sur tablette : le pouce qui glisse de ▶ jusqu'à ▼ ; à la manette : bas et avant ; voir input.js)
@@ -279,7 +290,7 @@ class Player {
     if (this.ball) this.updateRoll(dt);
 
     // ---- S'accroupir (et préparer le super saut) ----
-    const wantCrouch = this.onGround && I.held.down && !this.pound && !this.ball;
+    const wantCrouch = this.onGround && I.held.down && !this.pound && !this.ball && !tumbling;
     if (wantCrouch) {
       this.crouchT += dt;
       if (badgeSaut && this.crouchT - dt < PHYS.crouchCharge && this.crouchT >= PHYS.crouchCharge) Sound.sfx.charge();
@@ -315,6 +326,8 @@ class Player {
       // en boule, elle file tout droit (voir updateRoll)
       this.vx = this.rollDir * PHYS.rollSpeed;
       this.facing = this.rollDir;
+    } else if (tumbling && !this.onGround) {
+      // projetée par le sanglier : elle garde son élan jusqu'à retomber
     } else if (pow.move && pow.move(this, dt, dir)) {
       // le pouvoir s'occupe de la vitesse (charge, glissade…)
     } else if (this.boostT > 0 && Math.abs(this.vx) > top && (dir === 0 || dir === Math.sign(this.vx))) {
@@ -343,7 +356,7 @@ class Player {
     this.coyote = this.onGround || this.inChoco ? PHYS.coyote : this.coyote - dt;
     // en boule, on saute en se relevant (s'il y a la place au-dessus)
     if (this.ball && this.jumpBuf > 0 && this.coyote > 0 && this.roomToStand()) this.standUp();
-    if (this.jumpBuf > 0 && this.coyote > 0 && !this.pound && !this.puff && !this.ball) {
+    if (this.jumpBuf > 0 && this.coyote > 0 && !this.pound && !this.puff && !this.ball && !tumbling) {
       this.jumpBuf = 0;
       this.coyote = 0;
       this.onGround = false;
@@ -371,7 +384,7 @@ class Player {
       for (let i = 0; i < 5; i++) {
         w.spawn({ type: 'dust', x: this.cx + rand(-10, 10), y: this.y + this.h, vx: rand(-60, 60), vy: rand(-40, -10), life: 0.4, size: rand(4, 7) });
       }
-    } else if (I.pressed.jump && !this.onGround && !this.pound && !this.puff && pow.airJump && pow.airJump(this)) {
+    } else if (I.pressed.jump && !this.onGround && !this.pound && !this.puff && !tumbling && pow.airJump && pow.airJump(this)) {
       // double saut, battement d'ailes, saut de mur…
       this.jumpBuf = 0;
     }
@@ -381,7 +394,7 @@ class Player {
     // écrasement (bas en l'air) ; avec le pissenlit, bas le lâche
     if (I.pressed.down && this.puff) {
       this.dropPuff();
-    } else if (I.pressed.down && !this.onGround && !this.pound && (!this.ball || this.roomToStand()) &&
+    } else if (I.pressed.down && !this.onGround && !this.pound && !tumbling && (!this.ball || this.roomToStand()) &&
       !(I.pressed.roll && badgeRoulade && this.nearGround())) {
       // (en boule, elle se relève pour écraser ; tout près du sol, ↓ en marchant, c'est la roulade
       // qu'on voulait : elle partira en atterrissant)
@@ -402,7 +415,7 @@ class Player {
       }
     } else {
       this.vy = Math.min(this.vy + PHYS.gravity * dt, this.pound === 2 ? PHYS.pound : PHYS.maxFall);
-      if (pow.fall && !this.pound) pow.fall(this, dt);
+      if (pow.fall && !this.pound && !tumbling) pow.fall(this, dt);
       if (this.puff) this.floatPuff(dt);
     }
     if (this.inChoco) {
@@ -681,7 +694,7 @@ class Player {
     w.springAt(hit, r, big);
   }
 
-  // Dans la rivière de chocolat : on ne se brûle pas, mais on s'enfonce. Vite, il faut sauter !
+  // Dans la rivière de chocolat (ou la boue du marais) : on ne se brûle pas, mais on s'enfonce. Vite, il faut sauter !
   sinkInChoco(dt) {
     const w = this.world;
     if (!this.inChoco) {
@@ -690,7 +703,7 @@ class Player {
       this.blubT = 0.3;
       Sound.sfx.chocoPlop();
       for (let i = 0; i < 10; i++) {
-        w.spawn({ type: 'dot', x: this.cx + rand(-16, 16), y: this.y + this.h - 8, vx: rand(-160, 160), vy: rand(-320, -120), g: 1200, life: 0.6, size: rand(3, 6), color: '#7a4224' });
+        w.spawn({ type: 'dot', x: this.cx + rand(-16, 16), y: this.y + this.h - 8, vx: rand(-160, 160), vy: rand(-320, -120), g: 1200, life: 0.6, size: rand(3, 6), color: w.sink.splash });
       }
     }
     this.sinkT += dt;
@@ -698,7 +711,7 @@ class Player {
     if (this.blubT <= 0) {
       this.blubT = 0.4;
       Sound.sfx.chocoBlub();
-      w.spawn({ type: 'ring', x: this.cx + rand(-14, 14), y: this.y + this.h - 6, life: 0.4, size: 14, color: 'rgba(160,95,55,0.9)' });
+      w.spawn({ type: 'ring', x: this.cx + rand(-14, 14), y: this.y + this.h - 6, life: 0.4, size: 14, color: w.sink.ring });
     }
     if (this.sinkT > PHYS.chocoTime) this.die('choco');
   }
@@ -1206,6 +1219,109 @@ class Player {
     return true;
   }
 
+  // ---------- Projetée par un sanglier (OUCH.spin) ----------
+  // Elle n'est pas encore retombée sur ses pieds : elle ne peut ni bouger, ni sauter, ni rien faire.
+  tumbling() {
+    const k = this.ouch;
+    return !!k && k.kind === 'spin' && k.phase !== 'done' && !this.dead;
+  }
+
+  // Elle monte en tournant comme une toupie (phase 'up'), se retourne en retombant ('flip'), atterrit sur la
+  // tête, les jambes en l'air ('head' : une taupe sort de terre pour voir), puis se remet sur ses pieds d'une
+  // petite cabriole ('back'). Tout suit le vrai vol : si elle retombe dans la boue, elle s'y enfonce tout de suite
+  // à l'endroit (on peut sauter pour en sortir) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre).
+  // (k.a : de combien elle est retournée, de 0 à 2π ; k.pt : depuis quand elle est dans cette phase)
+  updateSpin(k, dt) {
+    if (this.dead) return;
+    const w = this.world;
+    if (!k.phase) {
+      k.phase = 'up';
+      k.a = 0;
+      k.pt = 0;
+      // (même si elle sautait : en lâchant le saut, elle ne doit pas retomber plus tôt)
+      this.jumping = false;
+    }
+    k.pt += dt;
+    const go = (phase) => {
+      k.phase = phase;
+      k.pt = 0;
+    };
+    // dans la boue : finie la toupie, elle s'enfonce (et peut sauter tout de suite pour en sortir)
+    if (this.inChoco || this.dive > 0 || this.swim) {
+      this.ouch = null;
+      this.hurtT = 0;
+      if (this.inChoco) w.popText(this.cx, this.y - 10, 'Plof !', '#d8b080', 20);
+      return;
+    }
+    if ((k.phase === 'up' || k.phase === 'flip') && this.onGround && k.t > 0.05) {
+      this.landOnHead(k);
+      go('head');
+    }
+    switch (k.phase) {
+      case 'up':
+        if (this.vy > 0) go('flip');
+        break;
+      case 'flip':
+        k.a = Math.min(Math.PI, k.a + (dt * Math.PI) / SPIN.flip);
+        break;
+      case 'head': {
+        // (si elle n'avait pas fini de se retourner, elle finit tout de suite)
+        k.a = approach(k.a, Math.PI, (dt * Math.PI) / 0.08);
+        const wants = Input.held.left || Input.held.right || Input.held.jump;
+        if (k.pt >= SPIN.head || (k.pt >= SPIN.headMin && wants) || !this.onGround) {
+          go('back');
+          // hop ! une petite cabriole pour se remettre debout
+          this.vy = -330;
+          this.onGround = false;
+          this.platform = null;
+          Sound.sfx.spinBack();
+        }
+        break;
+      }
+      case 'back':
+        k.a = Math.min(Math.PI * 2, k.a + (dt * Math.PI) / SPIN.back);
+        if (k.pt >= SPIN.back) {
+          k.phase = 'done';
+          k.a = 0;
+          k.dur = k.t;
+        }
+        break;
+      default: break;
+    }
+    if (k.phase !== 'done') {
+      this.hurtT = Math.max(this.hurtT, 0.05);
+      // (elle ne peut plus avoir mal tant qu'elle n'est pas debout, et encore un petit moment après)
+      this.invuln = Math.max(this.invuln, 0.6);
+    }
+  }
+
+  // Boum, sur la tête ! Sur la terre (pas sur un pont, une cabane ou un bloc), une taupe sort voir ce qui se passe.
+  landOnHead(k) {
+    const w = this.world;
+    this.vx = 0;
+    w.shake(4);
+    Sound.sfx.spinLand();
+    for (let i = 0; i < 8; i++) {
+      w.spawn({ type: 'dust', x: this.cx + rand(-14, 14), y: this.y + this.h, vx: rand(-120, 120), vy: rand(-90, -20), life: 0.45, size: rand(4, 8) });
+    }
+    if (this.platform) return;
+    const r = Math.round((this.y + this.h) / TILE);
+    // la taupe sort à côté de sa tête, du côté où il y a de la place (de la terre, avec rien dessus, sur toute la
+    // largeur de la taupe et de son trou : elle ne dépasse jamais au-dessus de la boue ou d'un trou)
+    const earth = (x) => {
+      const c = Math.floor(x / TILE);
+      return w.tileAt(c, r) === '#' && w.tileAt(c, r - 1) === '.' && w.tileAt(c, r + 1) !== '~';
+    };
+    if (!earth(this.cx)) return;
+    for (const side of [-this.facing, this.facing]) {
+      const x = this.cx + side * 52;
+      if (earth(x - 30) && earth(x + 30)) {
+        w.gags.push(new PeekMole(w, x, r * TILE, -side));
+        return;
+      }
+    }
+  }
+
   // Les petits effets pendant que Malice a mal : fumée, toux, anneaux, pois qui sautent…
   updateOuch(dt) {
     const w = this.world;
@@ -1277,6 +1393,9 @@ class Player {
           const p = at(rand(-12, 12), rand(-64, -10));
           w.spawn({ type: 'dot', x: p.x, y: p.y, vx: rand(-30, 30), vy: rand(0, 60), g: 1100, life: 0.6, size: rand(1.8, 3), color: choose(['#8a5a34', '#a8703e', '#6a4024']) });
         }
+        break;
+      case 'spin':
+        this.updateSpin(k, dt);
         break;
       case 'pins':
         // elle enlève les piquants un par un : aïe ! (le piquant s'envole en tournoyant)
@@ -1367,12 +1486,14 @@ class Player {
     const blink = this.invuln > 0 && !this.dead && !ouching && Math.floor(this.invuln * 14) % 2 === 0;
     ctx.save();
     if (blink) ctx.globalAlpha = 0.35;
+    // sur un pont de corde, il s'enfonce un peu sous ses pieds (voir World.bridgeDip)
+    const dip = this.onGround && !this.dead ? this.world.bridgeDip(this.cx, Math.round((this.y + this.h) / TILE)) : 0;
     if (this.onGround && !this.dead) {
       ctx.fillStyle = 'rgba(0,0,0,0.18)';
-      ellipsePath(ctx, this.cx, this.y + this.h + 1, 15, 4);
+      ellipsePath(ctx, this.cx, this.y + this.h + 1 + dip, 15, 4);
       ctx.fill();
     }
-    let feetY = this.y + this.h + 1;
+    let feetY = this.y + this.h + 1 + dip;
     if (this.ball) {
       // en boule : Malice toute pelotonnée (et plus petite) tourne sur elle-même, dans un tourbillon
       const r = this.h / 2;
@@ -1447,7 +1568,8 @@ class Player {
       star: this.star > 0,
       lava,
       choco,
-      palette: lava ? LAVA_PALETTE : choco ? CHOCO_PALETTE : null,
+      chocoTint: this.world.sink.tint,
+      palette: lava ? LAVA_PALETTE : choco ? this.world.sink.palette : null,
       holding: this.holding,
       face: pose === 'idle' ? this.mimic : null,
       ouch: k,
@@ -1490,6 +1612,21 @@ const CHOCO_PALETTE = Object.assign({}, Art.MALICE, {
   overall: '#7a4224', overallDark: '#5a2c14', hair: '#a0643a', hairDark: '#7a4224',
   hat: '#8a4a2a', hatDark: '#6a3418', hatLight: '#b06a40',
 });
+
+// Malice toute couverte de boue (le Marais aux Cabanes)
+const MUD_PALETTE = Object.assign({}, Art.MALICE, {
+  skin: '#7a6a44', skinShade: '#5e5032', shirt: '#86784e', shirtShade: '#6a5e3a',
+  overall: '#6a5a36', overallDark: '#4e4226', hair: '#94834e', hairDark: '#6e6038',
+  hat: '#76643c', hatDark: '#56482a', hatLight: '#988452',
+});
+
+// La rivière de chocolat (le Monde des Bonbons) et la boue (le Marais aux Cabanes) : on s'y enfonce pareil, seules
+// les couleurs changent (World.sink). drip : ce qui coule d'elle quand elle s'est enfoncée ; splash : les
+// éclaboussures ; ring : les bulles ; tint : la teinte des personnages enfoncés (voir Heroes) ; palette : Malice.
+const SINK = {
+  choco: { drip: '#6a3418', splash: '#7a4224', ring: 'rgba(160,95,55,0.9)', tint: '#6a3a1c', palette: CHOCO_PALETTE },
+  mud: { drip: '#4e4428', splash: '#5a5030', ring: 'rgba(120,110,70,0.9)', tint: '#4e4428', palette: MUD_PALETTE },
+};
 
 // ======================= PROJECTILES DE MALICE =======================
 class Throwable {
@@ -2764,6 +2901,415 @@ class Hedgehog extends Enemy {
   }
 
   mouth() { return { x: this.dir * (this.fat ? 21 : 19), y: -9 }; }
+}
+
+// Sanglier maléfique (le Marais aux Cabanes) : ses yeux rouges brillent, et de la fumée sort de ses naseaux.
+// Il se promène en reniflant. Quand il voit Malice (devant ou derrière lui, à peu près à la même hauteur, sans
+// mur entre eux), « ! » : il se tourne vers elle et gratte le sol, en soufflant de la fumée (c'est l'annonce).
+// Puis il fonce tout droit, jusqu'à se cogner (contre un mur, une caisse ou un bloc : il reste étourdi, des étoiles
+// autour de la tête) ou jusqu'au bord de la boue (il freine des quatre fers et s'arrête juste au bord, tout
+// essoufflé). Ensuite il fait demi-tour et repart se promener.
+// Seul le sanglier qui fonce fait mal (Malice est projetée en l'air, voir OUCH.spin) ; sinon, quand on le touche,
+// il la repousse d'un coup de groin, sans lui faire mal (jamais dans la boue ni dans un trou : s'il n'y a pas de
+// sol derrière elle, c'est lui qui recule d'un pas). Si elle est collée à lui quand il va foncer, il recule
+// d'abord un peu en la regardant : elle a le temps de sauter. On lui saute dessus quand il gratte le sol, quand il est
+// étourdi ou arrêté au bord : il redevient gentil (des petits cœurs). Sur un sanglier qui fonce, on rebondit sans
+// rien lui faire. Le caramel le colle par terre, et avec les chips il est trop lourd pour foncer (il ne fait plus
+// mal). Les pouvoirs qui renversent les ennemis marchent toujours, et en roulade on passe à travers lui.
+// (w.diff : boarSee, boarWarn, boarRush, boarDizzy, boarWalk, voir DIFFS dans game.js)
+// BOAR_BRAKE : comment il freine (pixels par seconde, par seconde) ; BOAR_REST : combien de temps il souffle au bord.
+// Malice collée à lui quand il va foncer : il recule d'abord pendant BOAR_BACK + boarWarn / 5 secondes (plus
+// longtemps en Bébé), à BOAR_BACK_SPEED pixels par seconde ; NUDGE_REACH : jusqu'où le coup de groin peut la renvoyer (il doit y avoir du sol jusque-là).
+const BOAR_BRAKE = 1700;
+const BOAR_REST = 0.9;
+const BOAR_BACK = 0.3;
+const BOAR_BACK_SPEED = 110;
+const NUDGE_REACH = 90;
+
+class Boar extends Enemy {
+  constructor(world, x, y) {
+    super(world, x, y, 56, 40);
+    this.ouch = 'spin'; // projetée en l'air comme une toupie (voir OUCH)
+    this.state = 'walk';
+    this.timer = 0;
+    // au début (et à la reprise d'un drapeau), il ne cherche pas tout de suite Malice
+    this.calm = 1.2;
+    this.fatSpeed = 14;
+    this.snortT = rand(0.4, 1.4);
+    this.scratchT = 0;
+    this.nudgeT = 0;
+    // (repoussé par son propre coup de groin, quand il n'y avait pas de sol derrière Malice : voir nudge)
+    this.shoveT = 0;
+    this.shoveDir = 1;
+  }
+
+  // Il fonce (ou freine encore très vite) : c'est là qu'il fait mal.
+  rushing() {
+    return this.state === 'charge' || (this.state === 'skid' && Math.abs(this.vx) > 120);
+  }
+
+  harmful() {
+    return !this.dying && this.stuck <= 0 && !this.fat && this.rushing();
+  }
+
+  // On peut lui sauter dessus quand il ne fonce pas (sur un sanglier qui fonce, on rebondit sur son dos).
+  stompable() {
+    return !this.harmful();
+  }
+
+  // (voir World.interactions) Quand il ne fonce pas, on compte qu'on lui saute dessus même en arrivant un peu bas
+  // sur son dos : en sautant par-dessus le fossé, on l'écrase au lieu de recevoir un coup de groin.
+  get stompDepth() {
+    return this.rushing() ? 18 : 28;
+  }
+
+  // Il voit Malice : pas trop loin, à peu près à sa hauteur (pas sur une cabane), et il peut aller jusqu'à elle
+  // (pas de mur entre eux, ni de boue : de l'autre côté d'une mare, il ne s'occupe pas d'elle ; ni quand elle
+  // saute au-dessus de la boue, juste devant lui).
+  sees(p) {
+    if (p.dead || p.won || p.tumbling()) return false;
+    const w = this.world;
+    if (Math.abs(p.cx - this.cx) > w.diff.boarSee * TILE) return false;
+    const feet = p.y + p.h;
+    const mine = this.y + this.h;
+    if (feet < mine - 1.3 * TILE || feet > mine + 0.6 * TILE) return false;
+    const r = Math.floor((mine - 10) / TILE);
+    const rf = Math.round(mine / TILE);
+    const c0 = Math.floor(Math.min(p.cx, this.cx) / TILE);
+    const c1 = Math.floor(Math.max(p.cx, this.cx) / TILE);
+    for (let c = c0; c <= c1; c++) {
+      if (c > c0 && c < c1 && isSolidCh(w.tileAt(c, r))) return false;
+      const below = w.tileAt(c, rf);
+      if (!isSolidCh(below) && !isLedgeCh(below)) return false;
+    }
+    return true;
+  }
+
+  // Il souffle de la fumée par les naseaux (toutes les every secondes, en moyenne).
+  snort(dt, every, big) {
+    const w = this.world;
+    this.snortT -= dt;
+    if (this.snortT > 0) return;
+    this.snortT = every * rand(0.7, 1.3);
+    if (!w.onScreen(this)) return;
+    const nx = this.cx + this.dir * (this.fat ? 34 : 31);
+    const ny = this.y + this.h - 19;
+    for (let i = 0; i < (big ? 4 : 2); i++) {
+      w.spawn({ type: 'smoke', x: nx, y: ny + rand(-2, 2), vx: this.dir * rand(30, 80) + rand(-10, 10), vy: rand(-40, -10), life: rand(0.55, 0.85), size: big ? rand(4.5, 7) : rand(3, 5), color: big ? '#ffffff' : '#ecece6' });
+    }
+    if (big) Sound.sfx.boarSnort();
+  }
+
+  ai(dt) {
+    const w = this.world;
+    const p = w.player;
+    const D = w.diff;
+    this.calm -= dt;
+    this.timer -= dt;
+    this.nudgeT -= dt;
+    this.shoveT -= dt;
+    // il vient de donner un coup de groin, et il n'y avait pas de sol derrière Malice : c'est lui qui recule
+    if (this.shoveT > 0 && this.state !== 'charge' && this.state !== 'skid') {
+      this.stepBack(dt, this.shoveDir);
+      return;
+    }
+    switch (this.state) {
+      case 'walk':
+        this.vx = this.dir * D.boarWalk;
+        this.legPhase += dt * 7;
+        this.walkPhysics(dt, true);
+        this.snort(dt, 1.6, false);
+        if (this.calm <= 0 && this.sees(p)) this.startScratch();
+        break;
+      case 'scratch': {
+        // il regarde Malice et gratte le sol (s'il doit se retourner, il gratte encore un moment)
+        this.vx = 0;
+        this.walkPhysics(dt, false);
+        const face = Math.sign(p.cx - this.cx);
+        if (face && face !== this.dir && !p.dead) {
+          this.dir = face;
+          this.timer = Math.max(this.timer, D.boarWarn * 0.5);
+        }
+        this.scratchT -= dt;
+        if (this.scratchT <= 0) {
+          this.scratchT = 0.32;
+          if (w.onScreen(this)) {
+            Sound.sfx.boarScratch();
+            for (let i = 0; i < 4; i++) {
+              w.spawn({ type: 'dust', x: this.cx - this.dir * 22, y: this.y + this.h - 2, vx: -this.dir * rand(90, 220), vy: rand(-140, -40), life: 0.45, size: rand(4, 7) });
+            }
+          }
+        }
+        this.snort(dt, 0.45, true);
+        if (this.timer <= 0) this.rush();
+        break;
+      }
+      case 'back':
+        // Malice était collée à lui : il recule un peu en la regardant (elle a le temps de sauter), puis il fonce
+        this.stepBack(dt, -this.dir);
+        if (this.timer <= 0) this.charge();
+        break;
+      case 'charge': {
+        this.vx = this.dir * D.boarRush;
+        this.legPhase += dt * 24;
+        // au bord de la boue (ou d'un trou, ou des ronces), il freine des quatre fers
+        if (this.onGround && !w.groundAhead(this, this.stopDist())) {
+          this.state = 'skid';
+          if (w.onScreen(this)) Sound.sfx.boarSkid();
+        }
+        this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
+        const res = w.moveBody(this, dt);
+        if (res.wall) this.bonk();
+        else if (Math.random() < dt * 30) {
+          w.spawn({ type: 'dust', x: this.cx - this.dir * 24, y: this.y + this.h, vx: -this.dir * rand(40, 120), vy: rand(-60, -10), life: 0.4, size: rand(5, 8) });
+        }
+        break;
+      }
+      case 'skid': {
+        this.vx = approach(this.vx, 0, BOAR_BRAKE * dt);
+        // (tout au bord : il s'arrête net, il ne s'avance jamais au-dessus de la boue)
+        if (this.onGround && !w.groundAhead(this, 2)) this.vx = 0;
+        this.legPhase += dt * 4;
+        this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
+        const res = w.moveBody(this, dt);
+        if (res.wall) {
+          this.bonk();
+        } else if (this.vx === 0) {
+          this.state = 'rest';
+          this.timer = BOAR_REST;
+          w.popText(this.cx, this.y - 16, 'Ouf !', '#ffffff', 20);
+        } else if (Math.random() < dt * 40) {
+          w.spawn({ type: 'dust', x: this.cx + this.dir * 20, y: this.y + this.h, vx: this.dir * rand(20, 90), vy: rand(-80, -20), life: 0.35, size: rand(4, 7) });
+        }
+        break;
+      }
+      case 'rest':
+      case 'dizzy':
+        // tout essoufflé au bord de la boue, ou étourdi : puis il fait demi-tour
+        this.vx = 0;
+        this.walkPhysics(dt, false);
+        if (this.state === 'rest') this.snort(dt, 0.5, false);
+        if (this.timer <= 0) {
+          this.state = 'walk';
+          this.dir *= -1;
+          this.calm = 0.6;
+        }
+        break;
+      default: break;
+    }
+  }
+
+  // « ! » : il a vu Malice, il gratte le sol.
+  startScratch() {
+    const w = this.world;
+    this.state = 'scratch';
+    this.timer = w.diff.boarWarn;
+    this.scratchT = 0;
+    this.snortT = 0;
+    this.dir = Math.sign(w.player.cx - this.cx) || this.dir;
+    w.popText(this.cx, this.y - 16, '!', '#ff4040', 30);
+    if (w.onScreen(this)) Sound.sfx.boarAngry();
+  }
+
+  // Il a fini de gratter. Si Malice est collée à lui (à moins d'une case), il recule d'abord un peu : sinon elle
+  // serait touchée dans la même image, sans avoir le temps de réagir.
+  rush() {
+    const p = this.world.player;
+    const gap = Math.abs(p.cx - this.cx) - (this.w + p.w) / 2;
+    if (!p.dead && gap < TILE && p.y + p.h > this.y - TILE && p.y < this.y + this.h) {
+      this.state = 'back';
+      this.timer = BOAR_BACK + 0.2 * this.world.diff.boarWarn;
+      return;
+    }
+    this.charge();
+  }
+
+  // Il fonce ! (Tout près du bord, il n'a pas la place de prendre son élan : juste quelques pas, en freinant
+  // pour s'arrêter au bord.)
+  charge() {
+    const w = this.world;
+    const stop = this.stopDist();
+    let room = 4;
+    while (room < stop && w.groundAhead(this, room + 4)) room += 4;
+    if (room < stop) {
+      this.state = 'skid';
+      this.vx = this.dir * Math.sqrt(2 * BOAR_BRAKE * Math.max(0, room - 6));
+    } else {
+      this.state = 'charge';
+    }
+    if (w.onScreen(this)) Sound.sfx.boarRush();
+  }
+
+  // Combien de place il lui faut pour s'arrêter quand il fonce (en pixels, devant lui).
+  stopDist() {
+    const v = this.world.diff.boarRush;
+    return (v * v) / (2 * BOAR_BRAKE) + 6;
+  }
+
+  // Il recule (vers dir), en regardant toujours devant lui ; il ne recule jamais dans la boue, un trou ou les ronces.
+  stepBack(dt, dir) {
+    const w = this.world;
+    const face = this.dir;
+    this.dir = dir;
+    const room = !this.onGround || w.groundAhead(this, 6);
+    this.dir = face;
+    this.vx = room ? dir * BOAR_BACK_SPEED : 0;
+    if (room) this.legPhase -= dt * 9;
+    this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
+    w.moveBody(this, dt);
+  }
+
+  // Bonk ! Il s'est cogné : il voit des étoiles.
+  bonk() {
+    const w = this.world;
+    this.state = 'dizzy';
+    this.timer = w.diff.boarDizzy;
+    this.vx = 0;
+    if (w.onScreen(this)) {
+      w.shake(5);
+      Sound.sfx.boarBonk();
+    }
+    w.popText(this.cx + this.dir * 20, this.y - 14, 'Bonk !', '#ffe27a', 24);
+    for (let i = 0; i < 6; i++) {
+      w.spawn({ type: 'spark', x: this.cx + this.dir * 28, y: this.y + 14, vx: rand(-160, 160), vy: rand(-200, -40), life: 0.4, size: rand(4, 7), color: '#fff6a0' });
+    }
+  }
+
+  // Il vient de projeter Malice en l'air : elle passe par-dessus son dos (et lui continue tout droit, loin d'elle).
+  // (pas onHit : ce nom-là veut dire « il vient de perdre une vie » chez les boss, voir boss.js)
+  tossed(p) {
+    if (!p.tumbling()) return;
+    p.vx = -this.dir * OUCH.spin.vx;
+    this.calm = 2;
+  }
+
+  // Quand il ne fonce pas, il repousse Malice d'un coup de groin (sans lui faire mal). S'il n'y a pas de sol
+  // derrière elle (la boue, un trou, les ronces), il ne la pousse pas : c'est lui qui recule d'un pas.
+  nudge(p) {
+    if (this.nudgeT > 0 || this.stuck > 0 || p.invuln > 0 || p.hurtT > 0 || p.tumbling()) return;
+    const w = this.world;
+    this.nudgeT = 0.6;
+    const d = Math.sign(p.cx - this.cx) || -this.dir;
+    if (this.floorBehind(p, d)) {
+      p.stopPower();
+      p.vx = d * 330;
+      p.vy = Math.min(p.vy, -300);
+      p.hurtT = 0.22;
+      p.onGround = false;
+      p.platform = null;
+      p.pound = 0;
+    } else {
+      this.shoveT = 0.35;
+      this.shoveDir = -d;
+    }
+    Sound.sfx.boarGrunt();
+    w.popText(this.cx, this.y - 16, 'Groin !', '#ffd0c0', 20);
+  }
+
+  // Y a-t-il du sol sous tout le chemin du coup de groin (du milieu de Malice jusqu'à NUDGE_REACH pixels derrière
+  // elle, du côté d) ? Un mur (une caisse) l'arrête : c'est bon aussi.
+  floorBehind(p, d) {
+    const w = this.world;
+    const r = Math.round((this.y + this.h) / TILE);
+    for (let k = 0; k <= p.w / 2 + NUDGE_REACH; k += TILE / 4) {
+      const c = Math.floor((p.cx + d * k) / TILE);
+      const at = w.tileAt(c, r - 1);
+      if (isSolidCh(at)) return true;
+      const below = w.tileAt(c, r);
+      if (at === '^' || at === 'v' || (!isSolidCh(below) && !isLedgeCh(below))) return false;
+    }
+    return true;
+  }
+
+  onStuck() { this.state = 'walk'; }
+
+  onFat() { this.state = 'walk'; }
+
+  onUnstuck() { this.calm = 0.6; }
+
+  // On lui saute dessus : groin ! Ses yeux redeviennent gentils, et il s'en va tout content (des petits cœurs).
+  stomp() {
+    const w = this.world;
+    this.kill('stomp');
+    w.popText(this.cx, this.y - 24, 'Groin !', '#ffe0d0', 22);
+    for (let i = 0; i < 4; i++) {
+      w.spawn({ type: 'heart', x: this.cx + rand(-16, 16), y: this.y, vx: rand(-40, 40), vy: rand(-150, -80), life: 0.9, size: 1 });
+    }
+  }
+
+  drawBody(ctx, x, y) {
+    Art.boar(ctx, x, y, {
+      dir: this.dir, t: this.t, phase: this.legPhase, state: this.stuck > 0 ? 'stuck' : this.fat ? 'walk' : this.state,
+      dizzy: this.state === 'dizzy' && this.stuck <= 0, scratch: this.state === 'scratch' && this.stuck <= 0 && !this.fat,
+      rush: this.rushing() && this.stuck <= 0 && !this.fat, kind: this.dying,
+      fat: this.fat, rest: this.fatRest && this.stuck <= 0, moving: Math.abs(this.vx) > 1,
+    });
+  }
+
+  mouth() { return { x: this.dir * (this.fat ? 30 : 27), y: -14 }; }
+}
+
+// La taupe qui sort de terre, tout étonnée, quand Malice retombe sur la tête juste à côté de son trou (après le
+// sanglier) : elle la regarde (« ? »), puis replonge aussitôt. Elle ne fait rien : on ne peut même pas la toucher.
+// (PEEK : elle attend, sort, regarde, replonge ; puis le trou se referme)
+const PEEK = { wait: 0.12, rise: 0.16, look: 0.8, dive: 0.16, close: 0.5 };
+
+class PeekMole {
+  constructor(world, x, ground, dir) {
+    this.world = world;
+    this.x = x;
+    this.groundY = ground;
+    this.dir = dir;
+    this.t = 0;
+    this.dead = false;
+  }
+
+  update(dt) {
+    const w = this.world;
+    const P = PEEK;
+    const t0 = this.t;
+    this.t += dt;
+    const passed = (time) => t0 < time && this.t >= time;
+    if (passed(P.wait)) {
+      Sound.sfx.molePeek();
+      for (let i = 0; i < 6; i++) {
+        w.spawn({ type: 'dot', x: this.x + rand(-14, 14), y: this.groundY - 2, vx: rand(-120, 120), vy: rand(-260, -120), g: 1200, life: 0.5, size: rand(2, 3.5), color: choose(['#8a5a34', '#a8703e', '#6a4024']) });
+      }
+    }
+    if (passed(P.wait + P.rise + 0.18)) {
+      w.popText(this.x, this.groundY - 58, '?', '#ffffff', 28);
+      Sound.sfx.moleHuh();
+    }
+    if (passed(P.wait + P.rise + P.look)) Sound.sfx.moleHide();
+    if (this.t > P.wait + P.rise + P.look + P.dive + P.close) this.dead = true;
+  }
+
+  draw(ctx) {
+    const P = PEEK;
+    const t = this.t - P.wait;
+    if (t < 0) return;
+    const gy = this.groundY;
+    const tDive = P.rise + P.look;
+    // de 0 (sous terre) à 1 (sortie jusqu'à la taille)
+    let out;
+    if (t < P.rise) out = Math.sin((t / P.rise) * Math.PI * 0.5);
+    else if (t < tDive) out = 1;
+    else out = clamp(1 - (t - tDive) / P.dive, 0, 1);
+    // le trou (il se referme une fois qu'elle est repartie)
+    const close = clamp((t - tDive - P.dive) / P.close, 0, 1);
+    Art.moleHole(ctx, this.x, gy, 0.8 * (1 - close));
+    if (out <= 0) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(this.x - 60, gy - 200, 120, 200);
+    ctx.clip();
+    // elle penche la tête, tout étonnée
+    const tilt = t > P.rise ? Math.sin(Math.min(1, (t - P.rise) / 0.2) * Math.PI * 0.5) * 0.18 : 0;
+    ctx.translate(this.x, gy + 5 + (1 - out) * 46);
+    ctx.rotate(-tilt * this.dir);
+    Art.mole(ctx, 0, 0, { dir: this.dir, t: this.t, look: { x: this.dir, y: -0.1 } });
+    ctx.restore();
+  }
 }
 
 // Gros œil bonbon : il est gentil mais timide. Il s'enfuit quand Malice approche ;
