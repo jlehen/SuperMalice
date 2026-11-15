@@ -1797,6 +1797,11 @@ const Art = (() => {
         armF = -2.3 + Math.sin(t * 18) * 0.6; armB = 1.9 + Math.cos(t * 18) * 0.6;
         legF = -0.6; legB = 0.5; lean = -0.2;
         break;
+      // pendue à une liane du Vieux Chêne : les deux bras tendus vers le haut, les jambes qui gigotent
+      case 'vine':
+        armF = -2.8 + Math.sin(t * 3) * 0.04; armB = 2.8 - Math.sin(t * 3) * 0.04;
+        legF = 0.35 + Math.sin(t * 3) * 0.2; legB = -0.2 - Math.sin(t * 3) * 0.2;
+        break;
       // pendue à un pissenlit géant : les bras en l'air, les jambes qui se balancent
       case 'float':
         armF = -2.25 + Math.sin(t * 2.6) * 0.05; armB = -2.0;
@@ -5673,6 +5678,240 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // Un écureuil du Vieux Chêne, les pattes en (x, y), devant son trou dans le bois (le trou est juste au-dessus) :
+  // tout roux, le ventre clair, une grosse queue en panache, des pinceaux au bout des oreilles ; il grignote un
+  // gland. o.out : 1, assis devant son trou ; en dessous de 0.4, il est dans son trou et on ne voit que sa tête
+  // (0 : caché) ; entre les deux, il saute du trou jusqu'au sol. o.dir : de quel côté il regarde.
+  function squirrel(ctx, x, y, o) {
+    const t = o.t || 0;
+    const out = o.out;
+    const dir = o.dir || 1;
+    const fur = o.v < 0.5 ? '#d2692a' : '#b8582a';
+    const furDark = o.v < 0.5 ? '#9a4418' : '#7e3816';
+    const line = '#5a2a0e';
+    const hy = -40;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    // le trou dans le bois
+    ellipsePath(ctx, 0, hy, 13, 16);
+    ctx.fillStyle = '#5a3820';
+    ctx.fill();
+    ellipsePath(ctx, 0, hy + 1, 10, 13);
+    ctx.fillStyle = '#1e0e04';
+    ctx.fill();
+    const head = (hx, hy2, s, chew) => {
+      ctx.save();
+      ctx.translate(hx, hy2);
+      ctx.scale(dir * s, s);
+      // les oreilles, avec leurs pinceaux
+      for (const [ex, a] of [[-4, -0.35], [3, 0.2]]) {
+        ctx.save();
+        ctx.translate(ex, -7);
+        ctx.rotate(a);
+        ellipsePath(ctx, 0, -4, 2.6, 4.5);
+        paint(ctx, fur, line, 1);
+        ctx.strokeStyle = furDark;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(0, -8);
+        ctx.lineTo(-1, -12);
+        ctx.moveTo(0, -8);
+        ctx.lineTo(1.5, -11.5);
+        ctx.stroke();
+        ctx.restore();
+      }
+      ellipsePath(ctx, 0, 0, 7.5, 7);
+      paint(ctx, fur, line, 1.1);
+      // le museau et les joues pleines
+      ellipsePath(ctx, 5, 2 + chew, 4.2, 3.4);
+      paint(ctx, '#f6e2c0', line, 1);
+      ctx.fillStyle = '#3a1a08';
+      circlePath(ctx, 8.6, 1.2, 1.3);
+      ctx.fill();
+      // l'œil (il cligne de temps en temps)
+      const blink = (t % 3.3) < 0.12;
+      ctx.fillStyle = '#1a0a02';
+      if (blink) ctx.fillRect(1.2, -2.6, 3.4, 1.1);
+      else {
+        circlePath(ctx, 2.8, -2.2, 1.9);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        circlePath(ctx, 3.4, -2.8, 0.7);
+        ctx.fill();
+      }
+      ctx.restore();
+    };
+    if (out < 0.4) {
+      // dans son trou : il sort juste la tête pour voir
+      const k = out / 0.4;
+      if (k > 0.05) {
+        ctx.save();
+        ellipsePath(ctx, 0, hy + 1, 10, 13);
+        ctx.clip();
+        head(0, hy + 14 - k * 12, 0.9, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+      return;
+    }
+    // il saute du trou jusqu'au sol (ou il y remonte d'un bond)
+    const f = (out - 0.4) / 0.6;
+    const by = hy * (1 - f) - Math.sin(f * Math.PI) * 14;
+    ctx.translate(0, by);
+    const nib = out >= 1 ? Math.max(0, Math.sin(t * 16)) * (Math.sin(t * 1.3) > -0.3 ? 1 : 0) : 0;
+    // la grosse queue en panache, qui ondule derrière lui
+    const wag = Math.sin(t * 2.2) * 0.08;
+    ctx.save();
+    ctx.scale(dir, 1);
+    ctx.translate(-7, -6);
+    ctx.rotate(wag);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(-16, -4, -18, -30, -6, -36);
+    ctx.bezierCurveTo(4, -40, 6, -30, 0, -28);
+    ctx.bezierCurveTo(-8, -26, -6, -12, 4, -6);
+    ctx.closePath();
+    paint(ctx, fur, line, 1.2);
+    ctx.strokeStyle = 'rgba(255,220,170,0.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-6, -6);
+    ctx.bezierCurveTo(-13, -12, -12, -28, -4, -32);
+    ctx.stroke();
+    ctx.restore();
+    // le corps assis, le ventre clair
+    ctx.save();
+    ctx.scale(dir, 1);
+    ellipsePath(ctx, 0, -10, 8, 10.5);
+    paint(ctx, fur, line, 1.1);
+    ellipsePath(ctx, 3, -9, 4.5, 7.5);
+    ctx.fillStyle = '#f6e2c0';
+    ctx.fill();
+    // les pattes arrière, et les petites mains qui tiennent le gland
+    ellipsePath(ctx, -2, -1.5, 6, 3);
+    paint(ctx, furDark, line, 1);
+    ctx.save();
+    ctx.translate(8.5, -16 - nib * 1.2);
+    ctx.fillStyle = '#b87a3a';
+    ellipsePath(ctx, 0, 0, 3.2, 4);
+    ctx.fill();
+    ctx.fillStyle = '#6a4424';
+    roundRectPath(ctx, -3.6, -5.6, 7.2, 3.4, 1.6);
+    ctx.fill();
+    ctx.restore();
+    ellipsePath(ctx, 6.5, -14 - nib, 2.4, 2);
+    paint(ctx, fur, line, 0.9);
+    ctx.restore();
+    head(3 * dir, -22 - nib * 0.6, 1, nib * 0.8);
+    ctx.restore();
+  }
+
+  // Un nid de brindilles posé en (x, y) (son bas), avec trois oisillons : ils dorment, la tête rentrée ;
+  // o.up de 0 à 1 : ils sortent la tête et ouvrent grand le bec en piaillant.
+  function nest(ctx, x, y, o) {
+    const t = o.t || 0;
+    const up = o.up || 0;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.lineCap = 'round';
+    // le fond du nid
+    ellipsePath(ctx, 0, -10, 22, 9);
+    ctx.fillStyle = '#5a3818';
+    ctx.fill();
+    // les oisillons
+    const cols = ['#f2d36a', '#e8c25a', '#f6dc80'];
+    for (let i = 0; i < 3; i++) {
+      const bx = -11 + i * 11;
+      const ph = t * 9 + i * 2.1;
+      const rise = up * (8 + Math.max(0, Math.sin(ph * 0.5)) * 4);
+      const hy = -12 - rise;
+      ctx.save();
+      ctx.translate(bx, hy);
+      circlePath(ctx, 0, 0, 6.5);
+      paint(ctx, cols[i], '#8a6a20', 1);
+      // une petite houppette
+      ctx.strokeStyle = '#c8a040';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.quadraticCurveTo(1, -10, 3, -9);
+      ctx.stroke();
+      if (up > 0.3) {
+        // le bec grand ouvert
+        const open = up * (2 + Math.max(0, Math.sin(ph)) * 3);
+        ctx.fillStyle = '#ff8a2a';
+        ctx.beginPath();
+        ctx.moveTo(-4, 1);
+        ctx.lineTo(0, -1 - open);
+        ctx.lineTo(4, 1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#e05a3a';
+        ctx.beginPath();
+        ctx.moveTo(-3.5, 1.5);
+        ctx.lineTo(0, 2 + open);
+        ctx.lineTo(3.5, 1.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#1a1206';
+        circlePath(ctx, -3, -2.5, 1.1);
+        ctx.fill();
+        circlePath(ctx, 3, -2.5, 1.1);
+        ctx.fill();
+      } else {
+        // ils dorment : les yeux fermés, le bec tout petit
+        ctx.strokeStyle = '#4a3410';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-4.2, -1.5);
+        ctx.lineTo(-1.6, -1.5);
+        ctx.moveTo(1.6, -1.5);
+        ctx.lineTo(4.2, -1.5);
+        ctx.stroke();
+        ctx.fillStyle = '#ff9a3a';
+        ctx.beginPath();
+        ctx.moveTo(-2, 1);
+        ctx.lineTo(0, 3);
+        ctx.lineTo(2, 1);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    // les brindilles du bord du nid, par-dessus
+    ctx.strokeStyle = '#8a5a2a';
+    ctx.lineWidth = 2.2;
+    for (let i = 0; i < 9; i++) {
+      const a0 = Math.PI * (0.05 + i * 0.1);
+      ctx.beginPath();
+      ctx.moveTo(-24 + i * 5.5, -8 + Math.sin(a0 * 3) * 2);
+      ctx.quadraticCurveTo(-16 + i * 5, -2, -8 + i * 4, -9 + Math.cos(a0 * 2) * 2);
+      ctx.stroke();
+    }
+    ellipsePath(ctx, 0, -6, 23, 7);
+    ctx.fillStyle = '#7a4a22';
+    ctx.fill();
+    ctx.strokeStyle = '#a8743a';
+    ctx.lineWidth = 1.6;
+    for (let i = 0; i < 6; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-20 + i * 7, -10 + (i % 2) * 3);
+      ctx.lineTo(-12 + i * 7, -3 - (i % 2) * 2);
+      ctx.stroke();
+    }
+    if (up < 0.2) {
+      // zzz…
+      ctx.fillStyle = `rgba(255,255,255,${0.6 * (1 - up * 5)})`;
+      ctx.font = 'bold 9px Fredoka, sans-serif';
+      const k = (t * 0.6) % 1;
+      ctx.globalAlpha = Math.sin(k * Math.PI);
+      ctx.fillText('z', 12 + k * 6, -24 - k * 12);
+    }
+    ctx.restore();
+  }
+
   return {
     MALICE, MIMIC_DUR, CUBE_COLORS, COUGHS, SCRAMBLE_BACK, MALICE_SPOTS, spotPop, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
@@ -5680,7 +5919,7 @@ const Art = (() => {
     eclair, sparks, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
     bat, grumpyBird, gummyBear, candyEye, gem, GEMS, bigBird, birdNest,
     dandelion, dandelionStem, dandelionLeaves, dandelionFlower, dandelionSeed,
-    snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow, hedgehog, boar,
+    snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow, hedgehog, boar, squirrel, nest,
     // pour les autres personnages (heroes.js)
     paint, mixColor, ouchPose, koStars, spotsOverlay, wetOverlay, slimeOverlay, dirtOverlay,
     PIN_PULLS, PIN_REACH_POSES, pinAt, pinsWince, pinsReach, pinsOverlay, spinTurn, spinWhirl,

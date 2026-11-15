@@ -42,6 +42,15 @@ const HERO_HAT = {
   sirene: [0, -64], dino: [4, -60], goku: [0, -66], gizmo: [2, -43],
 };
 
+// La couleur de leurs mains (ou de leurs pattes, de leurs ailes…) et de leur contour : leurs deux poings serrés
+// sur une liane du Vieux Chêne (voir Player.draw).
+const HERO_HAND = {
+  malice: ['#ffdcc4', '#c98868'], lutin: ['#ffd7b5', '#8a4a2a'], biche: ['#c98a4e', '#6e4020'], bonbon: ['#ff9cc8', '#b0346e'],
+  ronaxel: ['#f7cfae', '#b97c58'], poussin: ['#ffd83a', '#b07a10'], luisy: ['#ffdcc4', '#c98868'], messi: ['#f5cba6', '#b67a52'],
+  licorne: ['#fdfbff', '#9a88bc'], dragon: ['#6fd24a', '#2f7a1e'], pingouin: ['#2e3446', '#11141d'], chat: ['#ffa53a', '#a2521a'],
+  sirene: ['#ffe0cc', '#c98868'], dino: ['#8fd35a', '#3a7a22'], goku: ['#ffd4ae', '#b97a52'], gizmo: ['#a8723e', '#4a2a12'],
+};
+
 const Heroes = (() => {
   const TAU = Math.PI * 2;
   const DRAW = {};
@@ -171,6 +180,12 @@ const Heroes = (() => {
       case 'hang': Object.assign(R, { armF: 0.25, armB: -0.25, legF: 0.25, legB: -0.2 }); break;
       // il glisse sur la bave : les bras qui moulinent, penché en arrière
       case 'slip': Object.assign(R, { armF: -2.3 + Math.sin(t * 18) * 0.6, armB: 1.9 + Math.cos(t * 18) * 0.6, legF: -0.6, legB: 0.5, lean: -0.2 }); break;
+      case 'vine': {
+        // pendu à une liane du Vieux Chêne : les deux bras tendus vers le haut, les jambes qui gigotent
+        const s = Math.sin(t * 3) * 0.2;
+        Object.assign(R, { armF: -2.8 + Math.sin(t * 3) * 0.04, armB: 2.8 - Math.sin(t * 3) * 0.04, legF: 0.35 + s, legB: -0.2 - s });
+        break;
+      }
       case 'float': {
         // pendu à un pissenlit géant : les bras en l'air, les jambes qui se balancent
         const s = Math.sin(t * 2.2) * 0.18;

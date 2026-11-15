@@ -429,6 +429,27 @@ const Music = (() => {
     return S.out({ drumV: 1.1 });
   }
 
+  // 2-4. Dans le Vieux Chêne : la Forêt (do mineur, en 12/8), mais dans le bois du tronc creux : la mélodie au
+  // marimba, la flûte lui répond en écho tout là-haut (comme dans un tronc qui résonne), la harpe en arpèges,
+  // les pizzicati, et des wood-blocks qui toquent comme un pic-vert.
+  function forestOak() {
+    const S = new Song({ bpm: 92, warp: swing(2 / 3), mode: MINOR });
+    const T = 1 / 3;
+    const HARP = [[0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 4, 2].map((x, k) => [k * T, 0.6, 'a' + x])];
+    const BASS = [[[0, 0.95, 'R'], [1, 0.95, '5L'], [2, 0.95, 'R'], [3, 0.6, '5L'], [3 + 2 * T, T, 'R', 0.8]]];
+    const D = [[[0, 'k', 0.5], [1, 'w', 0.55], [2, 'k', 0.4], [3, 'w', 0.65], [3 + 2 * T, 'w', 0.4], ...rep(12, (i) => [i * T, 'x', i % 3 ? 0.22 : 0.4])]];
+    const base = (p) => {
+      p.pattern('harp', 'harp', 0.034, HARP, { low: 55 });
+      p.pattern('bass', 'pizz', 0.17, BASS);
+      p.drums(D);
+    };
+    S.part(SECT.A, (p) => { p.melody('lead', 'marimba', 0.14); p.melody('echo', 'flute', 0.035, { delay: 0.75, oct: 1, top: true }); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'marimba', 0.14); p.melody('canon', 'reed', 0.045, { delay: 2, oct: -1, top: true }); base(p); });
+    S.part(SECT.B, (p) => { p.melody('lead', 'flute', 0.1, { top: true }); p.melody('echo', 'marimba', 0.05, { delay: 0.75 }); base(p); });
+    S.part(SECT.C, (p) => { p.melody('lead', 'marimba', 0.14); p.melody('echo', 'flute', 0.035, { delay: 0.75, oct: 1, top: true }); base(p); });
+    return S.out({ drumV: 1 });
+  }
+
   // Stage du Super Saut : bossa nova, accords de jazz (septièmes, neuvièmes), vibraphone et piano électrique.
   function bossa() {
     const S = new Song({
@@ -715,6 +736,7 @@ const Music = (() => {
     'boss-prairie': bossMeadow(),
     'badge-roulade': ska(),
     forest: forest(),
+    'forest-oak': forestOak(),
     'badge-saut': bossa(),
     storm: storm(),
     mountain: mountain(),

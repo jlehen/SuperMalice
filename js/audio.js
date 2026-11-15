@@ -466,6 +466,25 @@ const Sound = (() => {
       tone({ type: 'triangle', f: 380, f2: 620, d: 0.22, v: 0.1, vib: 9, vibDepth: 15 });
     },
 
+    // ---- Dans le Vieux Chêne ----
+    // on attrape une liane : un froissement de feuilles, et la liane qui grince un tout petit peu
+    vineGrab() {
+      noise({ filter: 'bandpass', f: 2600, f2: 1400, d: 0.18, v: 0.13, q: 1.2 });
+      tone({ type: 'triangle', f: 220, f2: 330, d: 0.14, v: 0.07, vib: 18, vibDepth: 12 });
+    },
+    // tout en bas du balancement, à toute vitesse : vlouf !
+    vineSwoosh() {
+      noise({ filter: 'bandpass', f: 500, f2: 1500, d: 0.24, v: 0.07, q: 0.8, a: 0.08 });
+    },
+    // on se lance de la liane : les feuilles qui frémissent
+    vineLaunch() {
+      noise({ filter: 'highpass', f: 3200, f2: 1800, d: 0.16, v: 0.06 });
+    },
+    // l'écureuil qui file dans son trou : tchik-tchik-tchik !
+    squirrel() {
+      for (let i = 0; i < 4; i++) tone({ type: 'square', f: 1900 + i * 120, f2: 2600, d: 0.035, v: 0.035, delay: i * 0.06 });
+    },
+
     // ---- Les Champignons Géants ----
     // le hérisson se met en boule : frrt ! (ses piquants se dressent d'un coup)
     hogCurl() {

@@ -357,7 +357,7 @@
         armB = 1.1;
         lean = 0.12;
         bob = 0;
-      } else if (pose === 'hang') {
+      } else if (pose === 'hang' || pose === 'vine') {
         armF = -1.95 + Math.sin(o.t * 3) * 0.1;
         armB = 1.95 + Math.sin(o.t * 3) * 0.1;
         legF = 0.18 + Math.sin(o.t * 3) * 0.08;

@@ -187,8 +187,9 @@
       const crouch = R.crouch * 0.6;
       let legLen = 7;
       if (o.pose === 'crouch') legLen = 5.5;
-      if (o.pose === 'hang') {
-        // accroché à l'anneau : les deux bras en l'air
+      // accroché à l'anneau (ou à une liane du Vieux Chêne) : les deux bras en l'air
+      const hang = o.pose === 'hang' || o.pose === 'vine';
+      if (hang) {
         armF = -2.15;
         armB = 2.5;
       }
@@ -204,8 +205,8 @@
       ctx.rotate(lean);
       ctx.save();
       ctx.translate(0, crouch);
-      const up = o.pose === 'magic' || o.pose === 'hang';
-      arm(ctx, -2.2, -23.5, armB, true, o.pose === 'hang' ? 1.5 : 0);
+      const up = o.pose === 'magic' || hang;
+      arm(ctx, -2.2, -23.5, armB, true, hang ? 1.5 : 0);
       ctx.restore();
       leg(ctx, -2.6, -11 + crouch, legB, true, legLen);
       leg(ctx, 1.8, -11 + crouch, legF, false, legLen);

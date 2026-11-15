@@ -51,6 +51,15 @@ const PHYS = {
 
 // Moustache-grappin : portée, vitesse de la moustache, vitesse de traction, longueur de la corde.
 const GRAPPLE = { range: 340, shoot: 2600, pull: 820, len: 58 };
+// Les lianes du Vieux Chêne (J) : on s'y balance comme à la moustache-grappin (voir Player.updateHanging), avec
+// tous les personnages. min : on ne l'attrape pas tout près du plafond (pixels) ; push : la force des flèches
+// (en pixels par seconde par seconde, le long de l'arc : elles poussent seulement dans le sens où l'on va ; en
+// gardant la flèche, on monte de plus en plus haut, et on ne freine jamais) ; damp : le frottement ; max : le plus
+// grand angle (radians) ; jump : la force du saut pour se lancer ; wait : on ne reprend pas tout de suite la liane
+// qu'on vient de lâcher (secondes) ; hold : juste après l'avoir attrapée, un saut attend ce petit moment (une
+// enfant qui saute deux fois ne la lâche pas aussitôt). La distance où on l'attrape est dans DIFFS (vineReach),
+// et le saut pour se lancer garde l'élan du balancement.
+const VINE = { min: 40, push: 720, damp: 0.2, max: 1.15, jump: 900, wait: 0.5, hold: 0.14 };
 
 const STUCK_TIME = 10;
 const STAR_TIME = 15;
@@ -114,6 +123,8 @@ class Player {
     this.facing = 1;
     this.running = false;
     this.onGround = false;
+    // (où étaient ses pieds la dernière fois qu'elle était par terre : voir fellDown)
+    this.groundY = y + this.h;
     this.coyote = 0;
     this.jumpBuf = 0;
     this.jumping = false;
@@ -155,6 +166,9 @@ class Player {
     this.grap = null;
     this.target = null;
     this.boostT = 0;
+    // la liane qu'elle vient de lâcher (elle ne la reprend pas avant vineWait secondes : voir VINE)
+    this.vineLast = null;
+    this.vineWait = 0;
     // immobile un moment : Malice se tourne vers le joueur et fait une mimique
     this.idleT = 0;
     this.nextMimic = rand(2, 8);
@@ -250,7 +264,8 @@ class Player {
     const badgeGrappin = game.hasBadge('grappin');
     const badgeRoulade = game.hasBadge('roulade');
 
-    // ---- Moustache-grappin : accrochée à un anneau ----
+    // ---- Moustache-grappin : accrochée à un anneau (ou à une liane du Vieux Chêne) ----
+    if (this.vineWait > 0) this.vineWait -= dt;
     this.target = badgeGrappin && (!this.grap || this.grap.phase === 'swing') ? this.findAnchor(this.grap && this.grap.anchor) : null;
     if (this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing')) {
       this.updateHanging(dt);
@@ -467,6 +482,8 @@ class Player {
     }
     if (this.onGround && this.pound) this.pound = 0;
     if (this.onGround && !wasGround && pow.land) pow.land(this, fallSpeed, pounded);
+    if (this.onGround && !wasGround && w.def.grimpe && this.y + this.h > this.groundY + 4 * TILE) this.fellDown();
+    if (this.onGround) this.groundY = this.y + this.h;
 
     if (this.onGround && Math.abs(this.vx) > 10) {
       this.ph += dt * Math.abs(this.vx) * 0.052;
@@ -480,6 +497,7 @@ class Player {
     if (this.x < 0) { this.x = 0; this.vx = 0; }
     if (this.x + this.w > w.width) { this.x = w.width - this.w; this.vx = 0; }
     if (this.grap) this.updateMustacheTip(dt);
+    if (w.vines.length) this.catchVine();
     this.updateMimic(dt, dir);
 
     this.checkPuddle();
@@ -993,7 +1011,7 @@ class Player {
       this.grap = { phase: 'miss', t: 0, tipX: m.x, tipY: m.y };
       return;
     }
-    this.grap = { phase: 'shoot', anchor: a, t: 0, tipX: m.x, tipY: m.y, ang: 0, angV: 0, len: GRAPPLE.len, stuckT: 0 };
+    this.grap = { phase: 'shoot', anchor: a, t: 0, tipX: m.x, tipY: m.y, ang: 0, angV: 0, len: GRAPPLE.len, hy: 14, stuckT: 0 };
     this.pound = 0;
     this.dropPuff();
     this.stopPower();
@@ -1076,15 +1094,19 @@ class Player {
         return;
       }
     }
-    // balancement
+    // balancement (à une liane : les flèches ne poussent que dans le sens où l'on va, voir VINE)
+    const vine = g.vine;
     const dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0);
     if (dir) this.facing = dir;
-    g.angV += (-(PHYS.gravity / g.len) * 0.9 * Math.sin(g.ang) + dir * 6 * Math.cos(g.ang) - g.angV * 0.35) * dt;
+    const push = !vine ? dir * 6 : dir && (Math.sign(g.angV) === dir || Math.abs(g.angV) < 0.6) ? (dir * VINE.push) / g.len : 0;
+    g.angV += (-(PHYS.gravity / g.len) * 0.9 * Math.sin(g.ang) + push * Math.cos(g.ang) - g.angV * (vine ? VINE.damp : 0.35)) * dt;
     const prevAng = g.ang;
-    g.ang = clamp(g.ang + g.angV * dt, -1.35, 1.35);
-    if (Math.abs(g.ang) >= 1.35) g.angV *= -0.2;
+    const max = vine ? VINE.max : 1.35;
+    g.ang = clamp(g.ang + g.angV * dt, -max, max);
+    if (Math.abs(g.ang) >= max) g.angV *= -0.2;
+    // (g.hy : où elle est accrochée, depuis le haut de Malice : la moustache, ou les mains levées)
     const nx = a.x + g.len * Math.sin(g.ang) - this.w / 2;
-    const ny = a.y + g.len * Math.cos(g.ang) - 14;
+    const ny = a.y + g.len * Math.cos(g.ang) - g.hy;
     if (w.boxSolid(nx, ny, this.w, this.h)) {
       g.ang = prevAng;
       g.angV *= -0.3;
@@ -1094,24 +1116,100 @@ class Player {
     }
     this.vx = g.len * g.angV * Math.cos(g.ang);
     this.vy = -g.len * g.angV * Math.sin(g.ang);
+    if (vine) {
+      // la liane suit Malice ; vlouf ! quand elle passe tout en bas à toute vitesse
+      if (Math.sign(prevAng) !== Math.sign(g.ang) && Math.abs(g.angV) > 2.2) Sound.sfx.vineSwoosh();
+      if (I.pressed.jump) g.jumpAsked = true;
+      if (g.jumpAsked && g.t >= VINE.hold) this.releaseGrapple(true);
+      else if (I.pressed.down) this.releaseGrapple(false);
+      // (avec la moustache-grappin, on peut aussi s'accrocher à un anneau, s'il y en a un)
+      else if (I.pressed.grapple && w.game.hasBadge('grappin') && this.findAnchor(null)) this.startGrapple();
+      return;
+    }
     if (I.pressed.jump) this.releaseGrapple(true);
     else if (I.pressed.down) this.releaseGrapple(false);
     else if (I.pressed.grapple) this.startGrapple();
   }
 
   releaseGrapple(jump) {
+    const vine = this.grap && this.grap.vine;
     this.grap = null;
     this.onGround = false;
     this.coyote = 0;
     this.jumping = false;
     if (jump) {
       const dir = (Input.held.right ? 1 : 0) - (Input.held.left ? 1 : 0);
-      this.vy = Math.min(this.vy, 0) * 0.5 - 760;
-      this.vx = clamp(this.vx + dir * 80, -470, 470);
+      if (vine) {
+        // de la liane, on saute presque comme du sol, en gardant l'élan du balancement
+        this.vy = Math.min(this.vy, 0) * 0.5 - VINE.jump;
+        this.vx = clamp(this.vx + dir * 90, -520, 520);
+      } else {
+        this.vy = Math.min(this.vy, 0) * 0.5 - 760;
+        this.vx = clamp(this.vx + dir * 80, -470, 470);
+      }
       Sound.sfx.jump();
     }
     this.vy = Math.max(this.vy, -1150);
     this.boostT = 0.8;
+    if (vine) {
+      this.vineLast = vine;
+      this.vineWait = VINE.wait;
+      vine.letGo(this, jump);
+    }
+  }
+
+  // Dans un niveau où l'on grimpe, elle vient de retomber à l'étage du dessous : les sangliers de cet étage la
+  // laissent se relever et repartir (2,5 secondes, comme à la reprise d'un drapeau), au lieu de foncer sur elle.
+  fellDown() {
+    const feet = this.y + this.h;
+    for (const e of this.world.enemies) {
+      if (e instanceof Boar && !e.dying && Math.abs(e.y + e.h - feet) < 2 * TILE) {
+        e.calm = Math.max(e.calm, 2.5);
+        if (e.state === 'scratch') e.state = 'walk';
+      }
+    }
+  }
+
+  // ---------- Les lianes (Dans le Vieux Chêne) ----------
+  // Où elle tient la liane : ses deux poings, juste au-dessus de sa tête (HERO_HAT), depuis le haut de Malice.
+  vineGrip() {
+    const hy = (HERO_HAT[this.hero] || HERO_HAT.malice)[1];
+    return this.h + hy + 6;
+  }
+
+  // En l'air, elle attrape une liane en la touchant (des mains, de la tête ou du corps, et même un peu à côté :
+  // voir DIFFS.vineReach). Pas en boule, ni en écrasant, ni projetée, ni juste après avoir eu mal ; et pas la
+  // liane qu'elle vient de lâcher (pendant VINE.wait secondes).
+  catchVine() {
+    const w = this.world;
+    if (this.onGround || this.dead || this.won || this.ball || this.pound || this.hurtT > 0 || this.swim || this.tumbling()) return;
+    if (this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing')) return;
+    const gy = this.vineGrip();
+    for (const v of w.vines) {
+      if (v === this.vineLast && this.vineWait > 0) continue;
+      const len = v.catchAt(this, gy, w.diff.vineReach);
+      if (len > 0) {
+        this.grabVine(v, len, gy);
+        return;
+      }
+    }
+  }
+
+  grabVine(v, len, gy) {
+    this.dropPuff();
+    // la charge, la bulle, le nuage, la voiture… s'arrêtent : elle a les mains prises
+    this.stopPower();
+    this.pound = 0;
+    this.superSpin = 0;
+    this.jumping = false;
+    this.crouch = false;
+    this.platform = null;
+    this.onGround = false;
+    // elle garde son élan : la vitesse le long de l'arc du balancement
+    const ang = clamp(Math.atan2(this.cx - v.x, this.y + gy - v.y), -VINE.max, VINE.max);
+    const angV = clamp((this.vx * Math.cos(ang) - this.vy * Math.sin(ang)) / len, -4, 4);
+    this.grap = { phase: 'swing', vine: v, anchor: v, t: 0, len, hy: gy, ang, angV, tipX: v.x, tipY: v.y };
+    v.grabbed(this);
   }
 
   checkPlatforms() {
@@ -1454,7 +1552,8 @@ class Player {
     if (k) k.shock = k.kind === 'zap' && (this.dead ? this.deathT < 0.5 : this.stunT > 0);
     if (this.dead) pose = k ? 'ouch' : 'hurt';
     else if (this.won) pose = this.onGround ? 'win' : 'jump';
-    else if (hanging) pose = 'hang';
+    // (à une liane : les deux bras tendus vers le haut)
+    else if (hanging) pose = this.grap.vine ? 'vine' : 'hang';
     else if (this.ball) pose = 'roll';
     else if (this.pound) pose = 'pound';
     else if (this.crouch) pose = 'crouch';
@@ -1532,12 +1631,19 @@ class Player {
       ctx.translate(-this.cx, -(this.y + this.h / 2));
     }
     // moustache-grappin : la corde part de la moustache jusqu'à l'anneau
+    // (à une liane, elle tourne autour de ses mains, et ses mains sont sur la liane : voir Vine.draw)
     let rot = 0;
+    let gripY = this.y + 14;
+    let shift = 0;
     if (hanging) {
       const g = this.grap;
       rot = g.phase === 'swing' ? -g.ang : -Math.atan2(this.cx - g.anchor.x, this.y + 14 - g.anchor.y);
+      if (g.vine) {
+        gripY = this.y + g.hy;
+        shift = -this.facing * (HERO_HAT[this.hero] || HERO_HAT.malice)[0];
+      }
     }
-    if (this.grap) {
+    if (this.grap && !this.grap.vine) {
       const m = this.mustachePoint();
       const ox = this.cx;
       const oy = this.y + 14;
@@ -1548,10 +1654,11 @@ class Player {
       Art.mustacheRope(ctx, mx, my, this.grap.tipX, this.grap.tipY, this.t, this.grap.phase !== 'miss' && this.grap.phase !== 'shoot');
     }
     if (rot) {
-      ctx.translate(this.cx, this.y + 14);
+      ctx.translate(this.cx, gripY);
       ctx.rotate(rot);
-      ctx.translate(-this.cx, -(this.y + 14));
+      ctx.translate(-this.cx, -gripY);
     }
+    if (shift) ctx.translate(shift, 0);
     if (this.dead && this.cause === 'lava') {
       ctx.globalAlpha = 1;
     }
@@ -1576,6 +1683,22 @@ class Player {
       onHead: this.world.def.sequel && !this.birdGone ? (c) => this.drawHatBird(c, pose) : null,
       pw: this.pw,
     });
+    // à une liane : ses deux poings serrés dessus, par-dessus la liane
+    if (hanging && this.grap.vine) {
+      const gx = this.cx - shift;
+      const hand = (this.pw.gremlin ? ['#5fae3e', '#1e4a10'] : HERO_HAND[this.hero]) || HERO_HAND.malice;
+      ctx.strokeStyle = '#4f9a3a';
+      ctx.lineWidth = 4.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(gx, gripY - 22);
+      ctx.lineTo(gx, gripY + 4);
+      ctx.stroke();
+      for (const dy of [-10, -1]) {
+        ellipsePath(ctx, gx, gripY + dy, 5.2, 4.6);
+        Art.paint(ctx, hand[0], hand[1], 1.2);
+      }
+    }
     ctx.restore();
   }
 }
@@ -2118,7 +2241,9 @@ class Ladybug extends Enemy {
     } else {
       this.open = Math.max(0, this.open - dt * 4);
       this.shootT -= dt;
-      if (this.shootT <= 0 && w.onScreen(this, -20) && !p.dead && !p.won && Math.abs(dx) < 520) {
+      // dans un niveau où l'on grimpe, on voit les étages du dessus et du dessous : elle ne vise que le sien
+      const sameFloor = !w.def.grimpe || Math.abs(p.y + p.h - (this.y + this.h)) < 4 * TILE;
+      if (this.shootT <= 0 && w.onScreen(this, -20) && !p.dead && !p.won && Math.abs(dx) < 520 && sameFloor) {
         this.aimT = 0.6;
       }
     }
@@ -4075,9 +4200,19 @@ class Checkpoint {
     this.t += dt;
     if (this.morph < 1) this.morph = Math.min(1, this.morph + dt / 0.35);
     if (this.butterfly) this.butterfly.update(dt);
-    if (!this.active && !p.dead && p.cx > this.x - 16 && Math.abs(p.y + p.h - this.y) < 220) {
-      this.activate(true);
+    if (!this.active && !p.dead && this.reached(p)) this.activate(true);
+  }
+
+  // Malice est passée par là : plus à droite que lui, à peu près à sa hauteur ; dans un niveau où l'on grimpe
+  // ("grimpe"), dès qu'elle est debout sur son étage (n'importe où : on arrive souvent par l'autre bout), en le
+  // touchant, ou si elle est déjà plus haut que son étage (elle est passée à côté).
+  reached(p) {
+    const feet = p.y + p.h;
+    if (this.world.def.grimpe) {
+      return (p.onGround && Math.abs(feet - this.y) < 50) ||
+        (Math.abs(p.cx - this.x) < 70 && Math.abs(feet - this.y) < 90) || feet < this.y - 300;
     }
+    return p.cx > this.x - 16 && Math.abs(feet - this.y) < 220;
   }
 
   activate(fx) {
@@ -4129,8 +4264,10 @@ class Goal {
     this.t += dt;
     const w = this.world;
     const p = w.player;
-    // (touch : l'arrivée qui apparaît après un boss, il faut aller la toucher)
-    const at = this.touch ? Math.abs(p.cx - this.x - 10) < 34 && p.y + p.h > this.y - TILE * 5 : p.cx >= this.x - 10;
+    // (touch : l'arrivée qui apparaît après un boss, il faut aller la toucher ; dans un niveau où l'on grimpe,
+    // il faut être à son étage)
+    const floor = !w.def.grimpe || Math.abs(p.y + p.h - this.y) < 2 * TILE;
+    const at = this.touch ? Math.abs(p.cx - this.x - 10) < 34 && p.y + p.h > this.y - TILE * 5 : p.cx >= this.x - 10 && floor;
     if (!this.reached && !p.dead && at) {
       this.reached = true;
       w.game.levelComplete();
@@ -4222,7 +4359,9 @@ class TalkFlower {
   update(dt) {
     const p = this.world.player;
     this.t += dt;
-    const near = Math.abs(p.cx - this.x) < 170 && Math.abs(p.cy - this.y) < 200;
+    // dans un niveau où l'on grimpe, seulement depuis son étage (pas du dessous, à travers le plancher)
+    const dy = this.world.def.grimpe ? (p.y + p.h - this.y <= 24 && this.y - p.cy < 200) : Math.abs(p.cy - this.y) < 200;
+    const near = Math.abs(p.cx - this.x) < 170 && dy;
     this.show = approach(this.show, near ? 1 : 0, dt * 5);
     this.look = approach(this.look, Math.sign(p.cx - this.x) || 1, dt * 4);
   }
@@ -4468,6 +4607,200 @@ class Anchor {
       targeted: w.player.target === this && !w.player.dead,
       flash: Math.max(0, this.flash),
     });
+  }
+}
+
+// Une liane du Vieux Chêne (J) : elle pend du plafond d'un étage (du haut de la première case J), aussi longue
+// que les J les uns sous les autres. Toute seule, elle ondule doucement ; on l'attrape en l'air en la touchant
+// (voir Player.catchVine), elle suit Malice qui s'y balance (même physique que la moustache-grappin, voir
+// Player.updateHanging), et quand on la lâche, elle continue de se balancer un moment.
+class Vine {
+  constructor(world, x, y, len) {
+    this.world = world;
+    // le haut de la liane (là où elle est accrochée), et sa longueur
+    this.x = x;
+    this.y = y;
+    this.len = len;
+    this.ang = 0;
+    this.angV = 0;
+    // (quand Malice s'y tient : la longueur jusqu'à ses mains)
+    this.grip = 0;
+    this.t = Math.random() * 6;
+    this.v = hash(x * 0.37 + y * 0.11);
+    this.pts = [];
+  }
+
+  // Malice, si elle s'y tient.
+  holder() {
+    const p = this.world.player;
+    return p.grap && p.grap.vine === this && p.grap.phase === 'swing' ? p : null;
+  }
+
+  update(dt) {
+    this.t += dt;
+    const p = this.holder();
+    if (p) {
+      this.ang = p.grap.ang;
+      this.angV = p.grap.angV;
+      this.grip = p.grap.len;
+      return;
+    }
+    this.grip = 0;
+    // toute seule : elle revient pendre tout droit, poussée par un petit souffle d'air qui monte dans le tronc
+    const g = (PHYS.gravity * 0.9) / this.len;
+    this.angV += (-g * Math.sin(this.ang) - this.angV * 1.1 + Math.sin(this.t * 0.9 + this.v * 6) * 0.3) * dt;
+    this.ang = clamp(this.ang + this.angV * dt, -1.2, 1.2);
+  }
+
+  // Malice (le haut de son corps en p.y, ses mains en p.y + gy) peut-elle l'attraper ? Renvoie la longueur de
+  // liane jusqu'à ses mains (0 : non). On l'attrape de tout le corps, jusqu'à reach pixels de son milieu, et
+  // même un peu sous le bout de la liane (elle remonte alors un tout petit peu).
+  catchAt(p, gy, reach) {
+    const s = Math.sin(this.ang);
+    const c = Math.cos(this.ang);
+    const y0 = Math.max(p.y - 20, this.y + VINE.min * c);
+    const y1 = Math.min(p.y + p.h, this.y + this.len * c + 26);
+    if (y0 > y1) return 0;
+    const yy = clamp(p.y + gy, y0, y1);
+    const x = this.x + ((yy - this.y) * s) / c;
+    if (Math.abs(x - p.cx) > reach) return 0;
+    return clamp(Math.hypot(p.cx - this.x, p.y + gy - this.y), VINE.min, this.len);
+  }
+
+  grabbed(p) {
+    const w = this.world;
+    Sound.sfx.vineGrab();
+    const hx = p.cx;
+    const hy = p.y + p.grap.hy;
+    for (let i = 0; i < 4; i++) {
+      w.spawn({ type: 'leaf', x: hx + rand(-10, 10), y: hy + rand(-14, 6), vx: rand(-60, 60), vy: rand(-90, -20), g: 160, drag: 1.5, life: 1.1, size: rand(0.6, 0.9), vr: rand(-5, 5), wob: rand(0, 6), color: choose(['#4fb84a', '#6fd25a', '#3a9e3e']) });
+    }
+  }
+
+  // Malice la lâche (en sautant, ou avec ↓) : elle continue de se balancer toute seule.
+  letGo(p, jump) {
+    if (jump) Sound.sfx.vineLaunch();
+    const w = this.world;
+    for (let i = 0; i < 3; i++) {
+      w.spawn({ type: 'leaf', x: p.cx + rand(-10, 10), y: p.y + rand(0, 20), vx: rand(-50, 50), vy: rand(-60, 0), g: 160, drag: 1.5, life: 1, size: rand(0.6, 0.8), vr: rand(-5, 5), wob: rand(0, 6), color: choose(['#4fb84a', '#6fd25a']) });
+    }
+  }
+
+  // Les points de la liane, du haut jusqu'au bout (pour la dessiner). Toute seule, elle se courbe un peu
+  // (le bas traîne derrière quand elle se balance, et ondule) ; tenue, elle est bien tendue jusqu'aux mains,
+  // et le bout pend en dessous.
+  points() {
+    const pts = this.pts;
+    pts.length = 0;
+    const n = Math.max(4, Math.round(this.len / 12));
+    const s = Math.sin(this.ang);
+    const c = Math.cos(this.ang);
+    if (this.grip > 0) {
+      const gl = this.grip;
+      const k = Math.max(2, Math.round((gl / this.len) * n));
+      for (let i = 0; i <= k; i++) {
+        const d = (gl * i) / k;
+        const sag = Math.sin((Math.PI * i) / k) * 3;
+        pts.push(this.x + d * s + sag * c, this.y + d * c - sag * s);
+      }
+      // le bout qui pend sous les mains : il part dans le sens de la liane, puis retombe tout droit
+      const rest = this.len - gl;
+      const hx = this.x + gl * s;
+      const hy = this.y + gl * c;
+      const m = Math.max(1, Math.round(rest / 12));
+      let x = hx;
+      let y = hy;
+      for (let i = 1; i <= m && rest > 4; i++) {
+        const f = i / m;
+        const a = this.ang * (1 - f) * 0.7 - this.angV * 0.12 * f + Math.sin(this.t * 3 + i) * 0.08;
+        x += Math.sin(a) * (rest / m);
+        y += Math.cos(a) * (rest / m);
+        pts.push(x, y);
+      }
+      return pts;
+    }
+    for (let i = 0; i <= n; i++) {
+      const f = i / n;
+      const d = this.len * f;
+      // (le bas traîne un peu derrière le balancement, et ondule tout doucement)
+      const off = -this.angV * 9 * f * f + Math.sin(this.t * 1.7 + f * 3 + this.v * 5) * 2.2 * f;
+      pts.push(this.x + d * s + off * c, this.y + d * c - off * s);
+    }
+    return pts;
+  }
+
+  draw(ctx) {
+    Scenery.vine(ctx, this.points(), this.t, this.v, this.grip > 0);
+  }
+}
+
+// Un écureuil du Vieux Chêne (q), dans le décor : il grignote un gland, assis devant son trou dans le bois.
+// Quand Malice arrive tout près, il file dans son trou… puis il ressort la tête pour voir si elle est partie,
+// et revient s'asseoir. Il ne touche à rien.
+class Squirrel {
+  constructor(world, x, y) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+    // (il regarde vers le milieu du tronc)
+    this.dir = 1;
+    // de 0 (dans son trou) à 1 (assis devant)
+    this.out = 1;
+    this.calm = 0;
+    this.scared = false;
+    this.t = rand(0, 6);
+    this.v = Math.random();
+  }
+
+  update(dt) {
+    const p = this.world.player;
+    this.t += dt;
+    const near = !p.dead && Math.abs(p.cx - this.x) < 140 && Math.abs(p.y + p.h - this.y) < 110;
+    if (near) {
+      if (!this.scared && this.out > 0.5 && this.world.onScreen(this, 0)) Sound.sfx.squirrel();
+      this.scared = true;
+      this.calm = rand(1.6, 2.6);
+    } else if (this.calm > 0) {
+      this.calm -= dt;
+      if (this.calm <= 0) this.scared = false;
+    }
+    // il file d'un coup, et ressort tout doucement (d'abord la tête)
+    this.out = approach(this.out, this.scared ? 0 : 1, dt * (this.scared ? 6 : 0.9));
+    if (!near && Math.abs(p.cx - this.x) < 400) this.dir = p.cx < this.x ? -1 : 1;
+  }
+
+  draw(ctx) {
+    Art.squirrel(ctx, this.x, this.y, { t: this.t, out: this.out, dir: this.dir, v: this.v });
+  }
+}
+
+// Un nid dans le Vieux Chêne (k), dans le décor : des oisillons qui dorment ; quand Malice passe tout près, ils
+// sortent la tête et ouvrent grand le bec en piaillant (ils croient que c'est leur maman !).
+class Nest {
+  constructor(world, x, y) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+    this.up = 0;
+    this.t = rand(0, 6);
+    this.chirpT = 0;
+    this.v = Math.random();
+  }
+
+  update(dt) {
+    const p = this.world.player;
+    this.t += dt;
+    const near = !p.dead && Math.abs(p.cx - this.x) < 170 && Math.abs(p.y + p.h - this.y) < 140;
+    this.up = approach(this.up, near ? 1 : 0, dt * (near ? 4 : 1.2));
+    this.chirpT -= dt;
+    if (near && this.up > 0.6 && this.chirpT <= 0) {
+      this.chirpT = rand(0.7, 1.3);
+      Sound.sfx.chirp();
+    }
+  }
+
+  draw(ctx) {
+    Art.nest(ctx, this.x, this.y, { t: this.t, up: this.up, v: this.v });
   }
 }
 

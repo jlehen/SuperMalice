@@ -28,6 +28,12 @@
 //   h  hérisson (quand Malice approche, il se met en boule : ça pique ! On lui saute dessus quand il se déroule)
 //   s  sanglier (quand il voit Malice, il gratte le sol, puis il fonce tout droit jusqu'à se cogner ou jusqu'au
 //      bord : on lui saute dessus pendant qu'il gratte, ou quand il est étourdi ; seul le sanglier qui fonce fait mal)
+//   J  liane : elle pend du haut de la première case J, aussi longue que les J les uns sous les autres (mettre du
+//      bois ou un champignon juste au-dessus). On l'attrape en sautant dessus, on se balance avec ← →, et on saute
+//      pour se lancer (tous les personnages)
+//   q  écureuil (dans le décor : il grignote un gland devant son trou, et y file quand Malice arrive)
+//   k  nid d'oisillons (dans le décor : ils piaillent quand Malice passe)
+//      (dans le Vieux Chêne, "theme: oak" : # est le bois du tronc, et - un champignon-étagère accroché au bois)
 //   i  lucioles (un petit groupe qui éclaire la nuit, et qui suit Malice un moment)
 //   j  grande fleur-lanterne qui brille (elle éclaire tout autour, la nuit)
 //   l  lapin (gentil ; sur l'herbe, il sort la tête de son trou ; dans un terrier, il parle : voir "lapins")
@@ -68,6 +74,12 @@
 //             la tête de Malice reste à l'écran (même au-dessus du haut du niveau : voir World.updateCamera).
 //  "galeries" : les passages bas sous un plafond (une ou deux cases de haut, entre deux cases solides)
 //             sont dessinés comme des galeries de terre : une butte se lit comme une colline percée d'un tunnel.
+//  "grimpe" : on monte dans le niveau (bien plus haut que l'écran) : la caméra suit l'étage où Malice a les pieds,
+//             et les fleurs qui parlent et les drapeaux vont de bas en haut (un drapeau se touche).
+//  "tronc" : [première colonne, dernière colonne] : le tronc creux du Vieux Chêne (ses murs compris). À gauche, c'est
+//             dehors (la forêt) : on voit le tronc de l'extérieur, avec sa porte (le trou en bas de son mur de gauche),
+//             et dedans, l'écran reste entre ses murs.
+//  "couronne" : tout en haut, la rangée (dans le fond) où le tronc s'ouvre sur les feuilles du chêne.
 //  "music" : la musique du niveau, si ce n'est pas celle de son monde (voir SONGS dans music.js).
 //  "sansBadges" : pour les personnages qui n'ont pas les badges (tous sauf Malice) :
 //             "add" : des cases en plus [ligne, colonne, "lettres"] (les anneaux dorés disparaissent),
@@ -367,6 +379,103 @@ const LEVELS = [
       '..P..T..oooT.........................T...T...!...............s......B...!..o.o......######............o........!....T......B.o.o....s........B...!..T............^^...D................s.....######.....................ooo...s....B...G....',
       '##############...#################....#########....##############################...#######.....#.....##...#..############################################...###########...########################.....#.....##.....#######################',
       '##############~~~#################~~~~#########~~~~##############################~~~#######~~~~~#~~~~~##~~~#~~############################################~~~###########~~~########################~~~~~#~~~~~##~~~~~#######################',
+    ],
+  },
+  {
+    world: 2,
+    name: "Dans le Vieux Chêne",
+    theme: "oak",
+    music: "forest-oak",
+    intro: "Grimpe tout en haut du Vieux Chêne !",
+    storms: [],
+    // on grimpe : la caméra suit les étages, les drapeaux et les fleurs vont de bas en haut
+    grimpe: true,
+    // le tronc (murs compris) : colonnes 14 à 39 ; dehors, à gauche, la clairière au pied du chêne
+    tronc: [14, 39],
+    // le bord du tronc, tout en haut (dans le fond), sous les feuilles de la couronne
+    couronne: 3.5,
+    talk: [
+      "Voici le Vieux Chêne, le plus vieil arbre de la Forêt\u00a0! Il est tout creux\u00a0: entre par la porte, et grimpe tout en haut, jusqu'à sa couronne de feuilles\u00a0!",
+      "Une liane\u00a0! Saute dessus pour t'y accrocher. Balance-toi avec {FLECHES}, et saute pour t'envoler\u00a0!",
+      "Deux lianes à la suite\u00a0! Garde la flèche appuyée pour te balancer bien haut, et saute de l'une à l'autre au-dessus des ronces.",
+      "Pour monter à l'étage, attrape la liane, balance-toi vers le champignon… et saute dessus\u00a0!",
+      "Attention, un sanglier\u00a0! Quand il gratte le sol, saute-lui dessus… et s'il fonce, grimpe vite sur un champignon\u00a0! S'il se cogne contre les caisses, il voit des étoiles.",
+      "Le grand trou du Vieux Chêne\u00a0! Passe de liane en liane. Si tu tombes, pas grave\u00a0: tu retombes à l'étage du dessous.",
+      "Tu y es presque\u00a0! Tout là-haut, c'est la couronne du Vieux Chêne. Prends la grande liane, et saute sur les champignons\u00a0!",
+    ],
+    map: [
+      '################......................##',
+      '################......................##',
+      '################......................##',
+      '################......................##',
+      '################......................##',
+      '################......................##',
+      '################......................##',
+      '################......................##',
+      '################...!...............G..##',
+      '################..######################',
+      '################oo......J.............##',
+      '################--......J.............##',
+      '################..k.....J.............##',
+      '################----....J.............##',
+      '################........J.............##',
+      '################......................##',
+      '################................F.....##',
+      '################............---.......##',
+      '################......................##',
+      '################........h........T..!.##',
+      '################################------##',
+      '################.................k....##',
+      '################................---...##',
+      '################...K..................##',
+      '################...................---##',
+      '################.........o.o.o........##',
+      '################......B..D.....s....q.##',
+      '################-----###################',
+      '################....J........J........##',
+      '################.............J........##',
+      '################..................S...##',
+      '################.oo...................##',
+      '################......o.o.............##',
+      '################.........h..^^^.....!.##',
+      '#################################-----##',
+      '################.......J...J...J....k.##',
+      '################.......J...J...J...---##',
+      '################.......J.y.J...J......##',
+      '################.......J...J...J.---..##',
+      '################.........o...o........##',
+      '################...................---##',
+      '################......................##',
+      '################.!.T...............oo.##',
+      '################----##............######',
+      '################......................##',
+      '################..--..................##',
+      '################........ooo..C........##',
+      '################--......---...........##',
+      '################................B.....##',
+      '################q.ooo..s........B.T.!.##',
+      '#################################-----##',
+      '################.................J....##',
+      '################...................ooo##',
+      '################......K...............##',
+      '################......................##',
+      '################...........o..o.......##',
+      '################.....B..h...^^......T.##',
+      '################-----###################',
+      '..............##......J...J...........##',
+      '..............##..---.J...J...........##',
+      '..............##......J.o.J...........##',
+      '..............##--..o.......o.........##',
+      '..............##......................##',
+      '..............##qoo.^^^^^^^^^...T..!..##',
+      '..............##################------##',
+      '..............##.......J.........k....##',
+      '...........y..##.......J........---...##',
+      '..............##.......J....L.........##',
+      '.....................o...o.........---##',
+      '........o.o.o.........................##',
+      '..P...T..........T...^^^^^.ooo.h......##',
+      '########################################',
     ],
   },
   {

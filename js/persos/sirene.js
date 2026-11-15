@@ -399,7 +399,7 @@
         a1 = 0.75;
         a2 = -1.15;
         finA = -0.5;
-      } else if (pose === 'hang') {
+      } else if (pose === 'hang' || pose === 'vine') {
         a1 = 0.08 + Math.sin(t * 3) * 0.08;
         a2 = 0.3 + Math.sin(t * 3 - 0.6) * 0.15;
         finA = a2;

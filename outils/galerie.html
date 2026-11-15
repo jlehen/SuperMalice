@@ -41,7 +41,7 @@
     // &oiseau=1 : le bébé oiseau sur la tête, comme pendant le retour à la maison
     const withBird = P.has('oiseau');
     // poses communes, puis les poses spéciales des pouvoirs
-    const POSES = ['idle', 'walk', 'run', 'jump', 'fall', 'pound', 'crouch', 'throw', 'hang', 'hurt', 'win', 'hold', 'float', 'slip',
+    const POSES = ['idle', 'walk', 'run', 'jump', 'fall', 'pound', 'crouch', 'throw', 'hang', 'hurt', 'win', 'hold', 'float', 'vine', 'slip',
       'ouch:butt', 'ouch:ko', 'ouch:soot', 'ouch:zap', 'ouch:wet', 'ouch:slime', 'ouch:dirt', 'ouch:pins', 'ouch:spin', 'star', 'power1', 'power2'];
     // les poses spéciales des pouvoirs (voir pouvoirs.js), et Malice en boule (la roulade)
     const POWER_POSES = {
@@ -137,7 +137,37 @@
           Art.dandelion(ctx, hx + 12, hy * 0.55 - len, 28, t, {});
           ctx.restore();
         }
+        // la liane du Vieux Chêne, tenue à deux poings au-dessus de la tête (comme Player.draw)
+        const vineAt = c.p === 'vine' ? (HERO_HAT[heroOf(c.id)] || HERO_HAT.malice) : null;
+        const vineLine = (y0, y1, w) => {
+          ctx.strokeStyle = '#4f9a3a';
+          ctx.lineWidth = w;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(vineAt[0], y0);
+          ctx.lineTo(vineAt[0], y1);
+          ctx.stroke();
+        };
+        if (vineAt) {
+          ctx.save();
+          ctx.translate(c.x, c.y);
+          ctx.scale(SC, SC);
+          vineLine(vineAt[1] - 40, vineAt[1] + 40, 4.4);
+          ctx.restore();
+        }
         Heroes.draw(ctx, heroOf(c.id), c.x, c.y, o);
+        if (vineAt) {
+          ctx.save();
+          ctx.translate(c.x, c.y);
+          ctx.scale(SC, SC);
+          vineLine(vineAt[1] - 16, vineAt[1] + 10, 4.4);
+          const hand = c.id === 'gremlin' ? ['#5fae3e', '#1e4a10'] : HERO_HAND[heroOf(c.id)];
+          for (const dy of [-10, -1]) {
+            ellipsePath(ctx, vineAt[0], vineAt[1] + 6 + dy, 5.2, 4.6);
+            Art.paint(ctx, hand[0], hand[1], 1.2);
+          }
+          ctx.restore();
+        }
       }
       if (frozen === null) requestAnimationFrame(frame);
       else window.drawn = true;

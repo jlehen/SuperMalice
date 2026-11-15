@@ -416,7 +416,7 @@
         armB = 1.75;
         lean = -0.16;
         footF = 1.45;
-      } else if (pose === 'hang') {
+      } else if (pose === 'hang' || pose === 'vine') {
         // les bras en l'air, les jambes qui se balancent
         armF = -1.95 + Math.sin(o.t * 3) * 0.1;
         armB = 1.95 + Math.sin(o.t * 3) * 0.1;

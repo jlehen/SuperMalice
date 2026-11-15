@@ -18,6 +18,12 @@ const MAGIC_MAX = 4;
 // haut de l'écran, et le haut de Malice n'est jamais à moins de CAM_HEAD_MIN pixels du haut de l'écran
 const CAM_HEAD = 100;
 const CAM_HEAD_MIN = 40;
+// la caméra des niveaux où l'on grimpe ("grimpe", voir updateCamera) : les pieds de Malice sont à CLIMB_FEET de la
+// hauteur de l'écran (on voit bien l'étage du dessus) ; sa tête n'est jamais à moins de CLIMB_TOP pixels du haut de
+// l'écran, ni ses pieds à moins de CLIMB_BOTTOM pixels du bas
+const CLIMB_FEET = 0.78;
+const CLIMB_TOP = 36;
+const CLIMB_BOTTOM = 24;
 // Une tache de lumière (pour percer le noir) : dessinée une fois, puis agrandie à la taille de chaque lumière.
 let LIGHT_BLOB = null;
 function lightBlob() {
@@ -114,6 +120,14 @@ class World {
     this.sag = { x: 0, r: -1, k: 0 };
     this.bunnies = [];
     this.terrier = def.terrier || 0;
+    // Dans le Vieux Chêne : les lianes (J), et les petites bêtes du décor (écureuils, nids) qui ne touchent à rien ;
+    // le tronc ("tronc" : sa première et sa dernière colonne, murs compris) : dehors, on le voit de l'extérieur
+    this.vines = [];
+    this.decos = [];
+    this.trunk = def.tronc ? { c0: def.tronc[0], c1: def.tronc[1], x0: def.tronc[0] * TILE, x1: (def.tronc[1] + 1) * TILE } : null;
+    // (la caméra des niveaux où l'on grimpe suit l'étage où Malice a les pieds : voir updateCamera)
+    this.camFeet = 0;
+    this.facadeK = 1;
     const bunnySpots = [];
     // le boss du bout du niveau (voir boss.js), et son arène quand on ne peut plus en sortir
     this.boss = null;
@@ -177,6 +191,16 @@ class World {
             keep = true;
             break;
           case 'l': bunnySpots.push({ x: mx, y: by, r }); break;
+          case 'J': {
+            // une liane : elle pend du haut de la première case J, aussi longue que les J du dessous
+            if (this.tiles[r - 1] && def.map[r - 1][c] === 'J') break;
+            let n = 1;
+            while (r + n < this.rows && def.map[r + n][c] === 'J') n++;
+            this.vines.push(new Vine(this, mx, y, n * TILE));
+            break;
+          }
+          case 'q': this.decos.push(new Squirrel(this, mx, by)); break;
+          case 'k': this.decos.push(new Nest(this, mx, by)); break;
           case '*': {
             // planté sur une branche ou sur le sol, ou bien qui flotte en l'air
             const below = this.tileAt(c, r + 1);
@@ -196,8 +220,10 @@ class World {
     }
     // (le boss cache l'arrivée jusqu'à ce qu'il soit battu, et appelle ses aides)
     if (this.boss) this.boss.setup();
-    // les fleurs parlent dans l'ordre, de gauche à droite (pendant le retour, c'est le bébé oiseau)
-    flowerSpots.sort((a, b) => a.x - b.x);
+    // les fleurs parlent dans l'ordre, de gauche à droite (pendant le retour, c'est le bébé oiseau) ;
+    // dans un niveau où l'on grimpe ("grimpe"), de bas en haut, et les drapeaux aussi
+    const order = def.grimpe ? (a, b) => b.y - a.y || a.x - b.x : (a, b) => a.x - b.x;
+    flowerSpots.sort(order);
     const talk = Object.assign((def.talk || []).slice(), noBadge ? noBadge.talk : null);
     flowerSpots.forEach((f, i) => {
       const Talker = def.sequel ? BirdTip : TalkFlower;
@@ -212,8 +238,8 @@ class World {
       const msg = peek ? '' : (def.lapins || [])[said++] || '';
       this.bunnies.push(new Bunny(this, b.x, b.y, peek, game.textFor(msg)));
     });
-    // les drapeaux sont numérotés de gauche à droite (même s'il y en a un plus bas, dans un terrier)
-    this.checkpoints.sort((a, b) => a.x - b.x);
+    // les drapeaux sont numérotés de gauche à droite (même s'il y en a un plus bas, dans un terrier), ou de bas en haut
+    this.checkpoints.sort(order);
     this.checkpoints.forEach((cp, i) => { cp.idx = i; });
     if (checkpointIdx >= 0 && this.checkpoints[checkpointIdx]) {
       const cp = this.checkpoints[checkpointIdx];
@@ -240,6 +266,12 @@ class World {
     this.bridges = this.cabins ? this.findBridges() : [];
     // (et la brume au ras de la boue : les suites de cases de boue à la surface, voir drawMist)
     this.mists = this.mud ? this.runsOf((c, r) => this.tiles[r][c] === '~' && (r === 0 || this.tiles[r - 1][c] !== '~')) : [];
+    // le Vieux Chêne : sa porte (les cases vides tout en bas de son mur de gauche), et ce que le fond doit savoir
+    // (la hauteur du niveau ; "couronne" : la rangée où le tronc s'ouvre en haut, sous les feuilles)
+    if (this.trunk) {
+      this.door = this.findDoor();
+      this.oakInfo = { height: this.height, crown: (def.couronne || 0) * TILE };
+    }
     this.updateCamera(0, true);
   }
 
@@ -932,6 +964,9 @@ class World {
     }
     for (const f of this.flowers) f.update(dt);
     for (const ce of this.critters) ce.update(dt);
+    for (const v of this.vines) v.update(dt);
+    for (const d of this.decos) d.update(dt);
+    if (this.trunk) this.facadeK = this.facadeAt(p);
     for (const a of this.anchors) a.update(dt);
     for (const d of this.puffs) d.update(dt);
     for (const b of this.bunnies) b.update(dt);
@@ -1206,6 +1241,66 @@ class World {
     this.particles = this.particles.filter((q) => q.life > 0);
   }
 
+  // ---------- Le Vieux Chêne ----------
+  // La porte du tronc : les cases vides en bas de la première colonne du tronc (leur haut et leur bas, en pixels).
+  findDoor() {
+    const c = this.trunk.c0;
+    let r1 = this.rows - 1;
+    while (r1 > 0 && isSolidCh(this.tileAt(c, r1))) r1--;
+    let r0 = r1;
+    while (r0 > 0 && !isSolidCh(this.tileAt(c, r0 - 1))) r0--;
+    return { x: this.trunk.x0, y0: r0 * TILE, y1: (r1 + 1) * TILE };
+  }
+
+  // Malice est dans le tronc (passé le mur de gauche, épais de deux cases) ?
+  insideTrunk(p) {
+    return p.cx > this.trunk.x0 + 2.2 * TILE && p.cx < this.trunk.x1;
+  }
+
+  // Dehors, on voit le tronc de l'extérieur (son écorce, et la porte) : elle s'efface quand Malice passe la porte
+  // (de 1, dehors, à 0, dedans).
+  facadeAt(p) {
+    return 1 - clamp((p.cx - this.trunk.x0 - 20) / 90, 0, 1);
+  }
+
+  // Le fond : dedans, le bois du tronc creux (voir Scenery BG.oak) ; dehors, à gauche du tronc, la forêt
+  // (comme si on était en bas d'un niveau ordinaire, pour que ses collines soient à leur place).
+  drawOakBackground(ctx) {
+    const ox = Math.round(this.trunk.x0 - this.cam.x);
+    if (ox > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, Math.min(VIEW_W, ox), VIEW_H);
+      ctx.clip();
+      Scenery.drawBackground(ctx, 'forest', this.cam.x, this.cam.y - Math.max(0, this.height - VIEW_H) + 84, this.t);
+      ctx.restore();
+    }
+    if (ox < VIEW_W) {
+      ctx.save();
+      ctx.beginPath();
+      // (dehors, le tronc vu de l'extérieur cache tout l'intérieur, sauf par la porte)
+      if (this.facadeK >= 0.99) ctx.rect(ox, this.door.y0 - this.cam.y - 16, 2 * TILE, this.door.y1 - this.door.y0 + 16);
+      else ctx.rect(Math.max(0, ox), 0, VIEW_W - Math.max(0, ox), VIEW_H);
+      ctx.clip();
+      Scenery.drawBackground(ctx, this.theme, this.cam.x, this.cam.y, this.t, 0, this.oakInfo);
+      ctx.restore();
+    }
+  }
+
+  // Dehors, le tronc vu de l'extérieur cache tout ce qui est derrière son mur de gauche (on ne voit dedans que par
+  // la porte, dans l'épaisseur du mur) : à droite de ce x, on ne dessine rien.
+  facadeEnd() {
+    return this.trunk && this.facadeK >= 0.99 ? this.trunk.x0 + 2 * TILE : Infinity;
+  }
+
+  // Le tronc vu de dehors : de l'écorce sur toute sa largeur, avec la porte (le trou du bas du mur de gauche,
+  // là où il n'y a pas de bois), des racines, de la mousse ; on voit l'intérieur par la porte.
+  drawFacade(ctx, camX, camY) {
+    const T = this.trunk;
+    if (T.x0 > camX + VIEW_W + 40) return;
+    Scenery.oakFacade(ctx, T.x0, T.x1, camY, this.door, this.facadeK, this.t);
+  }
+
   updateCamera(dt, snap) {
     const p = this.player;
     if (p.dead) return;
@@ -1215,8 +1310,22 @@ class World {
     let tx = p.cx - VIEW_W * 0.45 + this.look;
     let ty = p.y + p.h / 2 - VIEW_H * 0.56;
     tx = clamp(tx, 0, Math.max(0, this.width - VIEW_W));
+    // dans le tronc du Vieux Chêne, l'écran reste entre ses deux murs (on ne voit pas dehors)
+    if (this.trunk && this.insideTrunk(p)) tx = clamp(tx, this.trunk.x0, Math.max(this.trunk.x0, this.trunk.x1 - VIEW_W));
     // pendant le combat contre un boss, l'écran reste sur son arène
     if (this.arena) tx = clamp(tx, this.arena.x0, this.arena.x1 - VIEW_W);
+    // Dans un niveau où l'on grimpe ("grimpe") : la caméra suit l'étage où Malice a les pieds (par terre, à une
+    // liane, ou dans l'eau), assez bas sur l'écran pour bien voir où l'on monte. Pendant un saut, elle ne bouge pas
+    // (sauf si Malice va sortir de l'écran) ; si elle tombe plus bas que son étage, elle la suit.
+    const climb = this.def.grimpe;
+    if (climb) {
+      const feet = p.y + p.h;
+      const g = p.grap && p.grap.phase === 'swing' ? p.grap : null;
+      // (à une liane : là où seraient ses pieds si elle pendait tout droit, pour que l'écran ne suive pas le balancement)
+      if (g) this.camFeet = g.anchor.y + g.len + p.h - g.hy;
+      else if (snap || p.onGround || p.swim || feet > this.camFeet) this.camFeet = feet;
+      ty = this.camFeet - VIEW_H * CLIMB_FEET;
+    }
     // le terrier secret : la caméra ne descend sous terre que quand Malice y est
     const under = this.terrier && p.y + p.h > (this.terrier - 1) * TILE;
     const bottom = this.terrier && !under ? this.terrier * TILE : this.height;
@@ -1235,6 +1344,11 @@ class World {
       if (under) this.cam.y = clamp(this.cam.y, p.y + p.h + 20 - VIEW_H, Math.max(0, bottom - VIEW_H));
       // (et avec basVisible, sa tête ne sort jamais de l'écran par le haut, même si la caméra est en retard)
       if (high) this.cam.y = Math.min(this.cam.y, p.y - CAM_HEAD_MIN);
+    }
+    // (en grimpant, ni sa tête ni ses pieds ne sortent de l'écran, même pendant un très haut saut ou une chute)
+    if (climb) {
+      const lo = Math.max(0, this.height - VIEW_H);
+      this.cam.y = clamp(clamp(this.cam.y, p.y + p.h + CLIMB_BOTTOM - VIEW_H, p.y - CLIMB_TOP), 0, lo);
     }
     this.shakeMag *= Math.pow(0.001, dt);
     if (this.shakeMag < 0.3) this.shakeMag = 0;
@@ -1255,7 +1369,8 @@ class World {
       ctx.rect(0, 0, VIEW_W, Math.max(0, sky));
       ctx.clip();
     }
-    if (sky > 0) Scenery.drawBackground(ctx, this.theme, this.cam.x, this.cam.y, this.t, this.flash);
+    if (this.trunk) this.drawOakBackground(ctx);
+    else if (sky > 0) Scenery.drawBackground(ctx, this.theme, this.cam.x, this.cam.y, this.t, this.flash);
     if (sky < VIEW_H) ctx.restore();
     ctx.save();
     ctx.translate(-camX, -camY);
@@ -1271,7 +1386,12 @@ class World {
     this.drawBurrow(ctx, camX, camY);
     this.drawTunnels(ctx, camX, camY);
     this.drawRiverBeds(ctx);
-    this.drawDecor(ctx, camX);
+    this.drawDecor(ctx, camX, camY);
+    // (dehors, ce qui est derrière la façade du Vieux Chêne n'est pas dessiné : voir facadeEnd)
+    const xMax = this.facadeEnd();
+    for (const v of this.vines) {
+      if (v.x > camX - v.len - 60 && v.x < camX + VIEW_W + v.len + 60 && v.x - v.len < xMax && v.y < camY + VIEW_H + 20 && v.y + v.len > camY - 60) v.draw(ctx);
+    }
     // (les fleurs-lanternes qu'on voit : cherchées une fois par image)
     this.glowsSeen = this.glows.filter((gl) => gl.x > camX - 150 && gl.x < camX + VIEW_W + 150);
     for (const gl of this.glowsSeen) Scenery.glowFlower(ctx, gl.x, gl.y, gl.v, this.t);
@@ -1292,13 +1412,18 @@ class World {
     for (const d of this.puffs) {
       if (d.x > camX - 140 && d.x < camX + VIEW_W + 140) d.draw(ctx);
     }
+    for (const d of this.decos) {
+      if (this.onScreen(d, 80)) d.draw(ctx);
+    }
     if (this.goal) this.goal.draw(ctx);
     // (les nénuphars qui flottent sont dessinés par-dessus l'eau, plus loin)
     for (const pl of this.platforms) {
       if (!pl.onWater) pl.draw(ctx);
     }
     for (const a of this.anchors) a.draw(ctx);
-    for (const it of this.items) it.draw(ctx);
+    for (const it of this.items) {
+      if (it.x < xMax) it.draw(ctx);
+    }
     for (const ce of this.critters) {
       if (this.onScreen(ce, 80)) ce.draw(ctx);
     }
@@ -1308,12 +1433,14 @@ class World {
     // l'arène du boss : son décor et ses murs (même quand le boss n'est pas à l'écran)
     if (this.boss) this.boss.drawArena(ctx);
     for (const e of this.enemies) {
-      if (e.x + e.w > camX - 80 && e.x < camX + VIEW_W + 80) e.draw(ctx);
+      if (e.x + e.w > camX - 80 && e.x < Math.min(camX + VIEW_W + 80, xMax)) e.draw(ctx);
     }
     for (const ec of this.eclairs) ec.draw(ctx);
     for (const h of this.hazards) h.draw(ctx);
     for (const pr of this.projectiles) pr.draw(ctx);
     for (const g of this.gags) g.draw(ctx);
+    // dehors, le tronc du Vieux Chêne vu de l'extérieur (il s'efface quand Malice entre)
+    if (this.trunk && this.facadeK > 0.01) this.drawFacade(ctx, camX, camY);
     this.player.draw(ctx);
     if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);
@@ -1338,7 +1465,7 @@ class World {
   drawTiles(ctx, s, camX, camY) {
     const T = TILE;
     const c0 = Math.max(0, Math.floor(camX / T) - 1);
-    const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / T) + 1);
+    const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / T) + 1, Math.ceil(this.facadeEnd() / T) - 1);
     const r0 = Math.max(0, Math.floor(camY / T) - 1);
     const r1 = Math.min(this.rows - 1, Math.ceil((camY + VIEW_H) / T) + 1);
     const pad = Scenery.PAD;
@@ -1361,14 +1488,14 @@ class World {
         if (ch === '#') {
           // (pas d'herbe au fond de la rivière ; sous terre, dans le terrier, de la terre toute nue)
           const m = { t: !isG(c, r - 1) && r > 0 && this.tileAt(c, r - 1) !== WATER, l: !isG(c - 1, r), r: !isG(c + 1, r), b: !isG(c, r + 1) };
-          img = Scenery.groundSprite(this.terrier && r >= this.terrier ? 'burrow' : th, m, Math.floor(hash2(c, r) * 4));
+          img = Scenery.groundSprite(this.tileTheme(c, r), m, Math.floor(hash2(c, r) * 4));
         } else if (ch === 'B') {
           img = Scenery.brickSprite(th);
         } else if (LUTIN_BLOCKS.includes(ch)) {
           img = Scenery.lutinSprite();
         } else if (ch === '-') {
           // (dans le terrier, les plateformes sont des racines)
-          const pth = this.terrier && r >= this.terrier - 2 ? 'burrow' : th;
+          const pth = this.terrier && r >= this.terrier - 2 ? 'burrow' : this.tileTheme(c, r);
           img = Scenery.platformSprite(pth, this.tileAt(c - 1, r) !== '-', this.tileAt(c + 1, r) !== '-', Math.floor(hash2(c, r) * 3));
         } else if (ch === '=') {
           img = Scenery.rainbowSprite(this.tileAt(c - 1, r) !== '=', this.tileAt(c + 1, r) !== '=');
@@ -1438,27 +1565,43 @@ class World {
     }
   }
 
-  drawDecor(ctx, camX) {
+  drawDecor(ctx, camX, camY) {
     const c0 = Math.max(0, Math.floor(camX / TILE) - 1);
     const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / TILE) + 1);
+    // (dans un niveau où l'on grimpe, il y a un sol à chaque étage : on cherche dans toutes les rangées qu'on voit)
+    const climb = this.def.grimpe;
+    const r0 = climb ? Math.max(1, Math.floor(camY / TILE)) : 1;
+    const r1 = climb ? Math.min(this.rows - 1, Math.ceil((camY + VIEW_H) / TILE) + 1) : this.rows - 1;
     for (let c = c0; c <= c1; c++) {
-      for (let r = 1; r < this.rows; r++) {
+      for (let r = r0; r <= r1; r++) {
         if (this.tiles[r][c] !== '#') continue;
         // sous un plafond (grotte), on cherche le vrai sol plus bas
         if (this.tiles[r - 1][c] === '#') continue;
         // (un bloc magique du Lutin posé par terre ne fait pas disparaître l'herbe)
-        if (this.tiles[r - 1][c] !== '.' && this.tiles[r - 1][c] !== 'u') break;
+        if (this.tiles[r - 1][c] !== '.' && this.tiles[r - 1][c] !== 'u') {
+          if (climb) continue;
+          break;
+        }
         const h = hash2(c * 3.1, r * 1.7);
         if (h < 0.42) {
           const v = hash2(c, r + 9);
           const x = c * TILE + 10 + h * 50;
-          Scenery.decor(ctx, this.theme, x, r * TILE + 2, v, this.t);
+          // (le décor reste celui du niveau sous le puits de lumière d'un terrier : seul le tronc en change)
+          Scenery.decor(ctx, this.trunk ? this.tileTheme(c, r) : this.theme, x, r * TILE + 2, v, this.t);
           // les petits champignons de la grotte (et les petites fleurs de la nuit) brillent dans le noir
           if (this.dark && v < (this.night ? 0.4 : 0.5)) this.lights.push({ x, y: r * TILE - 8, r: 46, a: 0.55 });
         }
-        break;
+        if (!climb) break;
       }
     }
+  }
+
+  // Le décor d'une case : celui du niveau (sous terre, dans un terrier, de la terre ; et dehors, devant le
+  // Vieux Chêne, la forêt).
+  tileTheme(c, r) {
+    if (this.terrier && r >= this.terrier) return 'burrow';
+    if (this.trunk && c < this.trunk.c0) return 'forest';
+    return this.theme;
   }
 
   drawStormClouds(ctx) {

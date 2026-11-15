@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses trois premiers niveaux, et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux (son boss arrive bientôt), et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -105,6 +105,17 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      trop lourds pour foncer, et les pouvoirs qui renversent les ennemis marchent aussi sur eux. On y retrouve les
      hérissons, les ronces et les coccinelles. En Bébé, les sangliers voient Malice de moins loin, grattent le sol
      plus longtemps, foncent moins vite et restent étourdis plus longtemps ; en Difficile, c'est le contraire.
+   - 2-4 **Dans le Vieux Chêne** : le plus dur des quatre. On arrive au pied d'un chêne immense, tout creux : on
+     entre par la porte, et on grimpe à l'intérieur, d'étage en étage, jusqu'à sa couronne de feuilles (le niveau
+     monte, et la caméra suit l'étage où l'on est). Dedans : le bois du tronc, des trous où passent des rayons de
+     soleil, des champignons-étagères pour monter, des nids d'oisillons qui piaillent quand on passe, et des écureuils
+     qui filent dans leur trou. Les **lianes** (l'idée d'Alice) pendent du plafond des étages : on les attrape en
+     sautant dessus (même un peu à côté), on se balance avec ← → (en gardant la flèche, de plus en plus haut), et on
+     saute pour se lancer, comme Tarzan : d'une liane à l'autre au-dessus des ronces et du grand trou, ou jusqu'à
+     l'étage du dessus. ↓ fait lâcher la liane. Tous les personnages s'y accrochent (avec la moustache-grappin, V
+     sert toujours aux anneaux dorés). Si on tombe d'une liane, on retombe à l'étage du dessous. On y retrouve les
+     hérissons, les sangliers sur les grands étages plats, les coccinelles et les ronces. Tout en haut, un grand palier
+     tout plat, dans la couronne du chêne, attend le boss de la Forêt.
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
@@ -293,9 +304,10 @@ sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
-`O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `i` = lucioles, `j` = fleur-lanterne…). Un niveau peut avoir un terrier
-secret sous terre (`terrier` : voir la légende), ou se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
-par la lune : `clairDeLune`).
+`O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `i` = lucioles, `j` = fleur-lanterne,
+`J` = liane, `q` = écureuil, `k` = nid…). Un niveau peut avoir un terrier
+secret sous terre (`terrier` : voir la légende), se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
+par la lune : `clairDeLune`), ou monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne).
 Il suffit de modifier les lettres et de recharger la page.
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
@@ -353,6 +365,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Le combat contre l'Épouvantail | la calypso en do mineur et plus vite, comme une danse de squelettes : xylophone, orgue qui ricane sur les contretemps, pizzicati, wood-blocks et timbales ; au refrain, les cuivres |
   | Stage de la Roulade | ska : guitare et orgue sur les contretemps, contrebasse qui sautille, la mélodie aux cuivres (le trombone en dessous), solo de saxophone au milieu |
   | La Forêt (la Forêt des Épines, les Champignons Géants, le Marais aux Cabanes) | do mineur en 12/8, flûte et harpe, entrées en canon |
+  | Dans le Vieux Chêne | la même, dans le bois du tronc creux : la mélodie au marimba, la flûte en écho tout là-haut, pizzicati, et des wood-blocks qui toquent comme un pic-vert |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |

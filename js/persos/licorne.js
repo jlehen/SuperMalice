@@ -70,6 +70,7 @@
         Object.assign(L, { fN: -1.2, bfN: 0.3, fF: 0.1 });
         break;
       case 'hang':
+      case 'vine':
         Object.assign(L, { fN: -2.5, fF: -2.7, bfN: 0.4, bfF: 0.3, hN: 0.2, hF: 0.3, bhN: 0.1, bhF: 0.1 });
         break;
       case 'win': {

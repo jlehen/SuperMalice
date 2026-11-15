@@ -71,6 +71,15 @@ const Scenery = (() => {
       plat: '#a07448', platDark: '#62452a', platLight: '#caa070', cabins: true,
       bramble: '#6a3a7a', brambleDark: '#2a1232', thorn: '#ffffff',
     },
+    // dans le Vieux Chêne : le bois du tronc creux (des rainures qui montent), de la mousse sur les étages, des
+    // caisses, et les plateformes (-) sont des champignons-étagères accrochés au bois (fungus : voir platformSprite)
+    oak: {
+      dirt: '#8a5a34', dirtDark: '#5a3820', dirtLight: '#ad7a4c', stripe: 'rgba(50,25,8,0.3)',
+      top: '#74b04c', topDark: '#3f7a34', topLight: '#b8e07e', blades: true, bark: true,
+      brick: '#b07a45', brickDark: '#6f4521', brickLight: '#dcaa6e', crate: true,
+      plat: '#f2b25a', platDark: '#b86a26', platLight: '#ffe3a8', fungus: true,
+      bramble: '#7a3a8a', brambleDark: '#2f1236', thorn: '#ffffff',
+    },
     storm: {
       dirt: '#b77a4a', dirtDark: '#7d4b28', dirtLight: '#d89a62', stripe: 'rgba(90,40,10,0.2)',
       top: '#ff9fd0', topDark: '#d466a6', topLight: '#ffe0f1', blades: false, cream: true,
@@ -653,6 +662,59 @@ const Scenery = (() => {
           leaf(g, ex, 9, dir > 0 ? 0.3 : Math.PI - 0.3, 1.2, cols[1]);
           leaf(g, ex - dir * 3, 12, dir > 0 ? 1.0 : Math.PI - 1.0, 1, cols[2]);
         }
+        return;
+      }
+      if (th.fungus) {
+        // un champignon-étagère accroché au bois du Vieux Chêne : un dessus bombé tout pâle, des bandes de couleur
+        // qui suivent le bord, et dessous de tout petits trous (le bord est festonné) ; les bouts sont arrondis
+        const yt = 0;
+        const yb = 21;
+        cornerRect(g, x0, yt, x1 - x0, yb - yt, l ? 9 : 0, r ? 9 : 0, r ? 16 : 0, l ? 16 : 0);
+        const gr = g.createLinearGradient(0, yt, 0, yb);
+        gr.addColorStop(0, th.platLight);
+        gr.addColorStop(0.3, th.plat);
+        gr.addColorStop(1, th.platDark);
+        g.fillStyle = gr;
+        g.fill();
+        g.save();
+        g.clip();
+        // les bandes (des anneaux de croissance)
+        g.lineWidth = 2.2;
+        for (const [y, col] of [[8, 'rgba(255,240,200,0.45)'], [13, 'rgba(120,50,10,0.3)'], [17.5, 'rgba(255,220,160,0.35)']]) {
+          g.strokeStyle = col;
+          g.beginPath();
+          g.moveTo(x0 - 2, y);
+          for (let x = x0; x <= x1 + 2; x += 4) g.lineTo(x, y + Math.sin(x * 0.21 + y) * 0.8);
+          g.stroke();
+        }
+        // dessous : des tout petits trous pâles
+        g.fillStyle = '#fff1d0';
+        g.fillRect(x0 - 2, yb - 3, x1 - x0 + 4, 4);
+        g.fillStyle = 'rgba(150,80,30,0.45)';
+        for (let x = x0 + 3; x < x1 - 2; x += 5) {
+          circlePath(g, x, yb - 1.4, 0.9);
+          g.fill();
+        }
+        g.restore();
+        // le bord festonné, et le reflet du dessus
+        g.fillStyle = '#fff1d0';
+        for (let x = x0 + (l ? 8 : 2); x <= x1 - (r ? 8 : 2); x += 8) {
+          circlePath(g, x, yb - 0.5, 2.2);
+          g.fill();
+        }
+        g.fillStyle = 'rgba(255,255,255,0.55)';
+        roundRectPath(g, x0 + (l ? 6 : 0), 1.5, x1 - x0 - (l ? 6 : 0) - (r ? 6 : 0), 2.2, 1.1);
+        g.fill();
+        g.strokeStyle = 'rgba(90,40,10,0.45)';
+        g.lineWidth = 1.2;
+        // (entre deux cases, pas de trait au milieu du champignon)
+        g.save();
+        g.beginPath();
+        g.rect(l ? -PAD : 0, -PAD, (r ? T + PAD : T) - (l ? -PAD : 0), T + PAD * 2);
+        g.clip();
+        cornerRect(g, x0, yt, x1 - x0, yb - yt, l ? 9 : 0, r ? 9 : 0, r ? 16 : 0, l ? 16 : 0);
+        g.stroke();
+        g.restore();
         return;
       }
       if (th.root) {
@@ -1544,6 +1606,366 @@ const Scenery = (() => {
       ctx.fillStyle = 'rgba(255,230,180,0.35)';
       ctx.fillRect(x + 1, y + 1.5 + d, step - 4, 1.5);
     }
+  }
+
+  // ---------- Dans le Vieux Chêne ----------
+  // Une liane, le long des points pts (x, y, x, y… de là où elle est accrochée jusqu'au bout) : une tige verte et
+  // souple, des feuilles qui frémissent de chaque côté, une petite fleur, une vrille enroulée au bout, et en haut
+  // une touffe de feuilles. (held : Malice s'y tient : les feuilles s'agitent un peu plus.)
+  function vine(ctx, pts, t, v, held) {
+    const n = pts.length / 2;
+    if (n < 2) return;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const path = (dx) => {
+      ctx.beginPath();
+      ctx.moveTo(pts[0] + dx, pts[1]);
+      for (let i = 1; i < n; i++) ctx.lineTo(pts[2 * i] + dx, pts[2 * i + 1]);
+    };
+    path(0);
+    ctx.strokeStyle = '#2b5a24';
+    ctx.lineWidth = 7;
+    ctx.stroke();
+    ctx.strokeStyle = '#4f9a3a';
+    ctx.lineWidth = 4.4;
+    ctx.stroke();
+    path(-1.2);
+    ctx.strokeStyle = 'rgba(200,245,150,0.5)';
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+    // les feuilles, une sur deux de chaque côté (elles frémissent)
+    const cols = ['#4fb84a', '#6fd25a', '#3a9e3e'];
+    const shiver = held ? 0.4 : 0.2;
+    for (let i = 2; i < n; i += 2) {
+      const x = pts[2 * i];
+      const y = pts[2 * i + 1];
+      const a = Math.atan2(y - pts[2 * i - 1], x - pts[2 * i - 2]);
+      const side = (i / 2) % 2 ? 1 : -1;
+      const fl = Math.sin(t * 3.1 + i * 1.3 + v * 7) * shiver;
+      leaf(ctx, x, y, a - side * (2.1 + fl), 0.9 + hash(v * 9 + i) * 0.35, cols[(i / 2) % 3]);
+    }
+    // une petite fleur rose ou blanche
+    const fi = Math.max(1, Math.floor(n * (0.45 + v * 0.3)));
+    const fx = pts[2 * fi] + (v < 0.5 ? 4 : -4);
+    const fy = pts[2 * fi + 1];
+    ctx.fillStyle = v < 0.5 ? '#ffb0d8' : '#fff6e0';
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * TAU + t * 0.3;
+      circlePath(ctx, fx + Math.cos(a) * 3, fy + Math.sin(a) * 3, 2.3);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#ffd24a';
+    circlePath(ctx, fx, fy, 1.6);
+    ctx.fill();
+    // la vrille au bout
+    const tx = pts[2 * n - 2];
+    const ty = pts[2 * n - 1];
+    const s = v < 0.5 ? 1 : -1;
+    ctx.strokeStyle = '#3f8a32';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    for (let k = 1; k <= 10; k++) {
+      const a = k * 0.62 + Math.sin(t * 2 + v * 4) * 0.1;
+      const r = 6 - k * 0.45;
+      ctx.lineTo(tx + s * (Math.sin(a) * r), ty + 4 + (1 - Math.cos(a)) * r * 0.8);
+    }
+    ctx.stroke();
+    // la touffe de feuilles là où elle est accrochée
+    const ax = pts[0];
+    const ay = pts[1];
+    leaf(ctx, ax, ay + 1, 0.5, 1.1, cols[1]);
+    leaf(ctx, ax, ay + 1, Math.PI - 0.5, 1.1, cols[0]);
+    leaf(ctx, ax + 1, ay + 2, 1.35, 0.9, cols[2]);
+    ctx.fillStyle = '#2b5a24';
+    ellipsePath(ctx, ax, ay + 2, 5, 3.5);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Le motif de l'écorce du Vieux Chêne vu de dehors (dessiné une fois, puis recopié) : de grosses crêtes qui
+  // montent, avec des crevasses sombres, un peu de lichen.
+  const BARK_W = 96;
+  const BARK_H = 192;
+  function oakBarkSprite() {
+    return sprite('oakBark', BARK_W, BARK_H, (g) => {
+      g.lineCap = 'round';
+      for (let k = 0; k < 4; k++) {
+        const bx = 12 + k * 24;
+        const crack = (dx, lw, col) => {
+          g.beginPath();
+          for (let y = -4; y <= BARK_H + 4; y += 6) {
+            const x = bx + dx + Math.sin((y / BARK_H) * TAU * 2 + k * 1.9) * 3.5 + Math.sin((y / BARK_H) * TAU * 5 + k) * 1.2;
+            if (y === -4) g.moveTo(x, y); else g.lineTo(x, y);
+          }
+          g.strokeStyle = col;
+          g.lineWidth = lw;
+          g.stroke();
+        };
+        crack(0, 5.5, 'rgba(40,20,6,0.5)');
+        crack(-1.5, 2, 'rgba(20,8,2,0.55)');
+        crack(4, 1.6, 'rgba(255,220,170,0.22)');
+      }
+      // des petits ponts entre les crêtes, et du lichen
+      for (let i = 0; i < 9; i++) {
+        const x = 6 + hash(i * 3.3) * 84;
+        const y = hash(i * 7.1) * BARK_H;
+        g.strokeStyle = 'rgba(40,20,6,0.4)';
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x + 7 + hash(i) * 6, y + 2);
+        g.stroke();
+      }
+      for (let i = 0; i < 4; i++) {
+        g.fillStyle = i % 2 ? 'rgba(170,200,120,0.45)' : 'rgba(210,220,160,0.35)';
+        ellipsePath(g, 10 + hash(i * 5.7) * 76, 20 + hash(i * 2.9) * 150, 4 + hash(i) * 4, 3 + hash(i + 1) * 3);
+        g.fill();
+      }
+    });
+  }
+
+  // Le Vieux Chêne vu de dehors (dans le monde, entre x0 et x1 ; camY : le haut de l'écran) : un tronc immense
+  // couvert d'écorce, avec du lierre, de la mousse en bas, de grosses racines qui s'enfoncent dans l'herbe, et la
+  // porte : un grand trou en arche (door : où il est ; on voit l'intérieur à travers). alpha : il s'efface quand
+  // Malice entre.
+  function oakFacade(ctx, x0, x1, camY, door, alpha, t) {
+    const y0 = camY - 10;
+    const y1 = camY + VIEW_H + 10;
+    const dw = 2 * TILE;
+    const ground = door.y1;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    // les racines, posées sur l'herbe devant le tronc
+    if (ground > y0 && ground - 120 < y1) {
+      // (de grosses racines rondes, qui s'amincissent en plongeant dans l'herbe)
+      for (const [len, th, k] of [[120, 26, 0], [70, 18, 1]]) {
+        const rx = x0 + 10;
+        const top = ground - 30 - k * 4;
+        ctx.fillStyle = k ? '#6e4426' : '#7c4e2c';
+        ctx.beginPath();
+        ctx.moveTo(rx + 20, top - th);
+        ctx.bezierCurveTo(rx - len * 0.35, top - th * 0.8, rx - len * 0.75, ground - 8, rx - len, ground + 3);
+        ctx.lineTo(rx - len + 10, ground + 4);
+        ctx.bezierCurveTo(rx - len * 0.6, ground + 2, rx - len * 0.25, top + th * 0.5, rx + 20, top + th);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,220,170,0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(rx + 14, top - th + 4);
+        ctx.bezierCurveTo(rx - len * 0.35, top - th * 0.6, rx - len * 0.72, ground - 10, rx - len + 4, ground);
+        ctx.stroke();
+      }
+    }
+    // le tronc (sans la porte : on voit l'intérieur à travers)
+    const arch = () => {
+      ctx.moveTo(door.x, ground);
+      ctx.lineTo(door.x, door.y0 + 44);
+      ctx.quadraticCurveTo(door.x, door.y0 - 6, door.x + dw / 2, door.y0 - 8);
+      ctx.quadraticCurveTo(door.x + dw, door.y0 - 6, door.x + dw, door.y0 + 44);
+      ctx.lineTo(door.x + dw, ground);
+      ctx.closePath();
+    };
+    ctx.beginPath();
+    ctx.rect(x0, y0, x1 - x0, y1 - y0);
+    arch();
+    ctx.save();
+    ctx.clip('evenodd');
+    const gr = ctx.createLinearGradient(x0, 0, x0 + 700, 0);
+    gr.addColorStop(0, '#8e5c34');
+    gr.addColorStop(0.4, '#74482a');
+    gr.addColorStop(1, '#4e2f1a');
+    ctx.fillStyle = gr;
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    const img = oakBarkSprite();
+    const by0 = Math.floor(y0 / BARK_H) * BARK_H;
+    for (let x = x0; x < x1; x += BARK_W) {
+      for (let y = by0; y < y1; y += BARK_H) ctx.drawImage(img, x, y, BARK_W, BARK_H);
+    }
+    // le bord gauche du tronc, éclairé
+    const edge = ctx.createLinearGradient(x0, 0, x0 + 26, 0);
+    edge.addColorStop(0, 'rgba(255,220,160,0.35)');
+    edge.addColorStop(1, 'rgba(255,220,160,0)');
+    ctx.fillStyle = edge;
+    ctx.fillRect(x0, y0, 26, y1 - y0);
+    // de la mousse en bas du tronc
+    if (ground > y0 && ground - 140 < y1) {
+      for (let i = 0; i < 16; i++) {
+        const mx = x0 + 100 + hash(i * 2.3) * Math.min(900, x1 - x0 - 100);
+        const mh = 10 + hash(i * 4.1) * 22;
+        ctx.fillStyle = i % 3 ? 'rgba(96,160,64,0.7)' : 'rgba(140,195,85,0.65)';
+        ellipsePath(ctx, mx, ground - mh * 0.4, 10 + hash(i) * 16, mh * 0.5);
+        ctx.fill();
+      }
+    }
+    // du lierre qui grimpe
+    for (let k = 0; k < 3; k++) {
+      const ix = x0 + 170 + k * 260;
+      if (ix > x1 - 20) break;
+      ctx.strokeStyle = '#3a6a2a';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let y = ground; y > ground - 900; y -= 12) {
+        const x = ix + Math.sin(y * 0.02 + k * 2) * 14;
+        if (y === ground) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      for (let y = ground - 10; y > ground - 900; y -= 22) {
+        if (y > y1 || y < y0) continue;
+        const x = ix + Math.sin(y * 0.02 + k * 2) * 14;
+        const s = (Math.floor(y / 22) % 2 ? 1 : -1);
+        leaf(ctx, x, y, s > 0 ? -0.4 + Math.sin(t * 2 + y) * 0.08 : Math.PI + 0.4, 1.2, s > 0 ? '#4f9a3a' : '#3f8a32');
+      }
+    }
+    ctx.restore();
+    // l'intérieur sombre de la porte, et son bord
+    ctx.beginPath();
+    arch();
+    const dg = ctx.createLinearGradient(door.x, 0, door.x + dw, 0);
+    dg.addColorStop(0, 'rgba(20,8,2,0.55)');
+    dg.addColorStop(1, 'rgba(20,8,2,0.15)');
+    ctx.fillStyle = dg;
+    ctx.fill();
+    ctx.strokeStyle = '#3a2210';
+    ctx.lineWidth = 8;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,215,150,0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // un petit gland sculpté au-dessus de la porte
+    const sx = door.x + dw / 2;
+    const sy = door.y0 - 34;
+    if (sy > y0 - 30 && sy < y1) {
+      ctx.fillStyle = '#5a3418';
+      ellipsePath(ctx, sx, sy + 4, 9, 11);
+      ctx.fill();
+      ctx.fillStyle = '#c88a4a';
+      ellipsePath(ctx, sx, sy + 5, 6.5, 8);
+      ctx.fill();
+      ctx.fillStyle = '#6a4020';
+      roundRectPath(ctx, sx - 9, sy - 6, 18, 8, 4);
+      ctx.fill();
+      ctx.fillRect(sx - 1, sy - 11, 2, 6);
+    }
+    ctx.restore();
+  }
+
+  // Le fond du tronc creux (dessiné une fois, puis recopié) : du bois sombre avec de longues veines qui montent,
+  // des nœuds, un peu de mousse et de tout petits champignons.
+  const OAKWALL = 384;
+  function oakWallSprite() {
+    return sprite('oakWall', OAKWALL, OAKWALL, (g) => {
+      const S = OAKWALL;
+      g.fillStyle = '#4b2e19';
+      g.fillRect(0, 0, S, S);
+      g.lineCap = 'round';
+      // les veines du bois (elles se raccordent en haut et en bas : le motif se répète)
+      for (let k = 0; k < 16; k++) {
+        const bx = (k + 0.5) * (S / 16) + (hash(k * 1.7) - 0.5) * 8;
+        const amp = 3 + hash(k * 3.1) * 5;
+        g.beginPath();
+        for (let y = 0; y <= S; y += 8) {
+          const x = bx + Math.sin((y / S) * TAU * (1 + (k % 3)) + k) * amp;
+          if (y === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+        g.strokeStyle = k % 2 ? 'rgba(30,14,4,0.45)' : 'rgba(120,75,40,0.35)';
+        g.lineWidth = k % 2 ? 3.5 : 6;
+        g.stroke();
+      }
+      // des nœuds dans le bois, et les cernes autour
+      for (let i = 0; i < 4; i++) {
+        const x = 40 + hash(i * 9.1) * (S - 80);
+        const y = 40 + hash(i * 4.3) * (S - 80);
+        for (let r = 4; r >= 1; r--) {
+          g.strokeStyle = r % 2 ? 'rgba(30,14,4,0.4)' : 'rgba(140,90,50,0.3)';
+          g.lineWidth = 2;
+          ellipsePath(g, x, y, 4 + r * 4, 7 + r * 6);
+          g.stroke();
+        }
+        g.fillStyle = 'rgba(25,10,2,0.7)';
+        ellipsePath(g, x, y, 4, 7);
+        g.fill();
+      }
+      // de la mousse, et de tout petits champignons qui brillent un peu
+      for (let i = 0; i < 6; i++) {
+        const x = hash(i * 2.2 + 1) * S;
+        const y = hash(i * 6.6 + 2) * S;
+        g.fillStyle = 'rgba(90,140,60,0.28)';
+        for (let k = 0; k < 3; k++) {
+          ellipsePath(g, x - 10 + k * 10, y + (k % 2) * 3, 8 + hash(i + k) * 6, 4 + hash(i + k + 3) * 3);
+          g.fill();
+        }
+        if (i !== 1) continue;
+        // (une petite touffe de champignons qui sortent du bois, tout doucement lumineux)
+        const gl = g.createRadialGradient(x, y - 6, 0, x, y - 6, 22);
+        gl.addColorStop(0, 'rgba(190,255,215,0.28)');
+        gl.addColorStop(1, 'rgba(190,255,215,0)');
+        g.fillStyle = gl;
+        circlePath(g, x, y - 6, 22);
+        g.fill();
+        for (const [dx, h, r] of [[-7, 8, 4.5], [1, 12, 6], [8, 6, 3.5]]) {
+          g.fillStyle = 'rgba(225,250,235,0.8)';
+          g.fillRect(x + dx - 1, y - h, 2, h);
+          g.fillStyle = '#c8f6e0';
+          g.beginPath();
+          g.ellipse(x + dx, y - h, r, r * 0.7, 0, Math.PI, 0);
+          g.closePath();
+          g.fill();
+          g.fillStyle = 'rgba(255,255,255,0.7)';
+          ellipsePath(g, x + dx - r * 0.3, y - h - r * 0.35, r * 0.35, r * 0.18);
+          g.fill();
+        }
+      }
+    });
+  }
+
+  // Un rayon de soleil qui entre par un trou du tronc et descend en biais (dessiné une fois).
+  function oakBeamSprite() {
+    return sprite('oakBeam', 260, 520, (g) => {
+      g.beginPath();
+      g.moveTo(14, 8);
+      g.lineTo(38, 4);
+      g.lineTo(250, 510);
+      g.lineTo(150, 516);
+      g.closePath();
+      const gr = g.createLinearGradient(20, 0, 200, 500);
+      gr.addColorStop(0, 'rgba(255,240,180,0.5)');
+      gr.addColorStop(0.5, 'rgba(255,230,160,0.18)');
+      gr.addColorStop(1, 'rgba(255,230,160,0)');
+      g.fillStyle = gr;
+      g.fill();
+    });
+  }
+
+  // Le haut du Vieux Chêne, au-dessus du bord du tronc (largeur w, dessiné une fois) : de grosses touffes de
+  // feuilles, plus claires devant.
+  function oakCanopySprite() {
+    return sprite('oakCanopy', 480, 230, (g) => {
+      const layers = [['#2f6a32', 150, 46], ['#3f8a3a', 105, 40], ['#58a844', 62, 32]];
+      g.fillStyle = '#24562a';
+      g.fillRect(0, 0, 480, 110);
+      for (const [col, by, r] of layers) {
+        g.fillStyle = col;
+        for (let i = -1; i <= 9; i++) {
+          const x = i * 54 + hash(i * 3.7 + by) * 20;
+          const y = by - 30 + hash(i * 1.9 + by) * 26;
+          circlePath(g, ((x % 480) + 480) % 480, y, r + hash(i + by) * 12);
+          g.fill();
+          circlePath(g, ((x % 480) + 480) % 480 - 480, y, r + hash(i + by) * 12);
+          g.fill();
+          circlePath(g, ((x % 480) + 480) % 480 + 480, y, r + hash(i + by) * 12);
+          g.fill();
+        }
+      }
+      // des reflets
+      g.fillStyle = 'rgba(200,255,150,0.25)';
+      for (let i = 0; i < 12; i++) {
+        ellipsePath(g, hash(i * 5.1) * 480, 30 + hash(i * 2.3) * 70, 10, 5, -0.4);
+        g.fill();
+      }
+    });
   }
 
   // ---------- La rivière aux nénuphars ----------
@@ -2575,6 +2997,119 @@ const Scenery = (() => {
       });
     },
 
+    // dans le Vieux Chêne : le fond du tronc creux, tout près (il bouge presque avec les étages) : du bois sombre
+    // avec ses veines, ses nœuds, sa mousse et de petits champignons qui brillent ; des trous par où entrent des
+    // rayons de soleil (avec des poussières qui dansent dedans) ; plus on monte, plus il y a de lumière ; et tout en
+    // haut ("couronne" dans levels.js, o.crown), le bord du tronc s'ouvre sur les feuilles du chêne et un bout de ciel.
+    oak(ctx, cx, cy, t, flash, o) {
+      const k = 0.55;
+      const px = cx * k;
+      const py = cy * k;
+      const img = oakWallSprite();
+      const S = OAKWALL;
+      const ox = -(((px % S) + S) % S);
+      const oy = -(((py % S) + S) % S);
+      for (let x = ox; x < VIEW_W; x += S) {
+        for (let y = oy; y < VIEW_H; y += S) ctx.drawImage(img, x, y, S, S);
+      }
+      // plus on monte, plus il y a de lumière
+      const up = o && o.height ? clamp(1 - (cy + VIEW_H) / o.height, 0, 1) : 0;
+      ctx.fillStyle = `rgba(255,200,130,${0.04 + up * 0.16})`;
+      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+      // les trous dans le bois, et les rayons de soleil
+      const CW = 340;
+      const CH = 300;
+      const beam = oakBeamSprite();
+      for (let i = Math.floor((px - 260) / CW); i <= Math.floor((px + VIEW_W) / CW); i++) {
+        for (let j = Math.floor((py - 520) / CH); j <= Math.floor((py + VIEW_H) / CH); j++) {
+          const h = hash2(i * 3.7, j * 5.1);
+          if (h > 0.38) continue;
+          const hx = i * CW + 40 + hash2(i, j + 7) * 220 - px;
+          const hy = j * CH + 30 + hash2(i + 3, j) * 150 - py;
+          // (pas de trou au-dessus du bord du tronc, tout en haut)
+          if (o && o.crown && hy + py < o.crown + 40) continue;
+          const r = 9 + h * 26;
+          ctx.save();
+          ctx.globalAlpha = 0.75 + Math.sin(t * 0.7 + i + j) * 0.12;
+          ctx.drawImage(beam, hx - 20, hy - 6, 260 * (r / 22), 520);
+          ctx.restore();
+          // les poussières qui dansent dans le rayon
+          ctx.fillStyle = 'rgba(255,245,200,0.7)';
+          for (let d = 0; d < 5; d++) {
+            const f = ((t * 0.05 + hash(i * 7 + j * 3 + d)) % 1);
+            const dx = hx + 10 + f * 150 * (r / 22) + Math.sin(t * 1.3 + d * 2) * 8;
+            const dy = hy + f * 420 + Math.cos(t + d) * 6;
+            circlePath(ctx, dx, dy, 1.3 + (d % 2));
+            ctx.fill();
+          }
+          // le trou : on voit le ciel et des feuilles dehors
+          ctx.fillStyle = '#2a1508';
+          ellipsePath(ctx, hx, hy, r + 5, r * 1.25 + 6);
+          ctx.fill();
+          const sk = ctx.createRadialGradient(hx - r * 0.3, hy - r * 0.3, 1, hx, hy, r * 1.25);
+          sk.addColorStop(0, '#fffbe0');
+          sk.addColorStop(0.6, '#bfe8f0');
+          sk.addColorStop(1, '#7cc28a');
+          ctx.fillStyle = sk;
+          ellipsePath(ctx, hx, hy, r, r * 1.25);
+          ctx.fill();
+          ctx.fillStyle = '#4f9a3a';
+          leaf(ctx, hx + r * 0.6, hy + r * 0.7, -2.4, r / 14, '#4f9a3a');
+          ctx.strokeStyle = 'rgba(255,210,150,0.35)';
+          ctx.lineWidth = 2;
+          ellipsePath(ctx, hx, hy, r + 3, r * 1.25 + 4);
+          ctx.stroke();
+        }
+      }
+      // tout en haut : le bord du tronc, et la couronne du chêne au-dessus
+      if (o && o.crown) {
+        const rim = o.crown - py;
+        if (rim > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(-10, -10);
+          ctx.lineTo(VIEW_W + 10, -10);
+          // (le bord du tronc, tout cassé : une pointe toutes les 24 unités du fond)
+          const w0 = Math.floor((px - 30) / 24) * 24;
+          const w1 = Math.ceil((px + VIEW_W + 30) / 24) * 24;
+          const edgeY = (wx) => rim + 6 + Math.sin(wx * 0.05) * 9 + hash(wx / 24) * 16;
+          ctx.lineTo(VIEW_W + 10, edgeY(w1));
+          for (let wx = w1; wx >= w0; wx -= 24) ctx.lineTo(wx - px, edgeY(wx));
+          ctx.closePath();
+          ctx.clip();
+          sky(ctx, [[0, '#7fd0f0'], [0.35, '#c8efd8'], [1, '#fff4c8']]);
+          // les rayons du soleil, entre les feuilles
+          ctx.globalAlpha = 0.25;
+          ctx.fillStyle = '#fffbd0';
+          for (let i = 0; i < 4; i++) {
+            const x = ((i * 300 - px * 0.3) % 1200 + 1200) % 1200 - 120;
+            ctx.beginPath();
+            ctx.moveTo(x, -10);
+            ctx.lineTo(x + 60, -10);
+            ctx.lineTo(x + 200, rim + 40);
+            ctx.lineTo(x + 110, rim + 40);
+            ctx.closePath();
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          // les feuilles du chêne, qui bougent un peu dans le vent
+          const can = oakCanopySprite();
+          const cy0 = -30 - py * 0.4 + Math.sin(t * 0.8) * 3;
+          const cox = -((((px * 0.7 + Math.sin(t * 0.5) * 6) % 480) + 480) % 480);
+          for (let x = cox; x < VIEW_W; x += 480) ctx.drawImage(can, x, cy0, 480, 230);
+          ctx.restore();
+          // l'épaisseur du bord du tronc
+          ctx.strokeStyle = '#2a1508';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          for (let wx = w1; wx >= w0; wx -= 24) {
+            if (wx === w1) ctx.moveTo(wx - px, edgeY(wx)); else ctx.lineTo(wx - px, edgeY(wx));
+          }
+          ctx.stroke();
+        }
+      }
+    },
+
     storm(ctx, cx, cy, t, flash) {
       sky(ctx, [[0, '#3d2a6b'], [0.55, '#8e6bb8'], [1, '#e6b3d6']]);
       const off1 = cx * 0.08;
@@ -3143,8 +3678,9 @@ const Scenery = (() => {
     ctx.restore();
   }
 
-  function drawBackground(ctx, theme, cx, cy, t, flash) {
-    BG[theme](ctx, cx, cy, t, flash || 0);
+  // (o : ce que le fond doit savoir du niveau, pour le Vieux Chêne : voir World.oakInfo)
+  function drawBackground(ctx, theme, cx, cy, t, flash, o) {
+    BG[theme](ctx, cx, cy, t, flash || 0, o);
   }
 
   // ---------- Petites décorations posées sur le sol ----------
@@ -3352,6 +3888,61 @@ const Scenery = (() => {
         ellipsePath(ctx, -5, -8, 6, 2.2);
         ctx.fill();
       }
+    } else if (theme === 'oak') {
+      if (v < 0.28) {
+        // trois petits champignons (rouges à pois blancs, ou couleur noisette)
+        const red = v < 0.14;
+        for (const [dx, h, r] of [[-7, 9, 5], [2, 14, 6.5], [9, 7, 4]]) {
+          ctx.fillStyle = '#f4ead2';
+          roundRectPath(ctx, dx - 1.6, -h, 3.2, h, 1.4);
+          ctx.fill();
+          ctx.fillStyle = red ? '#e0443a' : '#c08a4a';
+          ctx.beginPath();
+          ctx.ellipse(dx, -h, r, r * 0.75, 0, Math.PI, 0);
+          ctx.closePath();
+          ctx.fill();
+          if (red) {
+            ctx.fillStyle = '#ffffff';
+            circlePath(ctx, dx - r * 0.35, -h - r * 0.35, 1.1);
+            ctx.fill();
+            circlePath(ctx, dx + r * 0.3, -h - r * 0.2, 0.9);
+            ctx.fill();
+          }
+        }
+      } else if (v < 0.5) {
+        // un gland tombé par terre
+        ctx.rotate(0.4 - v);
+        ctx.fillStyle = '#b87a3a';
+        ellipsePath(ctx, 0, -6, 5, 6.5);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,230,180,0.45)';
+        ellipsePath(ctx, -1.6, -7.5, 1.6, 2.4);
+        ctx.fill();
+        ctx.fillStyle = '#6a4424';
+        roundRectPath(ctx, -5.6, -13, 11.2, 5.4, 2.6);
+        ctx.fill();
+        ctx.fillRect(-0.7, -16, 1.4, 3.5);
+      } else if (v < 0.72) {
+        // une petite fougère
+        ctx.rotate(sway * 0.7);
+        ctx.strokeStyle = '#3f8a32';
+        ctx.lineWidth = 1.6;
+        for (const s of [-1, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(s * 6, -12, s * 13, -14);
+          ctx.stroke();
+          for (let k = 1; k <= 4; k++) leaf(ctx, s * k * 2.8, -k * 3.3, s > 0 ? -1.2 : Math.PI + 1.2, 0.45, '#5fb04a');
+        }
+      } else {
+        // une touffe de mousse toute ronde
+        ctx.fillStyle = '#4f8f3a';
+        ellipsePath(ctx, 0, -3, 11, 5);
+        ctx.fill();
+        ctx.fillStyle = '#78b850';
+        ellipsePath(ctx, -2, -5, 7, 3);
+        ctx.fill();
+      }
     } else if (theme === 'storm') {
       if (v < 0.5) {
         // petite sucette décorative
@@ -3491,6 +4082,6 @@ const Scenery = (() => {
     rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
     drawMudRun, mudMist, stilt, cabinSprite, CABIN_H, ropeBridge,
     trunkSprite, crown, riverBed, drawWaterRun, reeds, burrowCell, burrowSunbeam, burrowLantern,
-    moonPos, glowFlower, glowFlowerShine,
+    moonPos, glowFlower, glowFlowerShine, vine, oakFacade,
   };
 })();
