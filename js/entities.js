@@ -84,6 +84,10 @@ const OUCH = {
   // la taupe qui jaillit du sol : projetée en l'air dans une gerbe de terre, elle retombe toute sale,
   // des mottes sur la tête et un petit ver de terre qui lui fait coucou
   dirt: { dur: 1.9, pose: 0.75, lock: 0.3, vx: 190, vy: -830, hold: 0.45, text: 'Pouah, de la terre !', color: '#e0a86a' },
+  // le hérisson : couverte de piquants comme une pelote d'épingles, elle les enlève un par un
+  // (« Aïe ! » à chaque piquant, voir Art.PIN_PULLS)
+  // (textY : son texte part plus haut, sinon elle rebondit à travers et il lui cache la figure)
+  pins: { dur: 2.25, pose: 0.4, lock: 0.25, vx: 230, vy: -560, hold: 0.35, text: 'Ça pique !', color: '#e8c090', textY: -84 },
   // n'importe quoi d'autre
   hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
 };
@@ -665,7 +669,10 @@ class Player {
     }
     if (hit < 0) return;
     const big = this.pound === 2;
-    this.vy = -(big ? PHYS.bigBounce : Input.held.jump ? PHYS.springHeld : PHYS.spring);
+    // (jamais plus haut que le haut du niveau : elle sortirait de l'écran. En pratique, seul le rebond
+    // après un écrasement est assez fort pour être limité ; le rebond simple et le saut gardé ne changent pas.)
+    const room = Math.max(0, this.y - 10);
+    this.vy = -Math.min(big ? PHYS.bigBounce : Input.held.jump ? PHYS.springHeld : PHYS.spring, Math.sqrt(2 * PHYS.gravity * room));
     this.onGround = false;
     this.platform = null;
     this.jumping = false;
@@ -1166,7 +1173,7 @@ class Player {
     Sound.sfx.ouch(kind);
     w.shake(6);
     this.ouch = { kind, t: 0, dur: O.dur, seed: Math.random() * 100 };
-    if (O.text) w.popText(this.cx, this.y - 22, O.text, O.color, 20);
+    if (O.text) w.popText(this.cx, this.y + (O.textY || -22), O.text, O.color, 20);
     if (this.energy <= 0) {
       this.die('hurt');
       return true;
@@ -1270,6 +1277,18 @@ class Player {
           const p = at(rand(-12, 12), rand(-64, -10));
           w.spawn({ type: 'dot', x: p.x, y: p.y, vx: rand(-30, 30), vy: rand(0, 60), g: 1100, life: 0.6, size: rand(1.8, 3), color: choose(['#8a5a34', '#a8703e', '#6a4024']) });
         }
+        break;
+      case 'pins':
+        // elle enlève les piquants un par un : aïe ! (le piquant s'envole en tournoyant)
+        Art.PIN_PULLS.forEach((time, i) => {
+          if (!passed(time)) return;
+          const [x, y] = Art.pinAt(i, Heroes.headTop(this.hero, { pw: this.pw }));
+          const p = at(x, y);
+          Sound.sfx.pluck(i);
+          // (un « Aïe ! » pour deux piquants, une fois d'un côté, une fois de l'autre : sinon ils s'empilent)
+          if (i % 2 === 0) w.popText(this.cx + (i % 4 ? 16 : -16), this.y - 14, 'Aïe !', '#ffd27a', 17);
+          w.spawn({ type: 'straw', x: p.x, y: p.y, vx: f * rand(-40, 120), vy: rand(-260, -160), g: 900, life: 0.6, size: 10, color: '#6a4a2e', rot: rand(0, 6), vr: rand(-14, 14) });
+        });
         break;
       case 'spots':
         Art.MALICE_SPOTS.forEach(([x, y], i) => {
@@ -2616,6 +2635,135 @@ class Mole extends Enemy {
   }
 
   mouth() { return { x: this.dir * (this.fat ? 12 : 10), y: -17 }; }
+}
+
+// Hérisson (les Champignons Géants) : il trottine en reniflant. Quand Malice approche, « ! » : il se met
+// en boule, tout plein de piquants. En boule, on ne peut plus lui sauter dessus (on se pique !), ni le toucher.
+// Au bout d'un moment, il se déroule et renifle autour de lui, tout étonné : c'est le moment de lui sauter
+// dessus (pouic !). Le caramel colle ses piquants : il ne peut plus se mettre en boule. Avec les chips, il
+// devient trop gros pour s'enrouler. Les pouvoirs qui renversent les ennemis marchent toujours, même en boule,
+// et en roulade on passe à travers lui sans se piquer (comme à travers les autres ennemis).
+// (w.diff : hogSpeed, hogNear, hogCurl, hogOpen, voir DIFFS dans game.js)
+const HOG_CURL = 0.2;
+
+class Hedgehog extends Enemy {
+  constructor(world, x, y) {
+    super(world, x, y, 40, 30);
+    this.ouch = 'pins'; // il plante plein de piquants dans Malice (voir OUCH)
+    this.state = 'walk';
+    // 0 : déroulé, 1 : en boule
+    this.curl = 0;
+    this.timer = 0;
+    // au début (et à la reprise d'un drapeau), il ne se met pas tout de suite en boule
+    this.calm = 1;
+    this.fatSpeed = 16;
+    this.look = { x: -1, y: 0 };
+  }
+
+  // En boule pour de vrai : sauter dessus pique.
+  prickly() {
+    return this.state === 'ball' && this.curl > 0.5 && !this.dying && this.stuck <= 0 && !this.fat;
+  }
+
+  // Il est petit : le caramel, les chips et les tirs des pouvoirs le touchent un peu plus haut.
+  shotBox() {
+    return { x: this.x, y: this.y - 18, w: this.w, h: this.h + 18 };
+  }
+
+  // Malice arrive tout près (devant ou derrière, en lui tombant dessus, ou juste en dessous de lui) ?
+  near(p) {
+    if (p.dead || p.won) return false;
+    const feet = p.y + p.h;
+    return Math.abs(p.cx - this.cx) < this.world.diff.hogNear * TILE && feet > this.y - 3 * TILE && feet < this.y + this.h + 1.5 * TILE;
+  }
+
+  ai(dt) {
+    const w = this.world;
+    const p = w.player;
+    const D = w.diff;
+    this.calm -= dt;
+    this.timer -= dt;
+    switch (this.state) {
+      case 'walk':
+        this.curl = Math.max(0, this.curl - dt / HOG_CURL);
+        this.vx = this.dir * D.hogSpeed;
+        this.legPhase += dt * 11;
+        this.walkPhysics(dt, true);
+        if (this.calm <= 0 && this.near(p)) this.ballUp();
+        break;
+      case 'ball':
+        // tout rond, il tremble un peu ; puis il se déroule
+        this.curl = Math.min(1, this.curl + dt / HOG_CURL);
+        this.vx = 0;
+        this.walkPhysics(dt, false);
+        if (this.timer <= 0) {
+          this.state = 'peek';
+          this.timer = D.hogOpen;
+          if (w.onScreen(this)) Sound.sfx.hogOpen();
+          w.popText(this.cx, this.y - 16, '?', '#ffffff', 24);
+        }
+        break;
+      case 'peek':
+        // déroulé, il renifle autour de lui (il ne se remet pas en boule tout de suite)
+        this.curl = Math.max(0, this.curl - dt / HOG_CURL);
+        this.vx = 0;
+        this.walkPhysics(dt, false);
+        if (this.timer <= 0) this.state = 'walk';
+        break;
+      default: break;
+    }
+    const dx = p.cx - this.cx;
+    const dy = p.cy - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const sees = !p.dead && d < 360 && this.state === 'peek';
+    this.look.x += ((sees ? dx / d : this.dir) - this.look.x) * Math.min(1, dt * 6);
+    this.look.y += ((sees ? dy / d : 0) - this.look.y) * Math.min(1, dt * 6);
+  }
+
+  // « ! » : il se met en boule.
+  ballUp() {
+    const w = this.world;
+    this.state = 'ball';
+    this.timer = w.diff.hogCurl;
+    this.vx = 0;
+    w.popText(this.cx, this.y - 16, '!', '#ff4040', 28);
+    if (w.onScreen(this)) Sound.sfx.hogCurl();
+  }
+
+  // Le caramel colle ses piquants, et les chips le rendent trop gros : il se déroule tout de suite.
+  unroll() {
+    this.curl = 0;
+    this.state = 'peek';
+    this.timer = Infinity;
+  }
+
+  onStuck() { this.unroll(); }
+  onFat() { this.unroll(); }
+
+  onUnstuck() {
+    this.state = 'walk';
+    this.calm = 0.6;
+  }
+
+  // déroulé, on lui saute dessus : pouic ! Il voit des étoiles, puis redevient tout gentil (des petits cœurs).
+  stomp() {
+    const w = this.world;
+    this.kill('stomp');
+    w.popText(this.cx, this.y - 24, 'Pouic !', '#ffe0b0', 20);
+    for (let i = 0; i < 3; i++) {
+      w.spawn({ type: 'heart', x: this.cx + rand(-12, 12), y: this.y, vx: rand(-40, 40), vy: rand(-140, -80), life: 0.9, size: 1 });
+    }
+  }
+
+  drawBody(ctx, x, y) {
+    Art.hedgehog(ctx, x, y, {
+      dir: this.dir, t: this.t, phase: this.legPhase, curl: this.curl, look: this.look,
+      moving: Math.abs(this.vx) > 1, sniff: this.state === 'peek' && !this.fat && this.stuck <= 0,
+      fat: this.fat, rest: this.fatRest && this.stuck <= 0,
+    });
+  }
+
+  mouth() { return { x: this.dir * (this.fat ? 21 : 19), y: -9 }; }
 }
 
 // Gros œil bonbon : il est gentil mais timide. Il s'enfuit quand Malice approche ;

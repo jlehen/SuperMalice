@@ -11,6 +11,8 @@
 //   ~  lave (chocolat au monde des bonbons)   ^  ronces (au sol)     v  ronces (qui pendent)
 //   =  pont arc-en-ciel (une plateforme qu'on traverse par dessous)
 //   M  champignon qui fait rebondir (guimauve au monde des bonbons)
+//      (dans les Champignons Géants, "theme: mushrooms" : chaque rangée de - ou de M côte à côte est un grand
+//      chapeau de champignon sur son grand pied ; les M sont les chapeaux bleus à pois qui font rebondir)
 //   w  flaque d'eau, posée sur le sol (plouf ! et Gizmo devient un Gremlin)
 //   |  tronc d'arbre (dans le décor : on passe devant ; dans les Grands Arbres, - est une branche)
 //   *  pissenlit géant, planté sur une branche ou qui flotte en l'air : on l'attrape en le touchant,
@@ -21,6 +23,7 @@
 //      (les nénuphars se mettent dans la rangée de la surface de l'eau)
 //   O  escargot (il laisse de la bave qui glisse)
 //   m  taupe (cachée sous l'herbe ; quand Malice passe, elle file sous ses pieds et jaillit du sol)
+//   h  hérisson (quand Malice approche, il se met en boule : ça pique ! On lui saute dessus quand il se déroule)
 //   i  lucioles (un petit groupe qui éclaire la nuit, et qui suit Malice un moment)
 //   j  grande fleur-lanterne qui brille (elle éclaire tout autour, la nuit)
 //   l  lapin (gentil ; sur l'herbe, il sort la tête de son trou ; dans un terrier, il parle : voir "lapins")
@@ -295,6 +298,38 @@ const LEVELS = [
       '..P..T...^^..ooo.T.......D.......T.ww..o.o.o.o....E.............D..!...........^^^....E..ww.D.........#####...D...E...!......T.......oo.oo.oo.....E...D.......E..E..D..!........ww.####.......D.....E...^......G.......',
       '############################...#######################################.....#############################################...#############################################.......########################################',
       '############################~~~#######################################~~~~~#############################################~~~#############################################~~~~~~~########################################',
+    ],
+  },
+  {
+    world: 2,
+    name: "Les Champignons Géants",
+    theme: "mushrooms",
+    intro: "Saute de chapeau en chapeau !",
+    storms: [],
+    talk: [
+      "Bienvenue chez les Champignons Géants\u00a0! Ici, tout est énorme… même les champignons\u00a0!",
+      "Les chapeaux des champignons, c'est comme des plateformes\u00a0: saute de chapeau en chapeau\u00a0! Par en dessous, on passe à travers.",
+      "Les champignons bleus à pois blancs font rebondir\u00a0! Saute dessus, et garde {SAUT} appuyé pour monter encore plus haut\u00a0!",
+      "Un hérisson\u00a0! Quand tu t'approches, il se met en boule\u00a0: ne lui saute pas dessus, ça pique\u00a0! Attends qu'il se déroule pour renifler… et là, saute-lui vite dessus\u00a0!",
+      "Le caramel colle les piquants des hérissons\u00a0: ils ne peuvent plus se mettre en boule\u00a0! Casse le bloc lutin pour en avoir.",
+      "Oh, le très grand trou\u00a0! Rebondis sur le champignon bleu pour sauter jusqu'au grand chapeau.",
+      "Avec les chips, les hérissons deviennent tout gros\u00a0: bien trop gros pour se mettre en boule\u00a0!",
+    ],
+    map: [
+      '........................................................................................................................................................................................................................',
+      '........................................................................................................................................................................................................................',
+      '.............................................y..........................................................................................................................................................................',
+      '........................................................................................................................................................................................................................',
+      '.............................................o...........................................................................................................F..............................................................',
+      '..........................oooo..................o.o.o...............................................................................o.o.o....................................................ooooo......................',
+      '..........................----...............o..-----...............................................................................------.............o.o.o.................................-----......................',
+      '................................................................o.o.o.o..................oo...oo...........ooo........BSB..............................-----...............................................o.o.o........',
+      '...........o.o..L................................................................BKB.......................---.............................--...........................BCB........h....................................',
+      '...........---........---......--..oo.....................................................................................................................h....................-------..................................',
+      '...................................--..............................h.......................h....h......--......--.....................................########................................................h.........',
+      '..P..T..ooo........T....................T...MMM....oooT........########.....!..T........###########.ooo....................!.T..MM..............D.....########......!.T.........^^^^.....MMM.........!.....#####...G....',
+      '##################################....################################################################............#################..........######...########...#######################################################',
+      '##################################....################################################################............#################..........######...########...#######################################################',
     ],
   },
   {

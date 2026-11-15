@@ -9,6 +9,9 @@
 // snailSpeed : vitesse des escargots. padShake : combien de temps un nénuphar tremble avant de couler.
 // moleDig : vitesse d'une taupe qui file sous terre ; moleWarn : combien de temps la terre tremble avant
 // qu'elle jaillisse ; moleOut : combien de temps elle reste dehors avant de replonger.
+// hogSpeed : vitesse des hérissons ; hogNear : à combien de cases de Malice ils se mettent en boule ;
+// hogCurl : combien de temps ils restent en boule ; hogOpen : combien de temps ils restent déroulés à renifler
+// (on peut leur sauter dessus) avant de pouvoir se remettre en boule.
 // bossK : la vitesse des boss (et de leurs attaques) ; plus petit, ils sont plus lents et attendent plus longtemps.
 const DIFFS = {
   bebe: {
@@ -16,24 +19,28 @@ const DIFFS = {
     dotSpeed: 130, eclairMin: 2.4, eclairMax: 3.5, gameOver: null, forever: true, starTime: 30,
     starLava: true, batSpeed: 130, birdSpeed: 80, gummySpeed: 90, eyeFlee: 140, windK: 0.55, darkR: 280,
     snailSpeed: 18, padShake: 1.5, moleDig: 90, moleWarn: 0.9, moleOut: 2.6, bossK: 0.7,
+    hogSpeed: 26, hogNear: 2.2, hogCurl: 1.3, hogOpen: 2.6,
   },
   gentil: {
     name: 'Gentil', lives: Infinity, eyeChase: 115, cubeFuse: 1.9, shootMin: 2.8, shootMax: 3.8,
     dotSpeed: 165, eclairMin: 1.8, eclairMax: 2.7, gameOver: null, forever: false, starTime: STAR_TIME,
     starLava: false, batSpeed: 160, birdSpeed: 100, gummySpeed: 115, eyeFlee: 175, windK: 0.8, darkR: 240,
     snailSpeed: 24, padShake: 0.95, moleDig: 115, moleWarn: 0.7, moleOut: 1.9, bossK: 1,
+    hogSpeed: 34, hogNear: 2.6, hogCurl: 1.6, hogOpen: 2.0,
   },
   classique: {
     name: 'Classique', lives: 3, eyeChase: 135, cubeFuse: 1.55, shootMin: 2.2, shootMax: 3.2,
     dotSpeed: 200, eclairMin: 1.35, eclairMax: 2.1, gameOver: 'level', forever: false, starTime: STAR_TIME,
     starLava: false, batSpeed: 190, birdSpeed: 120, gummySpeed: 135, eyeFlee: 195, windK: 1, darkR: 215,
     snailSpeed: 28, padShake: 0.8, moleDig: 135, moleWarn: 0.58, moleOut: 1.6, bossK: 1.15,
+    hogSpeed: 40, hogNear: 3, hogCurl: 1.9, hogOpen: 1.6,
   },
   difficile: {
     name: 'Difficile', lives: 3, eyeChase: 155, cubeFuse: 1.3, shootMin: 1.7, shootMax: 2.6,
     dotSpeed: 235, eclairMin: 1.0, eclairMax: 1.7, gameOver: 'game', forever: false, starTime: STAR_TIME,
     starLava: false, batSpeed: 220, birdSpeed: 140, gummySpeed: 155, eyeFlee: 215, windK: 1.15, darkR: 195,
     snailSpeed: 32, padShake: 0.65, moleDig: 155, moleWarn: 0.48, moleOut: 1.35, bossK: 1.3,
+    hogSpeed: 46, hogNear: 3.4, hogCurl: 2.2, hogOpen: 1.25,
   },
 };
 

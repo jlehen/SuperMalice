@@ -139,7 +139,8 @@ const Heroes = (() => {
   }
 
   // ---------- Animation des bras et des jambes (la même que Malice) ----------
-  function rig(pose, t, ph, k) {
+  // head : le haut de sa tête (pour aller chercher les piquants du hérisson, voir headTop)
+  function rig(pose, t, ph, k, head) {
     const R = { legF: 0.1, legB: -0.1, armF: -0.12, armB: 0.12, bob: 0, lean: 0, crouch: 0 };
     switch (pose) {
       case 'walk': {
@@ -180,7 +181,18 @@ const Heroes = (() => {
         R.bob = Math.sin(t * 2.5) * 0.7;
         R.armF = -0.12 - Math.sin(t * 2.5) * 0.04;
     }
+    // il enlève un piquant du hérisson
+    if (k && k.kind === 'pins' && Art.PIN_REACH_POSES.includes(pose)) {
+      const a = Art.pinsReach(k, head);
+      if (a !== null) R.armF = a;
+    }
     return R;
+  }
+
+  // Le haut de sa tête : [x, y] (là où se pose le bébé oiseau). o : comme pour draw (Gizmo en Gremlin…).
+  function headTop(id, o) {
+    const def = DRAW[id];
+    return (def && def.hat && def.hat(o || {})) || HERO_HAT[id] || HERO_HAT.malice;
   }
 
   // ---------- Couleurs qui recouvrent tout le personnage ----------
@@ -234,6 +246,9 @@ const Heroes = (() => {
       case 'wet': return { color: '#3a8ae8', a: 0.3 * clamp(left / 0.5, 0, 1) };
       case 'slime': return { color: '#8ee05a', a: 0.38 * clamp(left / 0.5, 0, 1) };
       case 'dirt': return { color: '#7a4a24', a: 0.38 * clamp(left / 0.5, 0, 1) };
+      // tout rouge d'avoir été piqué, au début
+      // (ensuite plus rien : inutile de redessiner le personnage à part)
+      case 'pins': return k.t < 0.6 ? { color: '#ff5a6a', a: 0.22 * (1 - k.t / 0.6) } : null;
       default: return null;
     }
   }
@@ -266,12 +281,13 @@ const Heroes = (() => {
     const k = o.ouch || null;
     const pose = o.pose || 'idle';
     const t = o.t || 0;
-    const R = rig(pose, t, o.ph || 0, k);
+    const head = headTop(id, o);
+    const R = rig(pose, t, o.ph || 0, k, head);
     const shock = k && k.kind === 'zap' && k.shock;
     const opts = Object.assign({}, o, {
       pose, t, ph: o.ph || 0,
-      // tout son corps réagit, ou il vient d'avoir mal : les yeux plissés
-      hurt: pose === 'ouch' || pose === 'hurt' || (k && k.t < 0.35),
+      // tout son corps réagit, ou il vient d'avoir mal (ou il enlève un piquant) : les yeux plissés
+      hurt: pose === 'ouch' || pose === 'hurt' || (k && k.t < 0.35) || (k && k.kind === 'pins' && Art.pinsWince(k)),
     });
     ctx.save();
     ctx.translate(x, y);
@@ -300,9 +316,10 @@ const Heroes = (() => {
     if (k && k.kind === 'wet') Art.wetOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'slime') Art.slimeOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'dirt') Art.dirtOverlay(ctx, k, info.headY - 12);
+    if (k && k.kind === 'pins') Art.pinsOverlay(ctx, k, head);
     // le bébé oiseau assis sur la tête
     if (o.onHead) {
-      const [hx, hy] = (def.hat && def.hat(o)) || HERO_HAT[id] || HERO_HAT.malice;
+      const [hx, hy] = head;
       ctx.save();
       ctx.translate(hx, hy - HERO_HAT.malice[1] + R.bob + R.crouch);
       o.onHead(ctx);
@@ -325,5 +342,5 @@ const Heroes = (() => {
     ctx.restore();
   }
 
-  return { TAU, add, draw, head, rig, paint, tone, limb, tip, blob, eye, blinking };
+  return { TAU, add, draw, head, headTop, rig, paint, tone, limb, tip, blob, eye, blinking };
 })();

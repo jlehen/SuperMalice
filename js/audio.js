@@ -160,6 +160,10 @@ const Sound = (() => {
           tone({ type: 'triangle', f: 260, f2: 900, d: 0.35, v: 0.2 });
           for (let i = 0; i < 4; i++) noise({ filter: 'bandpass', f: 1200 - i * 150, d: 0.05, v: 0.12, q: 2, delay: 0.3 + i * 0.08 });
           break;
+        case 'pins': // tchic-tchic-tchic : plein de piquants plantés d'un coup, et un petit cri tout aigu
+          for (let i = 0; i < 5; i++) noise({ filter: 'highpass', f: 4200, d: 0.03, v: 0.16, delay: i * 0.035 });
+          tone({ type: 'triangle', f: 900, f2: 1700, d: 0.18, v: 0.1, delay: 0.05, vib: 30, vibDepth: 90 });
+          break;
         default: break;
       }
     },
@@ -403,6 +407,23 @@ const Sound = (() => {
       tone({ type: 'triangle', f: 1300, f2: 900, d: 0.12, v: 0.2 });
       tone({ type: 'sine', f: 2600, d: 0.3, v: 0.05, delay: 0.02 });
     },
+    // ---- Les Champignons Géants ----
+    // le hérisson se met en boule : frrt ! (ses piquants se dressent d'un coup)
+    hogCurl() {
+      noise({ filter: 'bandpass', f: 2200, f2: 5200, d: 0.16, v: 0.16, q: 1.6 });
+      tone({ type: 'sine', f: 520, f2: 260, d: 0.12, v: 0.08 });
+    },
+    // il se déroule et renifle : snif snif
+    hogOpen() {
+      for (let i = 0; i < 2; i++) noise({ filter: 'bandpass', f: 1900, d: 0.06, v: 0.12, q: 4, delay: 0.08 + i * 0.13 });
+      tone({ type: 'sine', f: 700, f2: 980, d: 0.08, v: 0.05 });
+    },
+    // Malice enlève un piquant : pop ! et un petit « aïe » qui monte (un peu plus aigu à chaque fois)
+    pluck(i) {
+      tone({ type: 'sine', f: 600, f2: 1500, d: 0.05, v: 0.12 });
+      tone({ type: 'triangle', f: 700 + i * 45, f2: 1150 + i * 60, d: 0.14, v: 0.07, delay: 0.04, vib: 24, vibDepth: 60 });
+    },
+
     // les lucioles se mettent à suivre Malice : des petites clochettes qui scintillent
     fireflies() {
       arp([1568, 2093, 2349, 3136], { type: 'sine', d: 0.22, v: 0.045, gap: 0.08 });

@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses deux premiers niveaux, et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -81,6 +81,17 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      juste derrière lui) avant le trophée. Les tunnels sont dessinés comme des galeries de terre (`galeries` dans
      `js/levels.js`).
 2. **La Forêt** — 2-1 **La Forêt des Épines** : ronces, coccinelles et chips au vinaigre
+   - 2-2 **Les Champignons Géants** : une forêt de champignons énormes et colorés. On saute de chapeau en chapeau
+     (comme des plateformes : par en dessous, on passe à travers) ; les **chapeaux bleus à pois blancs** font
+     rebondir (en gardant le saut appuyé, on monte encore plus haut), et il faut rebondir sur l'un d'eux pour
+     passer le très grand trou. Les **hérissons** trottinent en reniflant ; quand Malice approche, « ! » : ils
+     se mettent en boule, tout pleins de piquants. En boule, on ne peut plus leur sauter dessus (ça pique !).
+     Au bout d'un moment, ils se déroulent et reniflent autour d'eux, tout étonnés (« ? ») : c'est le moment de
+     leur sauter dessus (pouic ! ils redeviennent gentils). Le caramel colle leurs piquants (ils ne peuvent plus
+     se mettre en boule), et avec les chips ils deviennent trop gros pour s'enrouler. Les pouvoirs qui renversent
+     les ennemis marchent même sur un hérisson en boule, et en roulade on passe à travers lui sans se piquer.
+     On y retrouve les ronces et les coccinelles. En Bébé, les hérissons voient Malice de moins loin, restent moins
+     longtemps en boule et plus longtemps déroulés ; en Difficile, c'est le contraire.
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
@@ -205,6 +216,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Eau de la rivière | toute mouillée et un peu bleue, elle grelotte en claquant des dents, l'eau dégouline de sa casquette, et un petit poisson en saute pour retourner dans la rivière |
 | Escargot | couverte de bave verte qui dégouline, elle tire la langue : « Beurk ! » |
 | Taupe qui jaillit du sol | projetée en l'air dans une gerbe de terre, elle retombe toute sale, des mottes sur la tête, et un petit ver de terre rose en sort pour lui faire coucou |
+| Hérisson | couverte de piquants comme une pelote d'épingles ! Elle les enlève un par un, en grimaçant : « Aïe ! Aïe ! Aïe ! » |
 
 ## Commandes
 
@@ -267,7 +279,7 @@ sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
-`O` = escargot, `l` = lapin, `m` = taupe, `i` = lucioles, `j` = fleur-lanterne…). Un niveau peut avoir un terrier
+`O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `i` = lucioles, `j` = fleur-lanterne…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), ou se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
 par la lune : `clairDeLune`).
 Il suffit de modifier les lettres et de recharger la page.
@@ -326,7 +338,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | La Prairie la Nuit | la même calypso, plus lente et tout doucement, comme une berceuse : vibraphone, marimba en écho, contrebasse, et des grillons |
   | Le combat contre l'Épouvantail | la calypso en do mineur et plus vite, comme une danse de squelettes : xylophone, orgue qui ricane sur les contretemps, pizzicati, wood-blocks et timbales ; au refrain, les cuivres |
   | Stage de la Roulade | ska : guitare et orgue sur les contretemps, contrebasse qui sautille, la mélodie aux cuivres (le trombone en dessous), solo de saxophone au milieu |
-  | La Forêt des Épines | do mineur en 12/8, flûte et harpe, entrées en canon |
+  | La Forêt (la Forêt des Épines, les Champignons Géants) | do mineur en 12/8, flûte et harpe, entrées en canon |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |

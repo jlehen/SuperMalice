@@ -1157,6 +1157,7 @@ const Art = (() => {
   //   soot : noircie par les morceaux de cube        spots : couverte des points de la coccinelle
   //   wet : tombée dans la rivière, elle grelotte     slime : couverte de bave d'escargot
   //   dirt : projetée en l'air par une taupe, toute pleine de terre (avec un ver de terre sur la tête)
+  //   pins : piquée par un hérisson, couverte de piquants comme une pelote d'épingles
   const NO_FX = {};
   // Moments où Malice noircie tousse.
   const COUGHS = [0.35, 0.8, 1.25];
@@ -1173,6 +1174,29 @@ const Art = (() => {
   // le dernier est sur le nez.
   const MALICE_SPOTS = [[-6.6, -17.6, 2.8], [-3, -58, 3], [6.6, -24.6, 2.5], [-8, -40, 2.8], [-6.5, -27, 2.3], [5.2, -40.4, 2.1], [16, -40.6, 1.9]];
   const spotPop = (i) => 1 + i * 0.18;
+  // Les piquants du hérisson plantés dans Malice, dans l'ordre où elle les enlève (le dernier sur les fesses) :
+  // [x, hauteur (une part du haut de la tête), sens de la pointe, sur la tête]. Pour les autres personnages,
+  // la hauteur suit leur taille, et ceux de la tête suivent leur tête (voir Heroes.headTop).
+  const PINS = [[7, 0.55, -0.15, 0], [-5, 1, -1.85, 1], [-13, 0.78, -2.7, 1], [10, 0.93, -1.05, 1],
+    [-12, 0.6, 3.05, 0], [5, 0.34, 0.35, 0], [-10, 0.27, 2.6, 0]];
+  // les moments où elle enlève chaque piquant (aïe !)
+  const PIN_PULLS = PINS.map((_, i) => 0.55 + i * 0.24);
+  // head : [x, y] du haut de la tête (Malice : [0, -62])
+  function pinAt(i, head) {
+    const [x, k, , onHead] = PINS[i];
+    const [hx, top] = head || [0, -62];
+    return [x + (onHead ? hx : 0), k * top];
+  }
+  // elle fait la grimace pendant qu'elle tire sur un piquant
+  const pinsWince = (k) => PIN_PULLS.some((p) => k.t > p - 0.1 && k.t < p + 0.12);
+  // Le bras qui va chercher le piquant (l'angle du bras avant, comme dans drawArm), ou null.
+  // (épaule de Malice : (1.2, -27.8) ; pour les autres personnages, c'est à peu près au même endroit)
+  function pinsReach(k, head) {
+    const i = PIN_PULLS.findIndex((p) => k.t > p - 0.14 && k.t < p + 0.03);
+    if (i < 0) return null;
+    const [x, y] = pinAt(i, head);
+    return Math.atan2(-(x - 1.2), y + 27.8);
+  }
 
   function hexRgb(h) {
     const n = parseInt(h.slice(1), 16);
@@ -1221,6 +1245,12 @@ const Art = (() => {
   DIRTY.mustache = MALICE.mustache;
   DIRTY.eye = MALICE.eye;
 
+  // Toute rouge d'avoir été piquée (par le hérisson).
+  const PRICKED = {};
+  for (const key in MALICE) PRICKED[key] = mixColor(MALICE[key], '#ff5a6a', 0.3);
+  PRICKED.mustache = MALICE.mustache;
+  PRICKED.eye = MALICE.eye;
+
   // Toute noire de suie (seuls les yeux restent blancs).
   const SOOT = {};
   for (const key in MALICE) SOOT[key] = mixColor(MALICE[key], '#2a2422', 0.8);
@@ -1253,6 +1283,8 @@ const Art = (() => {
       case 'wet': return mixPalette(C, WET, clamp(left / 0.5, 0, 1));
       case 'slime': return mixPalette(C, SLIMY, clamp(left / 0.5, 0, 1));
       case 'dirt': return mixPalette(C, DIRTY, clamp(left / 0.5, 0, 1));
+      // (comme les autres personnages : rouge au début, voir Heroes)
+      case 'pins': return mixPalette(C, PRICKED, clamp(1 - k.t / 0.6, 0, 1));
       default: return C;
     }
   }
@@ -1279,6 +1311,11 @@ const Art = (() => {
       // projetée en l'air : les bras qui moulinent, les jambes qui pédalent
       const s = Math.sin(ot * 22);
       return { legF: -0.5 + s * 0.35, legB: 0.6 - s * 0.35, armF: -2.4 + s * 0.4, armB: -2.0 - s * 0.4, lean: -0.1 };
+    }
+    if (k.kind === 'pins') {
+      // aïe ! les bras et les jambes écartés, toute raide, qui tremble
+      const j = Math.sin(ot * 60) * 0.07;
+      return { legF: -0.45 + j, legB: 0.5 - j, armF: -2.1 + j, armB: 1.95 - j, lean: -0.08 };
     }
     if (k.kind === 'wet') {
       // elle se serre dans ses bras, les genoux qui s'entrechoquent
@@ -1336,6 +1373,18 @@ const Art = (() => {
         // d'abord tout surprise, puis pouah ! de la terre plein la bouche
         fx.eye = t < 0.45 ? 'wide' : 'squeeze';
         fx.mouth = t < 0.45 ? 'wide' : 'tongue';
+        break;
+      case 'pins':
+        // d'abord tout surprise, puis elle grimace à chaque piquant qu'elle enlève
+        if (t < 0.4) {
+          fx.eye = 'wide';
+          fx.mouth = 'wide';
+        } else if (pinsWince(k)) {
+          fx.eye = 'squeeze';
+          fx.mouth = 'wide';
+        } else {
+          fx.mouth = 'o';
+        }
         break;
       case 'scramble':
       case 'spots':
@@ -1536,6 +1585,50 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // Couverte de piquants de hérisson, comme une pelote d'épingles : ils arrivent tous d'un coup, et
+  // disparaissent un par un quand elle les enlève (head : le haut de la tête, voir pinAt).
+  function pinsOverlay(ctx, k, head) {
+    const t = k.t;
+    const s = clamp(t / 0.08, 0, 1);
+    ctx.save();
+    ctx.lineCap = 'round';
+    PINS.forEach((pin, i) => {
+      if (t >= PIN_PULLS[i]) return;
+      // (celui qu'elle tient est presque sorti)
+      const out = clamp((t - (PIN_PULLS[i] - 0.1)) / 0.1, 0, 1) * 4;
+      const [x, y] = pinAt(i, head);
+      const a = pin[2];
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+      const bx = x + ca * out;
+      const by = y + sa * out;
+      const len = 13 * s;
+      // la peau toute rouge autour
+      ctx.fillStyle = 'rgba(255,70,90,0.45)';
+      circlePath(ctx, x, y, 3.2);
+      ctx.fill();
+      ctx.strokeStyle = '#3a2416';
+      ctx.lineWidth = 3.6;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + ca * len, by + sa * len);
+      ctx.stroke();
+      ctx.strokeStyle = '#f2dcb4';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + ca * len * 0.55, by + sa * len * 0.55);
+      ctx.stroke();
+      ctx.strokeStyle = '#6a4428';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(bx + ca * len * 0.6, by + sa * len * 0.6);
+      ctx.lineTo(bx + ca * len * 0.97, by + sa * len * 0.97);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
   // Électrocutée : des éclairs crépitent tout autour d'elle.
   function zapBolts(ctx, k) {
     const seed = Math.floor(k.t * 30) + k.seed;
@@ -1573,6 +1666,9 @@ const Art = (() => {
     ellipsePath(ctx, 0, -32, 34, 42);
     ctx.fill();
   }
+
+  // Les poses où l'on voit le bras aller chercher un piquant (pas en boule, accrochée, en train de pouvoir…).
+  const PIN_REACH_POSES = ['idle', 'walk', 'run', 'jump', 'fall', 'slip'];
 
   // Malice debout, les pieds au point (x, y).
   // o : facing (1 ou -1), pose, t (temps), ph (phase de marche), palette, sx/sy (écrasement),
@@ -1647,6 +1743,11 @@ const Art = (() => {
         bob = Math.sin(t * 2.5) * 0.7;
         armF = -0.12 - Math.sin(t * 2.5) * 0.04;
     }
+    if (kind === 'pins' && PIN_REACH_POSES.includes(pose)) {
+      // elle enlève un piquant
+      const a = pinsReach(k);
+      if (a !== null) armF = a;
+    }
     if (kind === 'hypno' && pose !== 'ouch' && pose !== 'hang' && pose !== 'crouch') {
       // hypnotisée : elle avance les bras tendus, comme une somnambule
       armF = -1.45 + Math.sin(t * 4) * 0.08;
@@ -1682,6 +1783,7 @@ const Art = (() => {
     if (kind === 'wet') wetOverlay(ctx, k, -62);
     if (kind === 'slime') slimeOverlay(ctx, k, -62);
     if (kind === 'dirt') dirtOverlay(ctx, k, -62);
+    if (kind === 'pins') pinsOverlay(ctx, k);
     if (o.holding) {
       o.holding(ctx);
       drawArm(ctx, C, 1.2, -27.8, armF, false);
@@ -4778,6 +4880,159 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // Hérisson (les Champignons Géants), les pieds en (x, y), tourné vers dir.
+  // o : t, phase (les pattes qui trottinent), moving, curl (0 : déroulé, 1 : roulé en boule), look,
+  //     sniff (déroulé, il renifle autour de lui), fat / rest (après les chips)
+  function hedgehog(ctx, x, y, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const dir = o.dir || 1;
+    const k = clamp(o.curl || 0, 0, 1);
+    const fat = !!o.fat;
+    const line = '#2e1c10';
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    // en boule, il tremble un tout petit peu
+    if (k > 0.9) ctx.translate(Math.sin(t * 34) * 0.6, 0);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    // les petites pattes (elles rentrent quand il se met en boule)
+    if (k < 0.75) {
+      const ph = o.moving ? o.phase || 0 : 0;
+      ctx.fillStyle = '#4a3020';
+      for (const [fx, s] of [[-11, 0], [-4, Math.PI], [6, Math.PI * 0.5], [13, Math.PI * 1.5]]) {
+        const lift = o.moving ? Math.max(0, Math.sin(ph + s)) * 2.5 : 0;
+        ellipsePath(ctx, fx + Math.cos(ph + s) * 1.6, -2.2 - lift - k * 4, 3.6, 2.4);
+        ctx.fill();
+      }
+    }
+    // le manteau de piquants : sur le dos quand il trottine, tout autour quand il est en boule
+    const cx = lerp(-3, 0, k);
+    const cy = lerp(-13, -16.5, k);
+    const rx = lerp(fat ? 23 : 19, 16.5, k);
+    const ry = lerp(fat ? 15 : 12.5, 16.5, k);
+    const a0 = lerp(-Math.PI - 0.25, -Math.PI * 1.5, k);
+    const a1 = lerp(-0.3, Math.PI * 0.5, k);
+    const n = Math.max(8, Math.round((a1 - a0) / 0.3));
+    const spike = lerp(7, 8.5, k);
+    const P = (a, r) => [cx + Math.cos(a) * (rx + r), cy + Math.sin(a) * (ry + r)];
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      const [ox, oy] = P(a, spike + (i % 2) * 1.5);
+      const [ix, iy] = P(a + (a1 - a0) / n / 2, -1);
+      if (i === 0) ctx.moveTo(...P(a, -2));
+      ctx.lineTo(ox, oy);
+      if (i < n) ctx.lineTo(ix, iy);
+    }
+    if (k < 0.98) ctx.lineTo(cx + 4, cy + ry * 0.4);
+    ctx.closePath();
+    paint(ctx, '#5a3c26', line, 1.3);
+    // les bouts clairs des piquants
+    ctx.strokeStyle = '#ead6ae';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    for (let i = 1; i < n; i += 2) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      ctx.moveTo(...P(a, 1));
+      ctx.lineTo(...P(a, spike * 0.55));
+    }
+    ctx.stroke();
+    // le corps
+    ellipsePath(ctx, cx, cy, rx - 2, ry - 2);
+    const g = ctx.createLinearGradient(0, cy - ry, 0, cy + ry);
+    g.addColorStop(0, '#a27a54');
+    g.addColorStop(1, '#6e4c30');
+    ctx.fillStyle = g;
+    ctx.fill();
+    // des petites rayures de piquants sur le dos
+    ctx.strokeStyle = 'rgba(46,28,16,0.45)';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = lerp(a0, a1, (i + 0.5) / 5);
+      ctx.moveTo(cx + Math.cos(a) * (rx - 9), cy + Math.sin(a) * (ry - 8));
+      ctx.lineTo(cx + Math.cos(a) * (rx - 3), cy + Math.sin(a) * (ry - 3));
+    }
+    ctx.stroke();
+    const face = clamp(1 - k * 1.6, 0, 1);
+    if (face > 0) {
+      ctx.save();
+      ctx.globalAlpha *= face;
+      // le museau tout pointu, couleur crème, et le gros nez noir (qui remue quand il renifle)
+      const sn = o.sniff ? Math.sin(t * 22) * 0.9 : 0;
+      const fx = fat ? 3 : 0;
+      ctx.beginPath();
+      ctx.moveTo(3 + fx, -21);
+      ctx.quadraticCurveTo(13 + fx, -19, 22 + fx, -10.5 + sn);
+      ctx.quadraticCurveTo(14 + fx, -3, 3 + fx, -3);
+      ctx.quadraticCurveTo(-2, -12, 3 + fx, -21);
+      paint(ctx, '#f2dcb8', line, 1.2);
+      ctx.fillStyle = 'rgba(255,120,140,0.45)';
+      ellipsePath(ctx, 10 + fx, -8, 3, 2);
+      ctx.fill();
+      circlePath(ctx, 22 + fx, -10.5 + sn, 2.8);
+      paint(ctx, '#1a1010', line, 0.8);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      circlePath(ctx, 21.3 + fx, -11.6 + sn, 0.9);
+      ctx.fill();
+      // l'oreille
+      circlePath(ctx, 4 + fx, -21, 2.6);
+      paint(ctx, '#d8b48a', line, 1);
+      // l'œil (il suit Malice quand il renifle) ; essoufflé, il le ferme
+      const look = o.look || { x: 1, y: 0 };
+      const lx = clamp(look.x * dir, -1, 1);
+      const ly = clamp(look.y, -1, 1);
+      const blink = (t * 0.9) % 3.1 < 0.1;
+      ctx.fillStyle = '#1a1010';
+      if (blink || (fat && o.rest)) {
+        ctx.strokeStyle = '#1a1010';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(10.2 + fx, -15);
+        ctx.lineTo(14 + fx, -15);
+        ctx.stroke();
+      } else {
+        circlePath(ctx, 12 + fx + lx * 0.8, -15 + ly * 0.6, 2.1);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        circlePath(ctx, 11.4 + fx + lx * 0.8, -15.8 + ly * 0.6, 0.8);
+        ctx.fill();
+      }
+      // la petite bouche
+      if (!(fat && o.rest)) {
+        ctx.strokeStyle = '#5a2a20';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(16 + fx, -8, 2.2, 0.3, Math.PI - 0.6);
+        ctx.stroke();
+      }
+      if (fat) chubbyCheeks(ctx, 9 + fx, -9, 3.6, 2.8, '#f2dcb8', line);
+      // il renifle : de petits traits devant le nez
+      if (o.sniff && Math.sin(t * 7) > 0.2) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(27 + fx, -14);
+        ctx.lineTo(30 + fx, -15.5);
+        ctx.moveTo(27.5 + fx, -10.5);
+        ctx.lineTo(31 + fx, -10.5);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    if (k > 0.6) {
+      // tout roulé en boule : on ne voit plus que le bout de son nez
+      ctx.save();
+      ctx.globalAlpha *= clamp((k - 0.6) / 0.3, 0, 1);
+      circlePath(ctx, 10, -7, 2.3);
+      paint(ctx, '#1a1010', line, 0.8);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
   // Le petit tas de terre au-dessus d'une taupe qui creuse, posé sur l'herbe en (x, y).
   // La lumière de sa lampe passe entre les mottes. o : t, moving, dir, shake (de 0 à 1 : la terre tremble).
   function moleHill(ctx, x, y, o) {
@@ -5134,8 +5389,9 @@ const Art = (() => {
     eclair, sparks, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
     bat, grumpyBird, gummyBear, candyEye, gem, GEMS, bigBird, birdNest,
     dandelion, dandelionStem, dandelionLeaves, dandelionFlower, dandelionSeed,
-    snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow,
+    snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow, hedgehog,
     // pour les autres personnages (heroes.js)
     paint, mixColor, ouchPose, koStars, spotsOverlay, wetOverlay, slimeOverlay, dirtOverlay,
+    PIN_PULLS, PIN_REACH_POSES, pinAt, pinsWince, pinsReach, pinsOverlay,
   };
 })();

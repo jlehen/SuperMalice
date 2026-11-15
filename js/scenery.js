@@ -53,6 +53,15 @@ const Scenery = (() => {
       plat: '#8a5a32', platDark: '#5a3818', platLight: '#b98654', log: true,
       bramble: '#7a3a8a', brambleDark: '#2f1236', thorn: '#ffffff',
     },
+    // les champignons géants : la forêt, mais les plateformes (-) et les champignons qui font rebondir (M)
+    // sont de grands chapeaux de champignons, avec leur pied (caps : voir capSprite et World.findCaps)
+    mushrooms: {
+      dirt: '#7a5236', dirtDark: '#52341f', dirtLight: '#9a6d48', stripe: 'rgba(40,20,5,0.2)',
+      top: '#4fbf5a', topDark: '#23864a', topLight: '#a0e890', blades: true,
+      brick: '#b07a45', brickDark: '#6f4521', brickLight: '#dcaa6e', crate: true,
+      plat: '#f08a3a', platDark: '#b8521c', platLight: '#ffc890', caps: true,
+      bramble: '#7a3a8a', brambleDark: '#2f1236', thorn: '#ffffff',
+    },
     storm: {
       dirt: '#b77a4a', dirtDark: '#7d4b28', dirtLight: '#d89a62', stripe: 'rgba(90,40,10,0.2)',
       top: '#ff9fd0', topDark: '#d466a6', topLight: '#ffe0f1', blades: false, cream: true,
@@ -886,6 +895,134 @@ const Scenery = (() => {
     });
   }
 
+  // ---------- Les grands chapeaux de champignons (les Champignons Géants) ----------
+  // Une rangée de "-" (on monte dessus, on passe à travers par en dessous) ou de "M" (ça rebondit) fait un seul
+  // grand chapeau de n cases, posé sur un grand pied (stalkSprite). Les chapeaux qui font rebondir sont bleus à
+  // gros pois blancs, comme les champignons de la grotte ; les autres ont des couleurs chaudes (v : de 0 à 3),
+  // avec juste de petites taches. Le dessus du chapeau est le haut de la case (là où Malice pose les pieds).
+  const CAP_COLS = [['#f08a3a', '#b8521c', '#ffc890'], ['#d8563c', '#8a2a1e', '#ff9e84'], ['#b07ae0', '#6e44a8', '#e6d0ff'], ['#e8b83a', '#a87a14', '#fff0a0']];
+  const CAP_BOUNCE = ['#36c9e8', '#1a6fa8', '#9ffcff'];
+  const capRim = (bouncy) => (bouncy ? 30 : 22);
+
+  function capSprite(n, bouncy, v) {
+    const W = n * TILE;
+    const rim = capRim(bouncy);
+    return sprite(`cap:${n}:${bouncy | 0}:${v}`, W + 16, rim + 30, (g) => {
+      g.translate(8, 8);
+      const [col, dark, light] = bouncy ? CAP_BOUNCE : CAP_COLS[v % 4];
+      const R = Math.min(18, W / 3);
+      g.lineJoin = 'round';
+      // les lamelles, sous le chapeau
+      g.beginPath();
+      g.moveTo(-1, rim - 3);
+      g.quadraticCurveTo(W / 2, rim + 16, W + 1, rim - 3);
+      g.closePath();
+      g.fillStyle = '#f4e4c8';
+      g.fill();
+      g.strokeStyle = '#b8987a';
+      g.lineWidth = 1.2;
+      g.stroke();
+      g.strokeStyle = 'rgba(150,110,80,0.5)';
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let x = 6; x < W - 2; x += 7) {
+        const k = (x - W / 2) / (W / 2);
+        g.moveTo(x, rim - 1);
+        g.lineTo(W / 2 + (x - W / 2) * 0.82, rim + 5 + (1 - k * k) * 4);
+      }
+      g.stroke();
+      // le chapeau
+      g.beginPath();
+      g.moveTo(-5, rim);
+      g.bezierCurveTo(-6, 8, 2, 0, R, 0);
+      g.quadraticCurveTo(W / 2, -6, W - R, 0);
+      g.bezierCurveTo(W - 2, 0, W + 6, 8, W + 5, rim);
+      g.quadraticCurveTo(W / 2, rim + 6, -5, rim);
+      g.closePath();
+      const gr = g.createLinearGradient(0, -3, 0, rim + 4);
+      gr.addColorStop(0, light);
+      gr.addColorStop(0.35, col);
+      gr.addColorStop(1, dark);
+      g.fillStyle = gr;
+      g.fill();
+      g.strokeStyle = shadeLine(dark);
+      g.lineWidth = 1.8;
+      g.stroke();
+      // les pois (bleu : gros pois blancs) ou les petites taches
+      g.save();
+      g.clip();
+      const count = Math.max(2, Math.round(W / (bouncy ? 26 : 20)));
+      for (let i = 0; i < count; i++) {
+        const h = hash(i * 3.7 + n * 1.3 + v);
+        const x = ((i + 0.5) * W) / count + (h - 0.5) * 8;
+        const y = (i % 2 ? 15 : 7) + h * 3 + (bouncy ? 2 : 1);
+        g.fillStyle = bouncy ? '#ffffff' : 'rgba(255,250,230,0.55)';
+        circlePath(g, x, y, bouncy ? 5.5 - (i % 2) * 1.5 : 2 + h * 1.2);
+        g.fill();
+      }
+      g.restore();
+      // ça brille
+      g.fillStyle = 'rgba(255,255,255,0.55)';
+      ellipsePath(g, Math.min(W * 0.28, 30), 4, Math.min(W * 0.18, 18), 2.4, -0.08);
+      g.fill();
+    });
+  }
+
+  // Un trait de contour un peu plus foncé que la couleur la plus foncée du chapeau.
+  const shadeLine = (hex) => Art.mixColor(hex, '#1a0a10', 0.35);
+
+  // Le pied d'un grand champignon : sw de large, h de haut (foot : il est planté dans l'herbe, avec un petit
+  // renflement en bas ; sinon il descend tout au fond d'un trou).
+  function stalkSprite(sw, h, foot) {
+    return sprite(`stalk:${sw}:${h}:${foot | 0}`, sw + 24, h + 10, (g) => {
+      g.translate(12, 0);
+      const gr = g.createLinearGradient(-6, 0, sw + 6, 0);
+      gr.addColorStop(0, '#cdb894');
+      gr.addColorStop(0.35, '#fff8ea');
+      gr.addColorStop(1, '#bca27c');
+      g.fillStyle = gr;
+      g.strokeStyle = '#a08866';
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(sw * 0.08, 0);
+      g.lineTo(sw * 0.92, 0);
+      g.quadraticCurveTo(sw * 0.96, h * 0.6, sw + (foot ? 5 : 1), h);
+      g.lineTo(-(foot ? 5 : 1), h);
+      g.quadraticCurveTo(sw * 0.04, h * 0.6, sw * 0.08, 0);
+      g.closePath();
+      g.fill();
+      g.stroke();
+      if (foot) {
+        ellipsePath(g, sw / 2, h - 3, sw / 2 + 8, 6);
+        g.fill();
+        g.stroke();
+      }
+      // des petites fibres tout du long
+      g.strokeStyle = 'rgba(160,130,90,0.35)';
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let i = 1; i < 4; i++) {
+        const x = (sw * i) / 4;
+        g.moveTo(x, 12);
+        g.lineTo(x + (i - 2) * 2, h - 10);
+      }
+      g.stroke();
+      // la collerette (pour les grands)
+      if (sw >= 26) {
+        g.beginPath();
+        g.moveTo(-3, 16);
+        g.quadraticCurveTo(sw / 2, 26, sw + 3, 16);
+        g.lineTo(sw + 1, 11);
+        g.quadraticCurveTo(sw / 2, 18, -1, 11);
+        g.closePath();
+        g.fillStyle = '#fffaf0';
+        g.fill();
+        g.strokeStyle = '#a08866';
+        g.stroke();
+      }
+    });
+  }
+
   // ---------- Ronces / branches à épines ----------
   function thornSprite(theme, down, v) {
     return sprite(`t:${theme}:${down | 0}:${v}`, TILE + PAD * 2, TILE + PAD * 2, (g) => {
@@ -1491,6 +1628,25 @@ const Scenery = (() => {
     ctx.fill();
   }
 
+  // Un grand champignon dans le fond (les Champignons Géants) : le pied posé en (x, y), h de haut,
+  // un chapeau de w de large.
+  function bgMushroom(ctx, x, y, h, w, cap, stem) {
+    ctx.fillStyle = stem;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.09, y - h + 10);
+    ctx.lineTo(x + w * 0.09, y - h + 10);
+    ctx.lineTo(x + w * 0.13, y + 10);
+    ctx.lineTo(x - w * 0.13, y + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = cap;
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2, y - h + 14);
+    ctx.bezierCurveTo(x - w / 2, y - h - w * 0.45, x + w / 2, y - h - w * 0.45, x + w / 2, y - h + 14);
+    ctx.quadraticCurveTo(x, y - h + 2, x - w / 2, y - h + 14);
+    ctx.fill();
+  }
+
   // Un saule pleureur au loin : un tronc, et de longues branches qui pendent et se balancent.
   function willow(ctx, x, y, h, v, t) {
     ctx.fillStyle = '#8a6a48';
@@ -1948,6 +2104,65 @@ const Scenery = (() => {
         const a = 0.4 + 0.4 * Math.sin(t * 3 + i);
         ctx.fillStyle = `rgba(255,255,170,${a})`;
         circlePath(ctx, x, y, 2.5);
+        ctx.fill();
+      }
+    },
+
+    // les champignons géants : la lumière dorée de la forêt, des champignons immenses au loin (de plus en
+    // plus colorés en s'approchant), des fougères, et des spores qui brillent en montant tout doucement
+    mushrooms(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#86d4c4'], [0.5, '#d2efc2'], [1, '#f6f6d4']]);
+      // rayons de lumière
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = '#fff4c0';
+      for (let i = 0; i < 4; i++) {
+        const x = ((i * 330 - cx * 0.08) % 1320 + 1320) % 1320 - 160;
+        ctx.beginPath();
+        ctx.moveTo(x, -10);
+        ctx.lineTo(x + 80, -10);
+        ctx.lineTo(x + 330, VIEW_H);
+        ctx.lineTo(x + 200, VIEW_H);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+      // tout au loin : de grands champignons pâles, dans la brume
+      forEachItem(cx * 0.1, 210, 41, (x, i, h) => {
+        bgMushroom(ctx, x, 440 - cy * 0.1, 200 + h * 130, 120 + h * 70, '#c4dcd0', '#b4d0c4');
+      });
+      ctx.fillStyle = '#a8cdb8';
+      ctx.fillRect(0, 430 - cy * 0.1, VIEW_W, 200);
+      // plus près : des champignons de toutes les couleurs (un peu passées)
+      // (jamais bleus à pois : ceux-là, ce sont les champignons qui font rebondir)
+      const cols = ['#e8a27a', '#c49ae0', '#e6c870', '#e48c8c'];
+      forEachItem(cx * 0.3, 240, 43, (x, i, h) => {
+        const col = cols[Math.floor(h * 50) % cols.length];
+        bgMushroom(ctx, x, 480 - cy * 0.25, 150 + h * 120, 90 + h * 60, col, '#e8dcc4');
+      });
+      ctx.fillStyle = '#5f9a6a';
+      ctx.fillRect(0, 470 - cy * 0.25, VIEW_W, 200);
+      // des fougères tout près
+      forEachItem(cx * 0.55, 130, 47, (x, i, h) => {
+        if (h < 0.35) return;
+        const by = 530 - cy * 0.45;
+        ctx.fillStyle = '#3f8a52';
+        for (let k = -2; k <= 2; k++) {
+          ctx.save();
+          ctx.translate(x, by);
+          ctx.rotate(k * 0.42 + Math.sin(t * 1.3 + i) * 0.04);
+          ellipsePath(ctx, 0, -34 - h * 20, 9, 36 + h * 20);
+          ctx.fill();
+          ctx.restore();
+        }
+      });
+      // les spores qui brillent
+      for (let i = 0; i < 16; i++) {
+        const x = ((hash(i * 1.7) * VIEW_W + Math.sin(t * 0.6 + i) * 30 - cx * 0.35) % VIEW_W + VIEW_W) % VIEW_W;
+        const y = VIEW_H - ((t * (12 + hash(i + 3) * 14) + hash(i + 9) * VIEW_H) % (VIEW_H + 40));
+        const a = 0.35 + 0.35 * Math.sin(t * 2.5 + i);
+        ctx.fillStyle = i % 3 ? `rgba(255,250,190,${a})` : `rgba(190,240,255,${a})`;
+        circlePath(ctx, x, y, 2.2);
         ctx.fill();
       }
     },
@@ -2645,6 +2860,36 @@ const Scenery = (() => {
           ctx.restore();
         }
       }
+    } else if (theme === 'mushrooms') {
+      if (v < 0.45) {
+        // une petite famille de champignons
+        // (jamais de bleu : les champignons bleus à pois sont ceux qui font rebondir)
+        const cols = ['#f08a3a', '#b07ae0', '#e8b83a', '#d8563c'];
+        for (const [dx, s, i] of [[-6, 0.8, 0], [4, 1.1, 1], [12, 0.6, 2]]) {
+          if (i === 2 && v > 0.3) continue;
+          ctx.fillStyle = '#fff3e0';
+          roundRectPath(ctx, dx - 2.5 * s, -11 * s, 5 * s, 11 * s, 2);
+          ctx.fill();
+          ctx.fillStyle = cols[(Math.floor(v * 20) + i) % 4];
+          ctx.beginPath();
+          ctx.ellipse(dx, -11 * s, 8 * s, 7 * s, 0, Math.PI, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          circlePath(ctx, dx - 3 * s, -14 * s, 1.5 * s);
+          ctx.fill();
+        }
+      } else {
+        // une petite fougère
+        ctx.fillStyle = '#2f9a4a';
+        for (let k = -2; k <= 2; k++) {
+          ctx.save();
+          ctx.rotate(k * 0.4 + sway);
+          ellipsePath(ctx, 0, -11, 3, 11);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
     } else if (theme === 'storm') {
       if (v < 0.5) {
         // petite sucette décorative
@@ -2781,7 +3026,7 @@ const Scenery = (() => {
 
   return {
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
-    rainbowSprite, bounceSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
+    rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
     trunkSprite, crown, riverBed, drawWaterRun, reeds, burrowCell, burrowSunbeam, burrowLantern,
     moonPos, glowFlower, glowFlowerShine,
   };

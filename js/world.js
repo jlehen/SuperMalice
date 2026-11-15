@@ -149,6 +149,7 @@ class World {
           case 'A': this.hazards.push(new Stalactite(this, x, y)); break;
           case 'O': this.enemies.push(new Snail(this, mx - 22, by - 30)); break;
           case 'm': this.enemies.push(new Mole(this, mx, by)); break;
+          case 'h': this.enemies.push(new Hedgehog(this, mx - 20, by - 30)); break;
           case '&':
             this.boss = Boss.create(this, def.boss, mx, by);
             if (this.boss) this.enemies.push(this.boss);
@@ -210,15 +211,17 @@ class World {
     this.player.y = start.y - this.player.h;
     // (si elle tombe à l'eau et que l'endroit où elle était a disparu, elle ressort ici)
     this.startPos = { x: start.x, y: start.y, pad: null };
-    // les escargots partent du côté opposé à l'endroit où Malice apparaît (au début, ou à un drapeau) :
-    // ils ne foncent pas tout de suite sur elle
+    // les escargots et les hérissons partent du côté opposé à l'endroit où Malice apparaît (au début, ou à
+    // un drapeau) : ils ne foncent pas tout de suite sur elle
     for (const e of this.enemies) {
-      if (e instanceof Snail) e.dir = e.cx < start.x ? -1 : 1;
+      if (e instanceof Snail || e instanceof Hedgehog) e.dir = e.cx < start.x ? -1 : 1;
     }
     // le terrier : les trous cachés sous un bloc lutin, et les cases des galeries (voir burrowCells)
     this.shafts = this.findShafts();
     this.burrowCache = null;
     this.crowns = this.findCrowns();
+    // les Champignons Géants : les grands chapeaux de champignons (voir findCaps)
+    this.caps = Scenery.THEMES[this.theme].caps ? this.findCaps() : [];
     this.updateCamera(0, true);
   }
 
@@ -426,6 +429,75 @@ class World {
     // (le bloc magique du Lutin posé devant un tronc)
     if (ch === 'u' && this.magic.some((m) => m.c === c && m.r === r && m.under === '|')) return true;
     return ch === '|' || (this.tileAt(c, r + 1) === '|' && (ch === '-' || this.tileAt(c, r - 1) === '|'));
+  }
+
+  // ---------- Les Champignons Géants ----------
+  // Chaque rangée de "-" (ou de "M") côte à côte est un seul grand chapeau de champignon, posé sur un grand pied
+  // qui descend jusqu'au sol (ou jusqu'à un autre chapeau, ou tout au fond d'un trou). Le pied est dans le décor :
+  // on passe devant. Les "M" font rebondir, comme d'habitude (voir Player.springTile) : ce sont les chapeaux bleus.
+  findCaps() {
+    const caps = [];
+    for (let r = 0; r < this.rows; r++) {
+      let c = 0;
+      while (c < this.cols) {
+        const ch = this.tiles[r][c];
+        if (ch !== '-' && ch !== 'M') { c++; continue; }
+        let e = c;
+        while (e + 1 < this.cols && this.tiles[r][e + 1] === ch) e++;
+        const n = e - c + 1;
+        const bouncy = ch === 'M';
+        // le pied descend sous le milieu du chapeau, jusqu'à la première case où il peut se poser
+        const mid = Math.floor((c + e) / 2);
+        let rb = r + 1;
+        while (rb < this.rows && !isSolidCh(this.tiles[rb][mid]) && !isLedgeCh(this.tiles[rb][mid])) rb++;
+        const foot = rb < this.rows;
+        const top = r * TILE + Scenery.capRim(bouncy) - 4;
+        const bottom = foot ? rb * TILE + 6 : this.height + 40;
+        const sw = n === 1 ? 16 : n === 2 ? 24 : Math.min(44, 16 + n * 6);
+        caps.push({
+          c0: c, c1: e, r, n, bouncy, v: Math.floor(hash2(c, r) * 4),
+          stalk: { x: (c + e + 1) * TILE / 2 - sw / 2, top, h: Math.round(Math.max(0, bottom - top)), sw, foot },
+        });
+        c = e + 1;
+      }
+    }
+    return caps;
+  }
+
+  // Les pieds des grands champignons (derrière tout le reste).
+  drawStalks(ctx, camX) {
+    for (const k of this.caps) {
+      const st = k.stalk;
+      if (st.h <= 0 || st.x + st.sw + 20 < camX || st.x - 20 > camX + VIEW_W) continue;
+      const img = Scenery.stalkSprite(st.sw, st.h, st.foot);
+      ctx.drawImage(img, st.x - 12, st.top, st.sw + 24, st.h + 10);
+    }
+  }
+
+  // Les chapeaux (avec les cases, à l'échelle de l'écran) : un chapeau qui fait rebondir s'écrase un peu.
+  drawCaps(ctx, s, camX, camY) {
+    const T = TILE;
+    for (const k of this.caps) {
+      const x0 = k.c0 * T;
+      const x1 = (k.c1 + 1) * T;
+      if (x1 + 10 < camX || x0 - 10 > camX + VIEW_W) continue;
+      let squash = 0;
+      if (k.bouncy) {
+        for (let c = k.c0; c <= k.c1; c++) {
+          const v = this.springs.get(c + ',' + k.r);
+          if (v !== undefined) {
+            const q = v / 0.4;
+            squash = Math.max(squash, Math.sin(q * Math.PI) * (1 - q) * 12);
+          }
+        }
+      }
+      const img = Scenery.capSprite(k.n, k.bouncy, k.v);
+      const dx = Math.round((x0 - 8 - camX) * s);
+      const dy = Math.round((k.r * T - 8 + squash - camY) * s);
+      const dx2 = Math.round((x1 + 8 - camX) * s);
+      const dy2 = Math.round((k.r * T + Scenery.capRim(k.bouncy) + 22 + squash - camY) * s);
+      ctx.drawImage(img, dx, dy, dx2 - dx, dy2 - dy);
+    }
   }
 
   // Le feuillage en haut de chaque tronc : une grosse touffe par tronc (les colonnes côte à côte).
@@ -808,6 +880,19 @@ class World {
       if (p.ball) continue;
       // (stompDepth : sur un grand boss tout affaissé, on compte qu'on lui saute dessus même en arrivant un peu bas)
       if (stomps(e.y + (e.stompDepth || 18))) {
+        // un hérisson en boule : on se pique ! (si elle ne peut pas avoir mal, elle rebondit sur ses piquants)
+        // Dans les deux cas, elle repart vers l'avant, par-dessus : en arrière, elle retomberait dans le trou
+        // qu'elle vient de sauter, et sans la pousser, elle rebondirait dessus comme sur un trampoline.
+        if (e.prickly && e.prickly()) {
+          const fwd = Math.sign(p.vx) || p.facing;
+          if (p.hurt(e, e.ouch)) {
+            if (!p.dead) p.vx = fwd * Math.abs(p.vx);
+          } else {
+            p.bounceOff();
+            p.vx = fwd * OUCH.pins.vx;
+          }
+          continue;
+        }
         e.stomp();
         p.bounceOff();
         continue;
@@ -1023,6 +1108,7 @@ class World {
     this.drawStormClouds(ctx);
     this.drawWinds(ctx);
     this.drawTrunks(ctx, camX, camY);
+    this.drawStalks(ctx, camX);
     this.drawCrowns(ctx);
     this.drawUpdrafts(ctx);
     this.runs = this.waterRuns(camX);
@@ -1102,11 +1188,14 @@ class World {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // (le trou caché sous un bloc lutin, dans le terrier, compte comme du sol : pas de bord dessiné)
     const isG = (c, r) => (r >= this.rows ? true : this.tileAt(c, r) === '#' || this.hiddenShaft(c, r));
+    // (les grands chapeaux de champignons sont dessinés à part : voir drawCaps)
+    const capped = this.caps.length > 0;
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         const ch = this.tiles[r][c];
         // (les troncs sont dessinés avant, avec le feuillage : voir drawTrunks)
         if (ch === '.' || ch === '~' || ch === '|' || ch === WATER) continue;
+        if (capped && (ch === '-' || ch === 'M')) continue;
         let img = null;
         if (ch === '#') {
           // (pas d'herbe au fond de la rivière ; sous terre, dans le terrier, de la terre toute nue)
@@ -1140,6 +1229,7 @@ class World {
         ctx.drawImage(img, dx, dy, dx2 - dx, dy2 - dy);
       }
     }
+    if (capped) this.drawCaps(ctx, s, camX, camY);
     ctx.restore();
   }
 
