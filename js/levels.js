@@ -26,7 +26,7 @@
 //   l  lapin (gentil ; sur l'herbe, il sort la tête de son trou ; dans un terrier, il parle : voir "lapins")
 //   L  bloc lutin : 5 bonbons    F  bloc lutin : fruit de la passion
 //   K  bloc lutin : caramel      C  bloc lutin : chips au vinaigre
-//   S  bloc lutin : étoile
+//   S  bloc lutin : étoile (5 bonbons si on n'a pas pris Super Malice)
 //   o  bonbon     y  sucette (vaut 5)     b  balle multicolore
 //   E  gros oeil à pattes        R  Rubik's cube
 //   D  coccinelle                W  coccinelle volante

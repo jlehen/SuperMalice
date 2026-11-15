@@ -585,7 +585,9 @@ class World {
   }
 
   breakBlock(c, r) {
-    const ch = this.tiles[r][c];
+    let ch = this.tiles[r][c];
+    // l'étoile, c'est seulement pour Super Malice : les autres ont déjà leur pouvoir (5 bonbons à la place)
+    if (ch === 'S' && this.player.hero !== 'malice') ch = 'L';
     this.tiles[r][c] = '.';
     this.burrowCache = null;
     Sound.sfx.breakBlock();
