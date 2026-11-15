@@ -558,6 +558,82 @@ const Sound = (() => {
       tone({ type: 'sine', f: 330, f2: 70, d: 0.7, v: 0.2, delay: 0.85 });
       tone({ type: 'triangle', f: 600, f2: 200, d: 0.7, v: 0.08, vib: 6, vibDepth: 30 });
     },
+
+    // ---- Pépé Chêne et Ronchon (le boss de la Forêt) ----
+    // Pépé Chêne ronfle : rrrron… pfffff
+    snore() {
+      tone({ type: 'sawtooth', f: 70, f2: 62, d: 0.7, v: 0.05, vib: 26, vibDepth: 12, a: 0.25 });
+      noise({ filter: 'lowpass', f: 500, f2: 300, d: 0.7, v: 0.08, a: 0.3 });
+      noise({ filter: 'bandpass', f: 1800, f2: 900, d: 0.6, v: 0.05, q: 1.5, a: 0.2, delay: 0.75 });
+    },
+    // Ronchon le pique : pic ! et Pépé Chêne sursaute (« Hein ?! », une voix grave qui monte)
+    oakWake() {
+      tone({ type: 'sine', f: 2400, f2: 3200, d: 0.05, v: 0.1 });
+      tone({ type: 'triangle', f: 110, f2: 190, d: 0.35, v: 0.22, delay: 0.08, vib: 8, vibDepth: 8 });
+      noise({ filter: 'bandpass', f: 900, f2: 2400, d: 0.4, v: 0.08, q: 1, delay: 0.1 });
+    },
+    // Ronchon grogne : grrrr
+    hogGrunt() {
+      tone({ type: 'sawtooth', f: 150, f2: 120, d: 0.35, v: 0.06, vib: 34, vibDepth: 22 });
+      noise({ filter: 'bandpass', f: 600, d: 0.3, v: 0.08, q: 3 });
+    },
+    // il gratte le sol : scrich scrich
+    hogScratch() {
+      for (let i = 0; i < 2; i++) noise({ filter: 'highpass', f: 2600, f2: 1400, d: 0.07, v: 0.1, delay: i * 0.11 });
+    },
+    // il roule en boule : brrrrr
+    hogRoll() { noise({ filter: 'bandpass', f: 380, f2: 700, d: 0.5, v: 0.12, q: 2, a: 0.05 }); },
+    // il se cogne : BONG ! et des petites étoiles
+    hogBonk() {
+      tone({ type: 'triangle', f: 640, f2: 240, d: 0.3, v: 0.25 });
+      noise({ f: 900, f2: 200, d: 0.15, v: 0.2 });
+      arp([1760, 2093, 2637], { type: 'sine', d: 0.12, v: 0.05, gap: 0.07 });
+    },
+    // son casque (une cupule de gland) : tonk !
+    helmetTonk() {
+      tone({ type: 'square', f: 900, f2: 700, d: 0.08, v: 0.06 });
+      tone({ type: 'sine', f: 1400, f2: 1300, d: 0.25, v: 0.08, delay: 0.02 });
+    },
+    // a… a… ATCHOUM ! (le petit « a… » qui monte, puis le gros éternuement)
+    sneezeUp() { tone({ type: 'triangle', f: 500, f2: 900, d: 0.5, v: 0.08, vib: 9, vibDepth: 20 }); },
+    sneeze() {
+      noise({ filter: 'bandpass', f: 2600, f2: 700, d: 0.4, v: 0.35, q: 0.8 });
+      tone({ type: 'triangle', f: 700, f2: 250, d: 0.25, v: 0.15 });
+    },
+    // les piquants qui s'envolent : frrrt !
+    spinesFly() { noise({ filter: 'highpass', f: 5000, f2: 2500, d: 0.35, v: 0.12 }); },
+    // les feuilles de la couronne s'agitent : un gland tremble là-haut
+    acornShake() { noise({ filter: 'bandpass', f: 2200, f2: 3400, d: 0.45, v: 0.08, q: 1.2, a: 0.05 }); },
+    // il tombe : fffiiiou
+    acornFall() { tone({ type: 'sine', f: 1500, f2: 600, d: 0.45, v: 0.04 }); },
+    // il tombe par terre : toc ! (un petit gland se casse : crac !)
+    acornLand(big) {
+      tone({ type: 'triangle', f: big ? 520 : 760, f2: big ? 300 : 500, d: 0.09, v: 0.22 });
+      if (!big) noise({ filter: 'highpass', f: 2500, d: 0.06, v: 0.15, delay: 0.03 });
+    },
+    // on renvoie un gland : pang ! (et il siffle en repartant)
+    acornKick() {
+      tone({ type: 'square', f: 300, f2: 900, d: 0.12, v: 0.08 });
+      tone({ type: 'sine', f: 900, f2: 1600, d: 0.4, v: 0.05, delay: 0.08 });
+    },
+    // il touche le nez en nœud de bois : TOC ! (un bruit de bois creux, puis boing)
+    noseToc() {
+      tone({ type: 'triangle', f: 380, f2: 330, d: 0.12, v: 0.35 });
+      tone({ type: 'sine', f: 760, f2: 700, d: 0.18, v: 0.12 });
+      tone({ type: 'sine', f: 220, f2: 520, d: 0.3, v: 0.12, delay: 0.12, vib: 14, vibDepth: 30 });
+    },
+    // la terre se soulève (une racine arrive) : grondement
+    rootRumble() { noise({ filter: 'lowpass', f: 220, f2: 140, d: 0.8, v: 0.3, a: 0.2 }); },
+    // la racine sort du sol : CRAC !
+    rootBurst() {
+      noise({ filter: 'highpass', f: 1600, d: 0.08, v: 0.25 });
+      noise({ f: 700, f2: 120, d: 0.35, v: 0.3, delay: 0.02 });
+      tone({ type: 'sine', f: 180, f2: 70, d: 0.25, v: 0.3 });
+    },
+    // les fleurs poussent : des petites clochettes
+    bloom(i) { tone({ type: 'sine', f: 1200 + (i % 6) * 160, d: 0.18, v: 0.05 }); },
+    // Ronchon fait un câlin : mmmh ! (deux notes douces qui montent)
+    hug() { arp([660, 880, 1320], { type: 'triangle', d: 0.25, v: 0.12, gap: 0.1 }); },
     // il redevient gentil : un petit air tout content
     scareFriend() { arp([523, 659, 784, 1047, 784, 1047], { type: 'triangle', d: 0.14, v: 0.14, gap: 0.09 }); },
   };

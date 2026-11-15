@@ -1326,6 +1326,7 @@ const Game = {
       .replace(/\{SAUT\}/g, touch ? 'le gros bouton rose' : 'Espace')
       .replace(/\{GRAPPIN\}/g, touch ? 'le bouton moustache' : 'la touche V')
       .replace(/\{CARAMEL\}/g, touch ? 'le bouton caramel' : 'la touche X')
+      .replace(/\{CHIPS\}/g, touch ? 'le bouton chips' : 'la touche C')
       .replace(/\{FLECHES\}/g, touch ? '◀ ▶' : '← →')
       .replace(/\{AVANCER\}/g, touch ? 'le bouton ▶' : 'la flèche →')
       .replace(/\{GAUCHE\}/g, touch ? 'le bouton ◀' : 'la flèche ←');

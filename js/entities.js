@@ -1780,7 +1780,8 @@ class Throwable {
       return;
     }
     for (const e of w.enemies) {
-      if (e.dying || e.dead) continue;
+      // (passThrow : ce que les chips et le caramel traversent, comme les glands et les racines de Pépé Chêne)
+      if (e.dying || e.dead || e.passThrow) continue;
       if (overlap(this, e.shotBox ? e.shotBox() : e)) {
         e.hitBy(this.kind);
         this.dead = true;
@@ -2948,6 +2949,7 @@ class Hedgehog extends Enemy {
     switch (this.state) {
       case 'walk':
         this.curl = Math.max(0, this.curl - dt / HOG_CURL);
+        this.shyOfReader();
         this.vx = this.dir * D.hogSpeed;
         this.legPhase += dt * 11;
         this.walkPhysics(dt, true);
@@ -2980,6 +2982,19 @@ class Hedgehog extends Enemy {
     const sees = !p.dead && d < 360 && this.state === 'peek';
     this.look.x += ((sees ? dx / d : this.dir) - this.look.x) * Math.min(1, dt * 6);
     this.look.y += ((sees ? dy / d : 0) - this.look.y) * Math.min(1, dt * 6);
+  }
+
+  // Une fleur qui parle (Malice la lit) à moins de 6 cases, sur son étage ? Il fait demi-tour, et s'en va sans se
+  // mettre en boule : on ne vient pas piquer Malice pendant qu'elle lit (ni juste quand elle repart).
+  shyOfReader() {
+    for (const f of this.world.flowers) {
+      if (f.show < 0.5 || Math.abs(f.y - (this.y + this.h)) > 24) continue;
+      const d = f.x - this.cx;
+      if (Math.abs(d) > 6 * TILE) continue;
+      if (Math.sign(d) === this.dir) this.dir = -this.dir;
+      this.calm = Math.max(this.calm, 0.3);
+      return;
+    }
   }
 
   // « ! » : il se met en boule.
@@ -4265,9 +4280,9 @@ class Goal {
     const w = this.world;
     const p = w.player;
     // (touch : l'arrivée qui apparaît après un boss, il faut aller la toucher ; dans un niveau où l'on grimpe,
-    // il faut être à son étage)
+    // il faut être à son étage, même pour la toucher : pas d'un étage du dessous, juste sous elle)
     const floor = !w.def.grimpe || Math.abs(p.y + p.h - this.y) < 2 * TILE;
-    const at = this.touch ? Math.abs(p.cx - this.x - 10) < 34 && p.y + p.h > this.y - TILE * 5 : p.cx >= this.x - 10 && floor;
+    const at = this.touch ? Math.abs(p.cx - this.x - 10) < 34 && p.y + p.h > this.y - TILE * 5 && floor : p.cx >= this.x - 10 && floor;
     if (!this.reached && !p.dead && at) {
       this.reached = true;
       w.game.levelComplete();

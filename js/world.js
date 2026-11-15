@@ -1047,7 +1047,11 @@ class World {
         continue;
       }
       // en boule (la roulade), Malice passe sous les ennemis ou à travers : ni elle ni eux n'ont mal
-      if (p.ball) continue;
+      // (rolledInto : un ennemi qui fait quelque chose quand elle roule contre lui, comme Ronchon étourdi)
+      if (p.ball) {
+        if (e.rolledInto) e.rolledInto(p);
+        continue;
+      }
       // projetée par un sanglier (la tête en bas), elle ne touche plus à rien tant qu'elle n'est pas debout
       if (p.tumbling()) continue;
       // (stompDepth : sur un grand boss tout affaissé, on compte qu'on lui saute dessus même en arrivant un peu bas)
@@ -1317,7 +1321,9 @@ class World {
     // Dans un niveau où l'on grimpe ("grimpe") : la caméra suit l'étage où Malice a les pieds (par terre, à une
     // liane, ou dans l'eau), assez bas sur l'écran pour bien voir où l'on monte. Pendant un saut, elle ne bouge pas
     // (sauf si Malice va sortir de l'écran) ; si elle tombe plus bas que son étage, elle la suit.
-    const climb = this.def.grimpe;
+    // (pendant le combat contre un boss, tout en haut : l'écran reste sur le haut de l'arène, voir Boss.setup)
+    const fixed = this.arena && this.arena.camY != null;
+    const climb = this.def.grimpe && !fixed;
     if (climb) {
       const feet = p.y + p.h;
       const g = p.grap && p.grap.phase === 'swing' ? p.grap : null;
@@ -1334,6 +1340,7 @@ class World {
     // monte que quand Malice saute très haut, même au-dessus du haut du niveau : sa tête ne sort pas de l'écran)
     const high = this.def.basVisible;
     if (high) ty = Math.min(Math.max(0, bottom - VIEW_H), p.y - CAM_HEAD);
+    if (fixed) ty = this.arena.camY;
     if (snap) {
       this.cam.x = tx;
       this.cam.y = ty;

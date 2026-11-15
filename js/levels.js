@@ -394,6 +394,9 @@ const LEVELS = [
     tronc: [14, 39],
     // le bord du tronc, tout en haut (dans le fond), sous les feuilles de la couronne
     couronne: 3.5,
+    // tout en haut, Pépé Chêne et son hérisson Ronchon gardent la couronne (voir js/boss/chene.js)
+    boss: "chene",
+    arene: [18, 37],
     talk: [
       "Voici le Vieux Chêne, le plus vieil arbre de la Forêt\u00a0! Il est tout creux\u00a0: entre par la porte, et grimpe tout en haut, jusqu'à sa couronne de feuilles\u00a0!",
       "Une liane\u00a0! Saute dessus pour t'y accrocher. Balance-toi avec {FLECHES}, et saute pour t'envoler\u00a0!",
@@ -401,7 +404,7 @@ const LEVELS = [
       "Pour monter à l'étage, attrape la liane, balance-toi vers le champignon… et saute dessus\u00a0!",
       "Attention, un sanglier\u00a0! Quand il gratte le sol, saute-lui dessus… et s'il fonce, grimpe vite sur un champignon\u00a0! S'il se cogne contre les caisses, il voit des étoiles.",
       "Le grand trou du Vieux Chêne\u00a0! Passe de liane en liane. Si tu tombes, pas grave\u00a0: tu retombes à l'étage du dessous.",
-      "Tu y es presque\u00a0! Tout là-haut, c'est la couronne du Vieux Chêne. Prends la grande liane, et saute sur les champignons\u00a0!",
+      "Tu y es presque\u00a0! Prends la grande liane, et saute sur les champignons. Chut… tout là-haut, Pépé Chêne, le vieux Roi de la Forêt, fait la sieste avec Ronchon, son hérisson\u00a0!",
     ],
     map: [
       '################......................##',
@@ -412,7 +415,7 @@ const LEVELS = [
       '################......................##',
       '################......................##',
       '################......................##',
-      '################...!...............G..##',
+      '################...!..........G.....&.##',
       '################..######################',
       '################oo......J.............##',
       '################--......J.............##',
@@ -423,7 +426,7 @@ const LEVELS = [
       '################................F.....##',
       '################............---.......##',
       '################......................##',
-      '################........h........T..!.##',
+      '################.h.................!T.##',
       '################################------##',
       '################.................k....##',
       '################................---...##',

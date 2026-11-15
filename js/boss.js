@@ -12,7 +12,8 @@
 //   G                       l'arrivée : elle n'apparaît que quand le boss est battu
 //  Le drapeau d'avant l'arène est l'endroit où l'on repart si l'on perd une vie pendant le combat.
 //
-//  Quand Malice entre dans l'arène (3 cases après sa première colonne), le boss se réveille : la caméra se fixe
+//  Quand Malice entre dans l'arène (3 cases après sa première colonne, et à sa hauteur : pas à un étage du dessous,
+//  dans un niveau où l'on grimpe), le boss se réveille : la caméra se fixe
 //  sur l'arène, on ne peut plus en sortir (ni en volant, ni en sautant), sa musique commence et ses vies
 //  s'affichent en haut de l'écran. Si Malice perd une vie, tout le niveau repart du drapeau : le boss est
 //  de nouveau tout neuf (et son réveil est plus court). Quand il n'a plus de vie, il est battu : ses aides
@@ -22,12 +23,13 @@
 //   asleep(dt)               avant le réveil
 //   wake(dt, k)              la petite mise en scène du réveil (k va de 0 à 1)
 //   fight(dt)                le combat : ses attaques (this.phase : 0 au début, puis 1, puis 2 après chaque coup)
-//   takes(how)               peut-il perdre une vie maintenant ? how : 'stomp' (Malice lui saute dessus),
-//                            'bump' (un pouvoir qui renverse, ou un tir de pouvoir), 'star' (l'étoile)
+//   takes(how, part)         peut-il perdre une vie maintenant ? how : 'stomp' (Malice lui saute dessus),
+//                            'bump' (un pouvoir qui renverse, ou un tir de pouvoir), 'star' (l'étoile), ou ce que
+//                            le boss invente (un gland renvoyé…) ; part : l'aide qui a reçu le coup (voir plus bas)
 //   shot(kind)               il reçoit du caramel ou des chips (par défaut, comme un coup)
 //   onBounce()               Malice lui saute dessus quand il ne peut pas être touché (elle rebondit)
-//   onHit(how)               il vient de perdre une vie (mais il lui en reste)
-//   onBeaten()               le dernier coup ; puis outro(dt, t) : sa fin (renvoie true quand c'est fini)
+//   onHit(how, part)         il vient de perdre une vie (mais il lui en reste)
+//   onBeaten(how, part)      le dernier coup ; puis outro(dt, t) : sa fin (renvoie true quand c'est fini)
 //   after(dt)                une fois battu (il reste là, gentil)
 //   box()                    sa boîte (this.x, this.y, this.w, this.h) selon sa pose ; stompDepth : la hauteur,
 //                            depuis le haut de sa boîte, où l'on compte qu'on lui saute dessus
@@ -43,12 +45,18 @@
 //   speak(text, dur)         il dit quelque chose (une bulle au-dessus de lui ; « Malice » devient le nom du personnage)
 //   hint(text, dur)          un petit conseil, dans une bulle au-dessus de Malice ({CARAMEL}, {SAUT}… : voir textFor)
 //   once(key)                vrai la première fois seulement (une mise en scène qui ne se joue qu'une fois)
-//   addSource(kind, x, y)    du caramel (ou des chips) qui repousse là, quand on n'en a presque plus
+//   addSource(kind, x, y, grow)  du caramel (ou des chips) qui repousse là, quand on n'en a presque plus
+//                            (grow : la première fois aussi, elle sort de terre, pour une source qui arrive en plein combat)
 //   shoo()                   il pousse Malice hors de lui, vers le milieu de l'arène, sans lui faire mal (avec un petit
 //                            moment de grâce) : à la fin du réveil, et quand elle est coincée entre lui et un bord.
 //  Ses aides (corbeaux, citrouilles…) sont des ennemis ordinaires avec this.boss : quand il est battu,
 //  ils s'en vont tout seuls (leave()). Leurs classes commencent par le nom du boss (ScareCrow, ScarePumpkin…),
 //  pour ne jamais se mélanger avec celles d'un autre boss.
+//  Un boss à deux (un compagnon qui porte les vies avec lui, comme Ronchon et Pépé Chêne) : le compagnon est une
+//  aide, et quand on le touche, il appelle this.boss.hitWith(how, this) ; le boss décide (takes(how, part)).
+//  Son nom en haut de l'écran peut tenir sur deux lignes (« Pépé Chêne\net Ronchon ») : la boîte s'élargit.
+//  Dans un niveau où l'on grimpe ("grimpe"), l'écran ne suit plus les sauts pendant le combat : il reste sur le
+//  haut de l'arène (arena.camY, voir World.updateCamera).
 //  La difficulté : w.diff.bossK (plus petit en Bébé : il est plus lent ; plus grand en Difficile).
 // =====================================================================
 
@@ -96,7 +104,9 @@ class Boss extends Enemy {
   setup() {
     const w = this.world;
     const ar = w.def.arene || [Math.max(0, w.cols - 20), w.cols - 1];
-    this.arena = { x0: ar[0] * TILE, x1: (ar[1] + 1) * TILE, y0: 0 };
+    // (y1 : le sol de l'arène, là où il a les pieds ; camY : dans un niveau où l'on grimpe, l'écran reste sur le haut
+    // de l'arène, voir World.updateCamera)
+    this.arena = { x0: ar[0] * TILE, x1: (ar[1] + 1) * TILE, y0: 0, y1: this.y + this.h, camY: w.def.grimpe ? 0 : null };
     this.goal = w.goal;
     w.goal = null;
     // (on ne repasse pas par le grand réveil quand on revient après avoir perdu une vie)
@@ -139,7 +149,7 @@ class Boss extends Enemy {
     switch (this.state) {
       case 'sleep':
         this.asleep(dt);
-        if (!p.dead && !p.won && p.cx > this.arena.x0 + 3 * TILE) this.start();
+        if (!p.dead && !p.won && p.cx > this.arena.x0 + 3 * TILE && p.y + p.h < this.arena.y1 + TILE) this.start();
         break;
       case 'wake': {
         const dur = this.short ? this.introShort : this.introLong;
@@ -177,9 +187,10 @@ class Boss extends Enemy {
   }
 
   // ---------- Ce qui le touche ----------
-  // Tout passe par ici : sauté dessus, renversé par un pouvoir, l'étoile.
-  hitWith(how) {
-    if (this.state !== 'fight' || this.recover > 0 || !this.takes(how)) return false;
+  // Tout passe par ici : sauté dessus, renversé par un pouvoir, l'étoile (part : l'aide qui a reçu le coup,
+  // pour un boss à deux).
+  hitWith(how, part) {
+    if (this.state !== 'fight' || this.recover > 0 || !this.takes(how, part)) return false;
     const w = this.world;
     this.life--;
     this.recover = BOSS_RECOVER;
@@ -195,9 +206,9 @@ class Boss extends Enemy {
       }
       w.game.addScore(5000);
       if (!(w.player.star > 0)) Sound.stopMusic();
-      this.onBeaten();
+      this.onBeaten(how, part);
     } else {
-      this.onHit(how);
+      this.onHit(how, part);
     }
     return true;
   }
@@ -298,10 +309,11 @@ class Boss extends Enemy {
   }
 
   // ---------- Le caramel (ou les chips) qui repousse ----------
-  // x : le milieu, y : le bas de la friandise (posée sur une souche, par exemple)
-  addSource(kind, x, y) {
+  // x : le milieu, y : le bas de la friandise (posée sur une souche, par exemple) ;
+  // grow : la première aussi sort d'en dessous (une source qui arrive en plein combat)
+  addSource(kind, x, y, grow) {
     this.source = { kind, x, y, item: null, t: 0 };
-    this.source.item = this.makeTreat(false);
+    this.source.item = this.makeTreat(!!grow);
   }
 
   // (en repoussant, elle sort d'en dessous)
@@ -384,7 +396,12 @@ class Boss extends Enemy {
     if (k <= 0.01) return;
     const n = this.lifeMax;
     const gap = 46;
-    const w = 150 + n * gap;
+    // son nom, sur une ou deux lignes (la boîte s'élargit pour un long nom)
+    const lines = this.name.split('\n');
+    const size = lines.length > 1 ? 16 : 19;
+    ctx.font = `700 ${size}px Fredoka, "Arial Rounded MT Bold", sans-serif`;
+    const x0 = Math.max(150, 30 + Math.max(...lines.map((l) => ctx.measureText(l).width)));
+    const w = x0 + n * gap;
     const right = Math.min(776, this.world.game.hudRight() - 10);
     const sc = clamp((right - 470) / w, 0.6, 1);
     ctx.save();
@@ -393,14 +410,14 @@ class Boss extends Enemy {
     ctx.fillStyle = 'rgba(40,10,60,0.42)';
     roundRectPath(ctx, 0, 0, w, 58, 20);
     ctx.fill();
-    drawOutlinedText(ctx, this.name, 16, 29, 19, '#ffe0a8', 'left');
+    lines.forEach((l, i) => drawOutlinedText(ctx, l, 16, 29 + (i - (lines.length - 1) / 2) * 18, size, '#ffe0a8', 'left'));
     for (let i = 0; i < n; i++) {
       // pendant le réveil, ses vies arrivent une par une
       const pop = this.state === 'wake' ? clamp((this.stateT - 0.3 - i * 0.25) * 4, 0, 1) : 1;
       if (pop <= 0) continue;
       const full = i < this.life;
       ctx.save();
-      ctx.translate(150 + i * gap + gap / 2 - 8, 34);
+      ctx.translate(x0 + i * gap + gap / 2 - 8, 34);
       const s = pop < 1 ? 0.4 + 0.75 * Math.sin(pop * Math.PI * 0.8) : 1 + (full && this.life === 1 ? Math.sin(t * 8) * 0.08 : 0);
       ctx.scale(s, s);
       this.drawLife(ctx, 0, 0, full, t);
@@ -411,7 +428,7 @@ class Boss extends Enemy {
       const L = this.lost;
       ctx.save();
       ctx.globalAlpha = clamp(1.2 - L.t, 0, 1);
-      ctx.translate(150 + L.i * gap + gap / 2 - 8 + L.t * 60, 34 - L.t * 90 + L.t * L.t * 200);
+      ctx.translate(x0 + L.i * gap + gap / 2 - 8 + L.t * 60, 34 - L.t * 90 + L.t * L.t * 200);
       ctx.rotate(L.t * 7);
       ctx.scale(1 + L.t * 0.4, 1 + L.t * 0.4);
       this.drawLife(ctx, 0, 0, true, t);

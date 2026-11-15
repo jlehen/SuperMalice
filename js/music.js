@@ -450,6 +450,31 @@ const Music = (() => {
     return S.out({ drumV: 1 });
   }
 
+  // 2-4. Le combat contre Pépé Chêne et Ronchon : une marche grognonne sur la pointe des pieds, comme celle du
+  // vieux roi de la montagne (Grieg). La Forêt en do mineur, mais en 4/4 bien carré : la mélodie au basson, tout
+  // en staccato, doublée aux pizzicati ; le tuba et les timbales marquent le pas lourd du vieux roi, les wood-blocks
+  // toquent comme des glands qui tombent ; au refrain, les cordes et les cuivres s'emportent (Pépé Chêne se fâche),
+  // puis le glockenspiel revient en haut, tout léger.
+  function bossForest() {
+    const S = new Song({ bpm: 150, mode: MINOR });
+    const OOM = [[[0, 0.4, 'R'], [1, 0.3, '5L', 0.6], [2, 0.4, 'R'], [3, 0.3, '5L', 0.6]]];
+    const STEP2 = [[[0, 't'], [2, 't', 0.75]]];
+    const TOC = [[[0, 't'], [1, 'w', 0.5], [2, 't', 0.75], [2.5, 'w', 0.35], [3, 'w', 0.6], [3.5, 'w', 0.45]]];
+    const MARCH = [[[0, 'k', 0.6], [0, 't'], [1, 's', 0.4], [2, 't', 0.8], [3, 's', 0.5], [3.5, 'w', 0.4], ...rep(4, (i) => [i + 0.5, 'x', 0.3])]];
+    const FILL = [[0, 't'], [1, 't', 0.7], [1.5, 't', 0.8], [2, 't', 0.9], [2.5, 's', 0.55], [3, 's', 0.65], [3.25, 's', 0.75], [3.5, 's', 0.85], [3.75, 's']];
+    const base = (p) => p.pattern('bass', 'tuba', 0.16, OOM);
+    const tiptoe = (p, oct) => {
+      p.melody('lead', 'reed', 0.12, { oct, gate: 0.45 });
+      p.melody('pizz', 'pizz', 0.13, { oct: oct + 1, gate: 0.4, top: true });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'reed', 0.12, { oct: -1, gate: 0.45 }); base(p); p.drums(STEP2); });
+    S.part(SECT.A, (p) => { tiptoe(p, -1); base(p); p.drums(TOC); });
+    S.part(SECT.A, (p) => { tiptoe(p, 0); base(p); p.drums(MARCH, { fill: FILL }); });
+    S.part(SECT.B, (p) => { p.melody('lead', 'strings', 0.075); p.melody('brass', 'brass', 0.09, { oct: -1, top: true }); base(p); p.drums(MARCH, { crash: 0.6 }); });
+    S.part(SECT.D, (p) => { tiptoe(p, 0); p.melody('glock', 'glock', 0.05, { oct: 1, top: true }); base(p); p.drums(TOC, { fill: FILL }); });
+    return S.out({ drumV: 0.8 });
+  }
+
   // Stage du Super Saut : bossa nova, accords de jazz (septièmes, neuvièmes), vibraphone et piano électrique.
   function bossa() {
     const S = new Song({
@@ -737,6 +762,7 @@ const Music = (() => {
     'badge-roulade': ska(),
     forest: forest(),
     'forest-oak': forestOak(),
+    'boss-foret': bossForest(),
     'badge-saut': bossa(),
     storm: storm(),
     mountain: mountain(),

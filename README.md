@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux (son boss arrive bientôt), et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux et son boss (Pépé Chêne et Ronchon), et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -90,7 +90,8 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      leur sauter dessus (pouic ! ils redeviennent gentils). Le caramel colle leurs piquants (ils ne peuvent plus
      se mettre en boule), et avec les chips ils deviennent trop gros pour s'enrouler. Les pouvoirs qui renversent
      les ennemis marchent même sur un hérisson en boule, et en roulade on passe à travers lui sans se piquer.
-     On y retrouve les ronces et les coccinelles. En Bébé, les hérissons voient Malice de moins loin, restent moins
+     Un hérisson qui arrive près d'une fleur qui parle, pendant que Malice la lit, fait demi-tour sans se mettre
+     en boule (on ne vient pas la piquer pendant qu'elle lit). On y retrouve les ronces et les coccinelles. En Bébé, les hérissons voient Malice de moins loin, restent moins
      longtemps en boule et plus longtemps déroulés ; en Difficile, c'est le contraire.
    - 2-3 **Le Marais aux Cabanes** : un marais tout brumeux, avec des **cabanes sur pilotis** reliées par des
      **ponts de corde** qui s'enfoncent un peu sous les pieds. Dans la **boue**, on ne se brûle pas, mais on
@@ -116,6 +117,60 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      sert toujours aux anneaux dorés). Si on tombe d'une liane, on retombe à l'étage du dessous. On y retrouve les
      hérissons, les sangliers sur les grands étages plats, les coccinelles et les ronces. Tout en haut, un grand palier
      tout plat, dans la couronne du chêne, attend le boss de la Forêt.
+   - 🌳 **Le boss de la Forêt : Pépé Chêne et Ronchon** (au bout du 2-4, tout en haut du Vieux Chêne). Pépé Chêne
+     est le vieux **Roi de la Forêt** : un gros tronc tout ridé avec une couronne de feuilles dorées, des sourcils de
+     mousse, une grande barbe de lichen et un **nez en nœud de bois**. Il radote (« De mon temps, les glands étaient
+     bien plus gros… ») et il ronfle. **Ronchon**, son hérisson, est son garde du corps, toujours de mauvaise humeur.
+     Quand Malice arrive, Pépé Chêne dort (des « Zzz ») ; Ronchon la voit, court le piquer pour le réveiller
+     (« Aïe ! »), et Pépé Chêne radote : « Hein ? Quoi ? Qui ose grimper dans mon tronc ? ». Des lianes poussent
+     derrière Malice : on ne peut plus repartir tant qu'ils ne sont pas battus. Ils ont **trois vies à eux deux** :
+     les trois glands en haut de l'écran, à côté de leurs deux noms. Chaque vie se gagne d'une façon différente :
+     1. **Ronchon fonce en boule** : d'abord il gratte le sol en grognant (« Grrr ! », de la poussière), puis il fonce
+        tout droit vers Malice. On saute par-dessus : il **se cogne** contre le bord, contre un bloc ou contre
+        Pépé Chêne (« Bong ! ») et voit des étoiles. Vite, on lui **saute dessus** (pouic !) ; ou on le pousse en
+        marchant contre lui (ou en roulade) : il roule jusqu'à Pépé Chêne, bonk ! Quand on s'approche de lui à sa
+        place, il se met en boule (ça pique !). S'il fonce, on ne peut pas l'arrêter en lui sautant dessus (on
+        rebondit sur lui, sans avoir mal).
+     2. Pépé Chêne lui met un **casque** (une cupule de gland) : maintenant, il se cogne sans voir d'étoiles
+        (« Tonk ! Même pas mal ! »). Mais un sachet de **chips au vinaigre** pousse sur un petit champignon au bord
+        de l'arène (il repousse quand on n'en a presque plus) : on les lance sur Ronchon, il éternue si fort
+        (« A… a… ATCHOUM ! ») que **ses piquants s'envolent**, et son casque aussi. Tout rose, il rougit : on lui
+        saute dessus (ou on le pousse jusqu'à Pépé Chêne). Les chips sur Pépé Chêne le font éternuer, et son
+        « ATCHOUM ! » souffle aussi les piquants de Ronchon (dans la dernière manche, il fait tomber de gros glands de sa
+        couronne, loin de Malice).
+     3. Ronchon, tout nu, va se cacher derrière Pépé Chêne (on voit dépasser ses petites fesses roses), et Pépé Chêne
+        se fâche : il fait tomber de **gros glands**, qui rebondissent et attendent par terre en brillant. On **saute
+        sur un gros gland** : il repart en faisant un grand arc… et tape sur le nez en nœud de bois de Pépé Chêne.
+        TOC !
+     - Ses attaques sont toujours annoncées. **Les glands** : il secoue ses branches, un gland tremble au bout de sa
+       brindille sous les feuilles, et son ombre grandit par terre… puis il tombe (une bosse sous la casquette).
+       Les petits glands se cassent en touchant le sol. **Les racines** : il tape par terre, la terre se soulève et
+       tremble avec un grondement là où est Malice… puis une racine sort d'un coup (elle pique les fesses !) et
+       repart sous le plancher. Ronchon gratte le sol et grogne avant de foncer. Pépé Chêne ne lance qu'une attaque
+       à la fois : une racine (deux en Difficile, dans la dernière manche), ou des glands côte à côte, jamais l'un
+       sur l'autre : un petit gland (deux en Classique et en Difficile), ou de gros glands (un en Bébé, deux en
+       Gentil et en Classique, trois en Difficile). Il attend aussi que Ronchon ait fini de foncer (sauf en
+       Difficile, à partir de la deuxième manche).
+     - Le caramel colle les piquants de Ronchon (il ne peut plus se mettre en boule : on lui saute dessus), et colle
+       les mains de Pépé Chêne (il ne fait plus rien tomber pendant un moment). Les pouvoirs qui renversent font
+       tomber Ronchon étourdi dans la première manche, et le touchent quand il ne peut pas se défendre ; ils
+       renvoient aussi les gros glands (même de loin, avec un tir). On ne rentre pas dans le tronc de Pépé Chêne : il
+       est comme un mur, et il ne fait jamais mal. Sur sa couronne, on rebondit et on glisse vers le milieu de
+       l'arène (« Pépé Chêne ne sent rien sur sa couronne »). Les chips et le caramel passent à travers les glands
+       et les racines. Quand Pépé Chêne repousse Malice, Ronchon ne pique pas pendant un petit moment.
+     - Après chaque coup, ce qui allait tomber ou sortir s'en va : un petit moment de calme. S'il ne se passe rien
+       depuis un moment, un petit conseil dit quoi faire (sauter par-dessus Ronchon, lui sauter dessus, prendre les
+       chips, renvoyer les glands).
+     - **La fin** : TOC ! Le nez tout rouge, les yeux qui tournent, Pépé Chêne dit « Ouille, mon nez ! Bon, bon… Tu
+       as gagné. Tiens, des fleurs ! » : des fleurs poussent partout dans la couronne du chêne (et dans la sienne).
+       Les piquants de Ronchon repoussent avec des petites fleurs ; il rougit et vient faire un câlin à Malice
+       (« Pardon… On est amis ? »). Pépé Chêne se rendort tout content. Puis l'arrivée apparaît : on va la toucher,
+       et sur la carte, le château de la Forêt est ouvert (puis le stage du Super Saut avec Malice, et le monde 3).
+     - Si on perd une vie pendant le combat, on repart du drapeau juste avant l'arène, et tout recommence (Ronchon
+       réveille Pépé Chêne bien plus vite : « Encore toi ? »). En Bébé, tout est plus lent : Ronchon gratte le sol plus
+       longtemps, fonce moins vite et reste étourdi plus longtemps, les glands tremblent plus longtemps, Ronchon
+       reste tout nu (ou collé) jusqu'à ce qu'on lui saute dessus, les gros glands attendent plus longtemps par terre,
+       et il y a moins de racines ; en Difficile, tout va plus vite (et Pépé Chêne fait tomber trois gros glands à la fois).
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
@@ -241,6 +296,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Escargot | couverte de bave verte qui dégouline, elle tire la langue : « Beurk ! » |
 | Taupe qui jaillit du sol | projetée en l'air dans une gerbe de terre, elle retombe toute sale, des mottes sur la tête, et un petit ver de terre rose en sort pour lui faire coucou |
 | Hérisson | couverte de piquants comme une pelote d'épingles ! Elle les enlève un par un, en grimaçant : « Aïe ! Aïe ! Aïe ! » |
+| Pépé Chêne et Ronchon | un gland qui tombe fait une bosse sous la casquette ; une racine qui sort du plancher pique les fesses ; Ronchon en boule, c'est la pelote d'épingles |
 | Sanglier qui fonce | projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe la tête en bas, les jambes en l'air ; une taupe sort de terre à côté d'elle, toute interloquée (« ? »), et replonge aussitôt. Dans la boue, plof : elle s'y enfonce tout de suite (vite, il faut sauter !) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre) |
 
 ## Commandes
@@ -320,8 +376,8 @@ au bout du monde (sur un autre niveau, sa case reste une case normale).
 **Mettre un boss au bout d'un monde** (pour les grands) : ce que tous les boss ont en commun est dans
 [`js/boss.js`](js/boss.js) (le réveil quand on entre dans l'arène, la caméra et les murs de l'arène, les vies en
 haut de l'écran, les coups, la victoire, l'arrivée qui apparaît, la reprise au drapeau), et chaque boss a son
-propre fichier dans [`js/boss/`](js/boss/) (l'Épouvantail : [`js/boss/epouvantail.js`](js/boss/epouvantail.js)),
-avec ses attaques, ses aides et ses dessins. Dans le niveau (`levels.js`) :
+propre fichier dans [`js/boss/`](js/boss/) (l'Épouvantail : [`js/boss/epouvantail.js`](js/boss/epouvantail.js) ;
+Pépé Chêne et Ronchon : [`js/boss/chene.js`](js/boss/chene.js)), avec ses attaques, ses aides et ses dessins. Dans le niveau (`levels.js`) :
 - `boss: "epouvantail"` : le nom du boss (celui de `BOSSES.epouvantail = …` à la fin de son fichier) ;
 - `arene: [192, 211]` : la première et la dernière colonne de son arène (20 colonnes : la largeur de l'écran) ;
 - la lettre `&` dans la carte : là où il attend (sur le sol de la case du dessous) ;
@@ -336,8 +392,12 @@ son corps (`drawBody`), le décor de son arène (`drawDecor`), ses vies (`drawLi
 donner un conseil (`hint`), faire repousser du caramel (`addSource`), et elle pousse toute seule Malice hors de lui
 (sans lui faire mal) à la fin du réveil et quand elle est coincée entre lui et un bord. Ses aides (comme les
 corbeaux et les citrouilles) sont des ennemis avec `boss` : ils s'en vont tout seuls quand il est battu ; leurs
-classes commencent par le nom du boss (`ScareCrow`, `ScarePumpkin`), pour ne jamais se mélanger avec celles d'un
-autre boss. Sa vitesse suit la difficulté (`bossK` dans `DIFFS`, en haut de `js/game.js`). Ajouter son fichier dans
+classes commencent par le nom du boss (`ScareCrow`, `ScarePumpkin`, `CheneRonchon`, `CheneGland`…), pour ne jamais
+se mélanger avec celles d'un autre boss. Un **boss à deux** (comme Pépé Chêne et Ronchon) : le compagnon est une aide
+qui porte les vies avec lui ; quand on le touche, il appelle `boss.hitWith(how, this)`, et le boss décide avec
+`takes(how, part)` (part : celui qui a reçu le coup). Son nom en haut de l'écran peut tenir sur deux lignes
+(`"Pépé Chêne\net Ronchon"`), et `addSource(kind, x, y, true)` fait sortir de terre une source qui arrive en
+plein combat. Dans un niveau où l'on grimpe, l'écran reste sur le haut de l'arène pendant tout le combat. Sa vitesse suit la difficulté (`bossK` dans `DIFFS`, en haut de `js/game.js`). Ajouter son fichier dans
 `index.html`, après `js/boss.js`.
 Un **nouveau monde** s'ajoute **à la fin** de `WORLDS` (sinon les numéros des mondes d'après changeraient).
 Si un niveau a un `world` qui n'est pas dans `WORLDS`, il n'apparaît pas et la console du navigateur le dit.
@@ -366,6 +426,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Stage de la Roulade | ska : guitare et orgue sur les contretemps, contrebasse qui sautille, la mélodie aux cuivres (le trombone en dessous), solo de saxophone au milieu |
   | La Forêt (la Forêt des Épines, les Champignons Géants, le Marais aux Cabanes) | do mineur en 12/8, flûte et harpe, entrées en canon |
   | Dans le Vieux Chêne | la même, dans le bois du tronc creux : la mélodie au marimba, la flûte en écho tout là-haut, pizzicati, et des wood-blocks qui toquent comme un pic-vert |
+  | Le combat contre Pépé Chêne et Ronchon | une marche grognonne sur la pointe des pieds, comme celle du vieux roi de la montagne : do mineur en 4/4 bien carré, la mélodie au basson tout en staccato doublée aux pizzicati, le tuba et les timbales qui marquent le pas, des wood-blocks comme des glands qui tombent ; au refrain, les cordes et les cuivres s'emportent |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |
