@@ -485,6 +485,27 @@ const Sound = (() => {
       for (let i = 0; i < 4; i++) tone({ type: 'square', f: 1900 + i * 120, f2: 2600, d: 0.035, v: 0.035, delay: i * 0.06 });
     },
 
+    // ---- Le Défi du Super Saut ----
+    // Malice s'accroupit sur un champignon qui fait rebondir : son chapeau s'enfonce tout doucement (bwoump)
+    squish() {
+      tone({ type: 'sine', f: 320, f2: 140, d: 0.16, v: 0.2, vib: 10, vibDepth: 20 });
+      noise({ filter: 'lowpass', f: 600, f2: 200, d: 0.1, v: 0.08 });
+    },
+    // le gros feuillage de la cachette s'écarte (ou se referme) : frrrch
+    leaves() {
+      noise({ filter: 'bandpass', f: 2400, f2: 1300, d: 0.32, v: 0.12, q: 0.9, a: 0.04 });
+      for (let i = 0; i < 3; i++) noise({ filter: 'highpass', f: 3400, d: 0.04, v: 0.05, delay: 0.06 + i * 0.08 });
+    },
+    // un passage secret ! des petites notes qui montent, toutes étonnées
+    secret() {
+      arp([784, 1047, 1319, 1568, 2093], { type: 'triangle', d: 0.14, v: 0.12, gap: 0.07 });
+    },
+    // l'oisillon du nid secret fait un câlin à Malice : cui-cui de joie, et un petit air qui donne une vie
+    nestHug() {
+      [0, 0.12, 0.24].forEach((delay, i) => tone({ type: 'sine', f: 2100 + i * 200, f2: 3000 + i * 200, d: 0.07, v: 0.08, delay }));
+      [659, 784, 1047, 1319, 1568].forEach((f, i) => tone({ type: 'triangle', f, d: 0.13, v: 0.11, delay: 0.35 + i * 0.08 }));
+    },
+
     // ---- Les Champignons Géants ----
     // le hérisson se met en boule : frrt ! (ses piquants se dressent d'un coup)
     hogCurl() {

@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux et son boss (Pépé Chêne et Ronchon), et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux, son boss (Pépé Chêne et Ronchon) et son stage d'entraînement (le Super Saut, refait dans le sous-bois), et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -171,7 +171,28 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
        longtemps, fonce moins vite et reste étourdi plus longtemps, les glands tremblent plus longtemps, Ronchon
        reste tout nu (ou collé) jusqu'à ce qu'on lui saute dessus, les gros glands attendent plus longtemps par terre,
        et il y a moins de racines ; en Difficile, tout va plus vite (et Pépé Chêne fait tomber trois gros glands à la fois).
-   - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*
+   - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*. Refait dans le
+     **sous-bois** de la Forêt (les idées d'Alice) : de grands arbres, des souches couvertes de mousse, des champignons
+     géants, des lianes. Le niveau est bien plus haut que l'écran : la caméra suit Malice dans les arbres (`haut`).
+     Les fleurs expliquent pas à pas : un mur qu'on ne passe qu'en super saut, des blocs lutin tout là-haut (et une
+     sucette qu'on n'attrape qu'avec un super saut bien réussi), le grand arbre où l'on monte de branche en branche,
+     un super saut après l'autre, un mur encore plus haut qu'on passe depuis une marche ; puis le **champignon bleu** :
+     on tombe dessus en gardant ↓, on s'accroupit sur son chapeau (elle brille : c'est chargé), et le super saut va
+     encore bien plus haut (presque 15 cases, jusqu'à un grand chapeau plein de bonbons, le seul chemin pour passer la
+     grande souche d'après) ; puis les **lianes tout en haut**, qui pendent d'un gros feuillage (`feuillage` : on
+     passe à travers, on ne marche pas dessus) et qu'on n'attrape qu'avec un super saut sur le champignon (elles sont
+     trop loin de la grande souche), pour aller de liane en liane jusqu'à un grand mur. Le petit final reprend tout
+     (un mur, un champignon bleu, une liane qui pend d'un champignon géant) jusqu'au trophée, tout en haut d'une souche
+     (la liane est trop loin du passage secret : il faut le champignon). Les trois champignons bleus sont obligatoires.
+     **Le passage secret** : tout en haut du dernier grand arbre, un gros feuillage cache un coin secret
+     (`cachette`). On y monte avec un super saut depuis la branche du bas, ou en sautant depuis la courte branche au
+     bout des lianes (une fleur dit qu'on entend piailler…).
+     Les feuilles s'écartent en bruissant (« Un passage secret ! ») : des bonbons, des sucettes, et un nid où dort un
+     petit oisillon vert, un cousin du bébé oiseau. Quand Malice le touche, il s'envole lui faire un câlin
+     (« Cui-cui ! Merci d'être montée jusqu'ici, Malice ! ») et lui donne une vie en plus (tous ses cœurs, quand les
+     vies sont infinies), une seule fois dans toute la partie (gardé dans la sauvegarde, `nids`) : quand on rejoue le
+     stage, il fait encore son câlin (tous les cœurs, des points), mais sans vie en plus. Il n'y a aucun danger
+     dans ce stage : on ne peut ni tomber dans un trou ni se coincer (en tombant d'une liane ou d'un arbre, on retrouve toujours son champignon).
 3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    - ⭐ **Stage d'entraînement : le Défi de la Moustache-Grappin** → on gagne le badge *Moustache-Grappin*
@@ -266,6 +287,12 @@ La page [`outils/galerie.html`](outils/galerie.html) montre tous les personnages
   un autre). À la manette : bas et avant tenus ensemble un petit moment (passer par la diagonale pour s'accroupir
   ne fait pas rouler).
 - **Super Saut** : rester appuyé sur ↓ pour s'accroupir, puis sauter → on saute deux fois plus haut.
+  Sur un champignon qui fait rebondir (ou une guimauve), en gardant ↓ en arrivant dessus (même après un écrasement),
+  Malice s'accroupit sur son chapeau au lieu de rebondir (sans glisser) : elle brille, c'est chargé ; un saut la lance
+  encore bien plus haut (presque 15 cases, jamais plus haut que le haut du niveau). Un peu de tolérance : ↓ lâché
+  juste avant d'arriver (0,2 s) compte encore, et si on lâche ↓, le chapeau la garde encore un petit moment (0,35 s,
+  le temps d'appuyer sur le saut), puis elle rebondit comme d'habitude (le grand rebond, si elle est arrivée en
+  écrasant). (Dans les niveaux d'avant le stage, comme les Champignons Géants, rien ne change.)
 - **Moustache-Grappin** : près d'un anneau doré, appuyer sur **V** : la moustache de Malice s'y accroche.
   On se balance avec ← →, on saute pour se lancer, et on peut enchaîner les anneaux.
 
@@ -361,9 +388,12 @@ Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) 
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
 `O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `i` = lucioles, `j` = fleur-lanterne,
-`J` = liane, `q` = écureuil, `k` = nid…). Un niveau peut avoir un terrier
+`J` = liane, `q` = écureuil, `k` = nid, `p` = le nid secret de l'oisillon qui donne une vie…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
-par la lune : `clairDeLune`), ou monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne).
+par la lune : `clairDeLune`), monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne),
+ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
+Défi du Super Saut, dont le décor `sousbois` a des branches `=` sur les troncs `|`, et des feuillages de décor d'où
+pendent les lianes : `feuillage`).
 Il suffit de modifier les lettres et de recharger la page.
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste

@@ -2962,6 +2962,11 @@ const Art = (() => {
         ctx.stroke();
       }
     }
+    // (le nid tout seul, quand l'oisillon s'est envolé)
+    if (o.onlyNest) {
+      ctx.restore();
+      return;
+    }
     ctx.translate(0, -hop);
     birdCore(ctx, -18, t, {
       colors: o.colors,

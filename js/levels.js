@@ -13,6 +13,9 @@
 //   M  champignon qui fait rebondir (guimauve au monde des bonbons)
 //      (dans les Champignons Géants, "theme: mushrooms" : chaque rangée de - ou de M côte à côte est un grand
 //      chapeau de champignon sur son grand pied ; les M sont les chapeaux bleus à pois qui font rebondir)
+//      (avec le badge Super Saut, ↓ gardé en arrivant dessus : Malice s'accroupit sur le chapeau, et saute encore plus haut)
+//      (dans le Défi du Super Saut, "theme: sousbois" : - et M sont aussi de grands chapeaux, = est une branche sur un
+//      tronc |, et au-dessus du sol, les murs # sont de grosses souches couvertes de mousse)
 //      (dans le Marais aux Cabanes, "theme: marsh" : ~ est de la boue où l'on s'enfonce, comme le chocolat ;
 //      chaque rangée de 3 - ou plus est le plancher d'une cabane sur pilotis, et = est un pont de corde)
 //   w  flaque d'eau, posée sur le sol (plouf ! et Gizmo devient un Gremlin)
@@ -33,6 +36,7 @@
 //      pour se lancer (tous les personnages)
 //   q  écureuil (dans le décor : il grignote un gland devant son trou, et y file quand Malice arrive)
 //   k  nid d'oisillons (dans le décor : ils piaillent quand Malice passe)
+//   p  le nid secret : un oisillon qui fait un câlin à Malice et lui donne une vie (une seule fois)
 //      (dans le Vieux Chêne, "theme: oak" : # est le bois du tronc, et - un champignon-étagère accroché au bois)
 //   i  lucioles (un petit groupe qui éclaire la nuit, et qui suit Malice un moment)
 //   j  grande fleur-lanterne qui brille (elle éclaire tout autour, la nuit)
@@ -72,6 +76,13 @@
 //  "basVisible" : la caméra montre le bas du niveau (la boue sous les ponts du marais : le niveau n'a que
 //             12 rangées, presque la hauteur de l'écran) ; elle ne monte que pendant un très haut saut, pour que
 //             la tête de Malice reste à l'écran (même au-dessus du haut du niveau : voir World.updateCamera).
+//  "haut" : le niveau est bien plus haut que l'écran (on monte dans les grands arbres) : comme pour "grimpe", la caméra
+//             suit la branche ou le chapeau où Malice a les pieds, et sa tête ne sort jamais de l'écran (même au-dessus
+//             du haut du niveau, après un très grand saut).
+//  "cachette" : [première colonne, première rangée, dernière colonne, dernière rangée] : un coin secret caché derrière
+//             un gros feuillage (tout en haut d'un arbre) ; les feuilles s'écartent quand Malice entre dedans.
+//  "feuillage" : [[première colonne, première rangée, dernière colonne, dernière rangée], …] : de gros feuillages dans
+//             le décor (on passe à travers), par exemple pour accrocher des lianes J sans branche où marcher.
 //  "galeries" : les passages bas sous un plafond (une ou deux cases de haut, entre deux cases solides)
 //             sont dessinés comme des galeries de terre : une butte se lit comme une colline percée d'un tunnel.
 //  "grimpe" : on monte dans le niveau (bien plus haut que l'écran) : la caméra suit l'étage où Malice a les pieds,
@@ -484,31 +495,53 @@ const LEVELS = [
   {
     world: 2,
     name: "Le Défi du Super Saut",
-    theme: "badge",
+    theme: "sousbois",
     badge: "saut",
     intro: "",
     storms: [],
+    // le sous-bois est bien plus haut que l'écran : la caméra suit Malice dans les grands arbres
+    haut: true,
+    // tout en haut du grand arbre de la fin, un gros feuillage cache un nid (p) et des bonbons
+    cachette: [115, 0, 122, 3],
+    // au-dessus des lianes, le feuillage du grand arbre (on passe à travers : on ne marche pas dessus)
+    feuillage: [[94, 0, 106, 2]],
     talk: [
-      "Bienvenue au stage d'entraînement ! Termine-le pour gagner le badge Super Saut.",
-      "Reste appuyée sur {BAS} pour t'accroupir, puis saute avec {SAUT} : tu sauteras deux fois plus haut !",
-      "Les blocs lutin tout là-haut cachent des bonbons. Fais un super saut pour les casser !",
-      "Bravo ! Tu peux aussi faire un super saut depuis une marche.",
-      "Le badge est juste là ! Va le chercher !",
+      "Bienvenue au stage d'entraînement\u00a0! Termine-le pour gagner le badge Super Saut.",
+      "Cette grosse souche est bien trop haute\u00a0! Reste appuyée sur {BAS} pour t'accroupir, puis saute avec {SAUT}\u00a0: tu sauteras deux fois plus haut\u00a0!",
+      "Les blocs lutin tout là-haut cachent des bonbons. Fais un super saut pour les casser\u00a0!",
+      "Grimpe dans le grand arbre\u00a0: un super saut jusqu'à la première branche, puis un autre, et encore un autre\u00a0!",
+      "Cette souche est encore plus haute\u00a0! Monte d'abord sur la marche, et fais ton super saut de là-haut.",
+      "Un champignon bleu\u00a0! Saute dessus en restant appuyée sur {BAS}. Quand ça brille, saute avec {SAUT}\u00a0!",
+      "Tout là-haut, des lianes\u00a0! Fais un super saut sur le champignon bleu pour en attraper une. Balance-toi avec {FLECHES}, et saute de liane en liane\u00a0!",
+      "Le dernier défi\u00a0: un super saut, un champignon bleu, une liane… et le badge\u00a0! Chut… tu entends piailler, tout en haut de ce grand arbre\u00a0?",
+      "Bravo\u00a0! Va chercher ton badge\u00a0!",
     ],
     map: [
-      '....................................................................................................',
-      '....................................................................................................',
-      '....................................................................................................',
-      '.........................................................ooo........................................',
-      '.........................BLLLB...yyy.......oooooo.......#####.................yyy...................',
-      '...............oooo.............####.......------.......#####.................###...................',
-      '...............####.............####....................#####...........###...###...................',
-      '...............####.............####....................#####...........###...###...................',
-      '...............####.............####....................#####...........###...###...................',
-      '...............####.............####................#########...........###...###...........Z.......',
-      '..P..T....T....####...T.........####..............T.#########.....E.....###...###.....T...#####.....',
-      '##########################################.......##########################...######################',
-      '##########################################~~~~~~~##########################~~~######################',
+      '.....................................................................................................................oo...............................',
+      '....................................................................................................................y....y................-----.......',
+      '...................................y.....................................................................=====.....oo..p.o................J...........',
+      '................................................................................................J....J....J.||.....=======................J...........',
+      '....................................................oooo........................................J....J....J.||.......||...................J...........',
+      '....................................................####........................................J....J....J.||......o||...................J...........',
+      '....................................................####........................................J....J....J.||.......||...................J...........',
+      '................................yyy.................####...............o.o.o.yy.................J....J....J.||......o||........................T..Z...',
+      '................................======..............####...............-----####.....................J....J.||.!.T...||........................#######',
+      '....................................||..............####....................####.....................J....J.||#####=====.......................#######',
+      '....................................||............oo####................o...####..................o.........||#####..||........................#######',
+      '....................................||............######....................####.......................o....||#####..||........................#######',
+      '....................................||o.o...o.T...######...............o....####............................||#####..||........................#######',
+      '....................................=======#############........||..........####............................||#####..||........................#######',
+      '..................y.................||.....#############........||.....o....####............................||#####..||........................#######',
+      '........||............BLLLB.........||.....#############........||..........####............................||#####..||........................#######',
+      '........||....ooo...................||.....#############........||....o.....####............................||#####..||.............o.o........#######',
+      '........||....###................ooo||.....#############........||..........####............................||#####..||.............###........#######',
+      '........||....###................======....#############........||..........####............................||#####..||.............###........#######',
+      '........||....###...................||.....#############........||..........####............................||#####..||.............###........#######',
+      '........||....###...................||.....#############........||...MMM....####............................||#####..||.............###........#######',
+      '........||....###...................||.....#############........||..........####............................||#####..||.............###........#######',
+      '..P..T..||.T..###..T...o.o.o.!.T....||.....#############.!.o.o..||T.........####..o.o.o..o...T.MM..o.o.o.o..||#####..||......o.o.o..###..MM....#######',
+      '######################################################################################################################################################',
+      '######################################################################################################################################################',
     ],
   },
   {

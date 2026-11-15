@@ -62,6 +62,16 @@ const Scenery = (() => {
       plat: '#f08a3a', platDark: '#b8521c', platLight: '#ffc890', caps: true,
       bramble: '#7a3a8a', brambleDark: '#2f1236', thorn: '#ffffff',
     },
+    // le sous-bois du Défi du Super Saut : les champignons géants (- et M sont de grands chapeaux), de la mousse, et les
+    // grands arbres de la forêt : = est une branche (sur un tronc |), et au-dessus du sol, les murs sont de grosses
+    // souches (stumps : avec l'écorce et la mousse des Grands Arbres, voir World.tileTheme)
+    sousbois: {
+      dirt: '#7a5236', dirtDark: '#52341f', dirtLight: '#9a6d48', stripe: 'rgba(40,20,5,0.2)',
+      top: '#5cb84a', topDark: '#2f8a3e', topLight: '#a8e07e', blades: true,
+      brick: '#b07a45', brickDark: '#6f4521', brickLight: '#dcaa6e', crate: true,
+      plat: '#f08a3a', platDark: '#b8521c', platLight: '#ffc890', caps: true, branches: true, stumps: true,
+      bramble: '#7a3a8a', brambleDark: '#2f1236', thorn: '#ffffff',
+    },
     // le marais aux cabanes : de la terre sombre et mouillée, de l'herbe vert olive, des caisses, et les planchers des
     // cabanes sur pilotis (cabins : voir World.findCabins) ; la lave (~) est de la boue où l'on s'enfonce
     marsh: {
@@ -2478,6 +2488,67 @@ const Scenery = (() => {
     ctx.restore();
   }
 
+  // Le gros feuillage qui cache le coin secret, tout en haut d'un arbre (voir "cachette" dans levels.js) : des touffes
+  // de feuilles serrées sur w × h pixels, avec des petites fleurs. Dessiné une fois. (Les touffes du bord débordent :
+  // la marge HIDEOUT_M tout autour est assez grande pour qu'aucune ne soit coupée, sinon on verrait un bord droit.)
+  // (Aussi les feuillages du décor, "feuillage" dans levels.js.)
+  const HIDEOUT_M = 60;
+  function hideoutSprite(w, h) {
+    const M = HIDEOUT_M;
+    return sprite(`hideout:${w}:${h}`, w + M * 2, h + M * 2, (g) => {
+      g.translate(M, M);
+      const puffs = [];
+      const n = Math.max(3, Math.round(w / 44));
+      const m = Math.max(2, Math.round(h / 44));
+      for (let j = 0; j <= m; j++) {
+        for (let i = 0; i <= n; i++) {
+          const v = hash2(i * 3.1, j * 7.7);
+          // (le bord est bosselé, et les coins arrondis : ça ressemble à un gros arbre, pas à une boîte)
+          const u = (i / n) * 2 - 1;
+          const e = (j / m) * 2 - 1;
+          if (u * u + e * e > 1.55) continue;
+          const edge = i === 0 || j === 0 || i === n || j === m;
+          puffs.push([(i / n) * w + (v - 0.5) * 16, (j / m) * h + (hash(v * 13) - 0.5) * 14, (edge ? 26 : 34) + v * 12]);
+        }
+      }
+      g.fillStyle = '#2a8a3c';
+      puffs.forEach(([x, y, r]) => { circlePath(g, x, y + 7, r); g.fill(); });
+      g.fillStyle = '#44b64d';
+      puffs.forEach(([x, y, r]) => { circlePath(g, x, y, r); g.fill(); });
+      g.fillStyle = '#6ccf58';
+      puffs.forEach(([x, y, r]) => { circlePath(g, x - r * 0.2, y - r * 0.3, r * 0.5); g.fill(); });
+      for (let i = 0; i < (w * h) / 900; i++) {
+        const lx = hash(i * 1.9) * w;
+        const ly = hash(i * 2.3 + 5) * h;
+        leaf(g, lx, ly, hash(i * 3.7) * TAU, 1, i % 3 ? '#8fe26a' : '#2f9a46');
+      }
+      for (let i = 0; i < (w * h) / 5000; i++) {
+        const fx = hash(i * 4.1 + 2) * w;
+        const fy = hash(i * 5.3 + 1) * h;
+        g.fillStyle = i % 2 ? '#ffd0e6' : '#ffffff';
+        for (let k = 0; k < 5; k++) {
+          circlePath(g, fx + Math.cos((k / 5) * TAU) * 3, fy + Math.sin((k / 5) * TAU) * 3, 2.6);
+          g.fill();
+        }
+        g.fillStyle = '#ffc21f';
+        circlePath(g, fx, fy, 1.8);
+        g.fill();
+      }
+    });
+  }
+
+  // Le feuillage de la cachette, sur le rectangle (x0, y0) - (x1, y1) du monde (k : de 1, tout fermé, à 0, ouvert) :
+  // il frémit un peu, et s'écarte quand Malice entre.
+  function hideout(ctx, x0, y0, x1, y1, k, t) {
+    if (k <= 0.01) return;
+    const img = hideoutSprite(x1 - x0, y1 - y0);
+    const M = HIDEOUT_M;
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.drawImage(img, x0 - M + Math.sin(t * 1.3) * 1.5, y0 - M + Math.sin(t * 1.7 + 1) * 1, x1 - x0 + M * 2, y1 - y0 + M * 2);
+    ctx.restore();
+  }
+
   // Le ciel de la prairie : soleil, nuages et montagnes au loin (aussi derrière la rivière).
   function meadowSky(ctx, cx, cy, t) {
     sky(ctx, [[0, '#45b4ff'], [0.55, '#9fdcff'], [1, '#e6f8ff']]);
@@ -2906,6 +2977,90 @@ const Scenery = (() => {
         }
       });
       // les spores qui brillent
+      for (let i = 0; i < 16; i++) {
+        const x = ((hash(i * 1.7) * VIEW_W + Math.sin(t * 0.6 + i) * 30 - cx * 0.35) % VIEW_W + VIEW_W) % VIEW_W;
+        const y = VIEW_H - ((t * (12 + hash(i + 3) * 14) + hash(i + 9) * VIEW_H) % (VIEW_H + 40));
+        const a = 0.35 + 0.35 * Math.sin(t * 2.5 + i);
+        ctx.fillStyle = i % 3 ? `rgba(255,250,190,${a})` : `rgba(190,240,255,${a})`;
+        circlePath(ctx, x, y, 2.2);
+        ctx.fill();
+      }
+    },
+
+    // le sous-bois du Défi du Super Saut : la forêt (ses rayons de lumière, ses grands arbres, ses lianes) avec de grands
+    // champignons pâles au loin. Le niveau est bien plus haut que l'écran (cy : 84 tout en bas, comme un niveau ordinaire,
+    // et de moins en moins en montant) : tout en haut, on est au-dessus des arbres du fond.
+    sousbois(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#7fd6c0'], [0.5, '#c8efc8'], [1, '#effbd8']]);
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#fffbd0';
+      for (let i = 0; i < 5; i++) {
+        const x = ((i * 260 - cx * 0.1) % 1300 + 1300) % 1300 - 150;
+        ctx.beginPath();
+        ctx.moveTo(x, -10);
+        ctx.lineTo(x + 70, -10);
+        ctx.lineTo(x + 320, VIEW_H);
+        ctx.lineTo(x + 200, VIEW_H);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+      // tout au loin : de grands champignons pâles, dans la brume
+      forEachItem(cx * 0.1, 230, 61, (x, i, h) => {
+        bgMushroom(ctx, x, 440 - cy * 0.1, 210 + h * 140, 120 + h * 70, '#c4dcd0', '#b4d0c4');
+      });
+      ctx.fillStyle = '#a8cdb8';
+      ctx.fillRect(0, 430 - cy * 0.1, VIEW_W, 400);
+      // plus près : les grands arbres de la forêt
+      forEachItem(cx * 0.3, 170, 63, (x, i, h) => {
+        const by = 480 - cy * 0.25;
+        const th = 240 + h * 140;
+        ctx.fillStyle = '#5a7a5a';
+        roundRectPath(ctx, x - 13, by - th, 26, th + 100, 8);
+        ctx.fill();
+        ctx.fillStyle = '#3f8f5a';
+        circlePath(ctx, x - 32, by - th + 10, 52);
+        ctx.fill();
+        circlePath(ctx, x + 32, by - th - 5, 56);
+        ctx.fill();
+        ctx.fillStyle = '#4fa86a';
+        circlePath(ctx, x, by - th - 30, 52);
+        ctx.fill();
+      });
+      ctx.fillStyle = '#4a8a5a';
+      ctx.fillRect(0, 470 - cy * 0.25, VIEW_W, 400);
+      // des fougères tout près
+      forEachItem(cx * 0.55, 130, 67, (x, i, h) => {
+        if (h < 0.35) return;
+        const by = 530 - cy * 0.45;
+        ctx.fillStyle = '#3f8a52';
+        for (let k = -2; k <= 2; k++) {
+          ctx.save();
+          ctx.translate(x, by);
+          ctx.rotate(k * 0.42 + Math.sin(t * 1.3 + i) * 0.04);
+          ellipsePath(ctx, 0, -34 - h * 20, 9, 36 + h * 20);
+          ctx.fill();
+          ctx.restore();
+        }
+      });
+      // des lianes qui pendent des arbres (tout en haut de l'écran)
+      forEachItem(cx * 0.6, 150, 69, (x, i, h) => {
+        if (h > 0.5) return;
+        const len = 50 + h * 120;
+        ctx.strokeStyle = '#2f7a3f';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(x, -5);
+        ctx.quadraticCurveTo(x + Math.sin(t + i) * 10, len / 2, x + Math.sin(t * 0.8 + i) * 6, len);
+        ctx.stroke();
+        ctx.fillStyle = '#45b35a';
+        for (let k = 1; k < 5; k++) {
+          ellipsePath(ctx, x + Math.sin(t * 0.8 + i) * 6 * (k / 5) + (k % 2 ? 6 : -6), (len * k) / 5, 7, 3.5, k % 2 ? 0.5 : -0.5);
+          ctx.fill();
+        }
+      });
+      // les spores qui brillent en montant tout doucement
       for (let i = 0; i < 16; i++) {
         const x = ((hash(i * 1.7) * VIEW_W + Math.sin(t * 0.6 + i) * 30 - cx * 0.35) % VIEW_W + VIEW_W) % VIEW_W;
         const y = VIEW_H - ((t * (12 + hash(i + 3) * 14) + hash(i + 9) * VIEW_H) % (VIEW_H + 40));
@@ -3804,8 +3959,24 @@ const Scenery = (() => {
           ctx.restore();
         }
       }
-    } else if (theme === 'mushrooms') {
-      if (v < 0.45) {
+    } else if (theme === 'mushrooms' || theme === 'sousbois') {
+      if (theme === 'sousbois' && v > 0.8) {
+        // (le sous-bois) un coussin de mousse, avec ses toutes petites pousses
+        ctx.fillStyle = '#3f9a45';
+        ellipsePath(ctx, 0, -3, 16, 6);
+        ctx.fill();
+        ctx.fillStyle = '#6cc552';
+        ellipsePath(ctx, -3, -5, 11, 4);
+        ctx.fill();
+        ctx.strokeStyle = '#8fdc6a';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let k = -2; k <= 2; k++) {
+          ctx.moveTo(k * 5, -7);
+          ctx.lineTo(k * 5 + sway * 10, -12 - (k & 1) * 2);
+        }
+        ctx.stroke();
+      } else if (v < 0.45) {
         // une petite famille de champignons
         // (jamais de bleu : les champignons bleus à pois sont ceux qui font rebondir)
         const cols = ['#f08a3a', '#b07ae0', '#e8b83a', '#d8563c'];
@@ -4082,6 +4253,6 @@ const Scenery = (() => {
     rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
     drawMudRun, mudMist, stilt, cabinSprite, CABIN_H, ropeBridge,
     trunkSprite, crown, riverBed, drawWaterRun, reeds, burrowCell, burrowSunbeam, burrowLantern,
-    moonPos, glowFlower, glowFlowerShine, vine, oakFacade,
+    moonPos, glowFlower, glowFlowerShine, vine, oakFacade, hideout,
   };
 })();

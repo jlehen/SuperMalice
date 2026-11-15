@@ -384,6 +384,7 @@ const Game = {
         // on garde la difficulté et le réglage du son, on efface les niveaux débloqués
         this.save.rescued = false;
         this.save.badges = [];
+        this.save.nids = [];
         this.setReach(LEVELS[ORDER[0]].key);
         this.showMap();
         break;

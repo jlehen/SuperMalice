@@ -21,6 +21,13 @@ const PHYS = {
   pound: 1150,
   superJump: 1250,
   crouchCharge: 0.12,
+  // le super saut sur un champignon qui fait rebondir (badge Super Saut) : accroupie sur son chapeau, elle
+  // monte encore bien plus haut (presque 15 cases). Pour les enfants, un peu de tolérance : ↓ lâché moins de
+  // squatGrace secondes avant d'arriver sur le chapeau compte encore, et après avoir lâché ↓, le chapeau la garde
+  // squatKeep secondes (le temps d'appuyer sur le saut).
+  superSpring: 1800,
+  squatGrace: 0.2,
+  squatKeep: 0.35,
   // roulade (badge Roulade) : en boule, Malice ne fait plus que rollH de haut (elle passe dans un trou
   // d'une case), elle file à rollSpeed pendant rollTime secondes, puis attend rollWait avant de recommencer
   rollH: 30,
@@ -152,6 +159,10 @@ class Player {
     this.crouchT = 0;
     this.superT = 0;
     this.superSpin = 0;
+    // accroupie sur un champignon qui fait rebondir (badge Super Saut) : sa case { c, r }, et si elle y est arrivée
+    // en écrasant (big) ; downAgo : depuis combien de temps ↓ n'est plus appuyé (voir springTile)
+    this.squatM = null;
+    this.downAgo = 9;
     // la roulade : en boule (ball), le temps qu'il reste à rouler (roll), dans quel sens (rollDir),
     // l'attente avant la suivante (rollWait), et comment elle tourne sur elle-même (rollA)
     this.standH = this.h;
@@ -259,6 +270,8 @@ class Player {
 
     if (this.superSpin > 0) this.superSpin -= dt;
     const I = Input;
+    // (depuis combien de temps ↓ n'est plus appuyé : voir springTile)
+    this.downAgo = I.held.down ? 0 : this.downAgo + dt;
     const game = w.game;
     const badgeSaut = game.hasBadge('saut');
     const badgeGrappin = game.hasBadge('grappin');
@@ -292,7 +305,8 @@ class Player {
 
     // ---- La roulade (badge Roulade) : ↓ en tenant ← ou → ----
     // (sur tablette : le pouce qui glisse de ▶ jusqu'à ▼ ; à la manette : bas et avant ; voir input.js)
-    // À l'arrêt, ↓ accroupit toujours (le super saut) ; en l'air, ↓ écrase toujours.
+    // À l'arrêt, ↓ accroupit toujours (le super saut) ; en l'air, ↓ écrase toujours. (Accroupie sur un champignon
+    // qui fait rebondir, pas de roulade : elle prépare son super saut, voir springTile.)
     if (this.rollWait > 0) this.rollWait -= dt;
     if (I.pressed.roll) {
       this.rollBuf = PHYS.buffer;
@@ -301,7 +315,7 @@ class Player {
       this.rollBuf -= dt;
     }
     if (this.rollBuf > 0 && badgeRoulade && this.onGround && !this.ball && this.rollWait <= 0 && this.hurtT <= 0 &&
-      !this.pound && !this.puff && !this.grap && !this.inChoco && !this.swim && this.startRoll(this.rollBufDir)) this.rollBuf = 0;
+      !this.pound && !this.puff && !this.grap && !this.inChoco && !this.swim && !this.squatM && this.startRoll(this.rollBufDir)) this.rollBuf = 0;
     if (this.ball) this.updateRoll(dt);
 
     // ---- S'accroupir (et préparer le super saut) ----
@@ -311,12 +325,15 @@ class Player {
       if (badgeSaut && this.crouchT - dt < PHYS.crouchCharge && this.crouchT >= PHYS.crouchCharge) Sound.sfx.charge();
     } else {
       if (this.crouch && badgeSaut && this.crouchT >= PHYS.crouchCharge) this.superT = 0.3;
+      // (accroupie sur un champignon, c'est chargé tout de suite : même ↓ lâché très vite, le chapeau la garde un
+      // petit moment, le temps de sauter)
+      if (this.crouch && this.squatM) this.superT = PHYS.squatKeep;
       this.crouchT = 0;
     }
     this.crouch = wantCrouch;
     if (this.superT > 0) this.superT -= dt;
-    const charged = badgeSaut && ((this.crouch && this.crouchT >= PHYS.crouchCharge) || this.superT > 0);
-    if (charged && Math.random() < dt * 25) {
+    const charged = badgeSaut && ((this.crouch && this.crouchT >= PHYS.crouchCharge) || this.superT > 0 || !!this.squatM);
+    if (charged && Math.random() < dt * (this.squatM ? 45 : 25)) {
       w.spawn({ type: 'spark', x: this.cx + rand(-16, 16), y: this.y + this.h - rand(0, 20), vy: rand(-120, -40), life: 0.4, size: rand(3, 5), color: '#7ff0ff' });
     }
     if (this.crouch) dir = 0;
@@ -376,9 +393,14 @@ class Player {
       this.coyote = 0;
       this.onGround = false;
       this.platform = null;
+      // accroupie sur un champignon qui fait rebondir (voir springTile) : c'est chargé, son chapeau la lance
+      const squat = this.squatM;
+      this.squatM = null;
       if (charged) {
-        // SUPER SAUT !
-        this.vy = -PHYS.superJump;
+        // SUPER SAUT ! (sur un champignon : un super saut encore bien plus haut, mais jamais plus haut que le
+        // haut du niveau)
+        this.vy = squat ? -Math.min(PHYS.superSpring, Math.sqrt(2 * PHYS.gravity * Math.max(0, this.y - 10))) : -PHYS.superJump;
+        if (squat) w.springAt(squat.c, squat.r, true);
         this.jumping = false;
         this.superT = 0;
         this.crouch = false;
@@ -462,6 +484,7 @@ class Player {
     // on lâche le pissenlit en atterrissant
     if (this.puff && this.onGround) this.dropPuff();
     if (res.landed) this.springTile();
+    else this.squatM = null;
     if (res.wall && !this.onGround && pow.wall && !this.puff) pow.wall(this, res.wall);
 
     if (this.onGround && !wasGround) {
@@ -698,8 +721,28 @@ class Player {
     for (let c = c0; c <= c1; c++) {
       if (w.tileAt(c, r) === 'M') { hit = c; break; }
     }
-    if (hit < 0) return;
-    const big = this.pound === 2;
+    if (hit < 0) {
+      this.squatM = null;
+      return;
+    }
+    // Avec le badge Super Saut, ↓ appuyé (même en arrivant d'un écrasement) : elle s'accroupit sur le chapeau,
+    // qui s'enfonce sous ses pieds, sans rebondir : c'est chargé (des étincelles) ; un saut la lance (voir le saut,
+    // dans update). Après avoir lâché ↓, le chapeau la garde encore un petit moment (superT) : le temps d'appuyer
+    // sur le saut. (Et ↓ lâché juste avant d'arriver compte encore : PHYS.squatGrace.)
+    const keep = Input.held.down || this.downAgo < PHYS.squatGrace || (this.squatM && this.superT > 0);
+    if (w.game.hasBadge('saut') && !this.ball && this.hurtT <= 0 && !this.tumbling() && keep) {
+      if (!this.squatM) this.squatFx(hit, r);
+      if (!Input.held.down && this.superT <= 0) this.superT = PHYS.squatKeep;
+      // (arrivée en écrasant : si elle ne saute pas, elle fera le grand rebond de l'écrasement)
+      this.squatM = { c: hit, r, big: this.squatM ? this.squatM.big : this.pound === 2 };
+      this.pound = 0;
+      // (elle ne glisse pas : sur une guimauve au-dessus du chocolat, elle tomberait)
+      this.vx = 0;
+      w.springs.set(hit + ',' + r, 0.08);
+      return;
+    }
+    const big = this.pound === 2 || !!(this.squatM && this.squatM.big);
+    this.squatM = null;
     // (jamais plus haut que le haut du niveau : elle sortirait de l'écran. En pratique, seul le rebond
     // après un écrasement est assez fort pour être limité ; le rebond simple et le saut gardé ne changent pas.)
     const room = Math.max(0, this.y - 10);
@@ -710,6 +753,19 @@ class Player {
     this.pound = 0;
     this.coyote = 0;
     w.springAt(hit, r, big);
+  }
+
+  // Elle s'accroupit sur un champignon (badge Super Saut) : bwoump, le chapeau s'écrase, et une gerbe d'étincelles
+  // montre que c'est chargé (il n'y a plus qu'à sauter).
+  squatFx(c, r) {
+    const w = this.world;
+    Sound.sfx.squish();
+    Sound.sfx.charge();
+    const y = r * TILE;
+    w.spawn({ type: 'ring', x: this.cx, y, life: 0.35, size: 54, color: 'rgba(127,240,255,0.9)' });
+    for (let i = 0; i < 12; i++) {
+      w.spawn({ type: 'spark', x: this.cx + rand(-22, 22), y: y - rand(0, 6), vx: rand(-90, 90), vy: rand(-220, -60), life: 0.55, size: rand(3, 6), color: i % 2 ? '#7ff0ff' : '#ffffff' });
+    }
   }
 
   // Dans la rivière de chocolat (ou la boue du marais) : on ne se brûle pas, mais on s'enfonce. Vite, il faut sauter !
@@ -1586,7 +1642,20 @@ class Player {
     ctx.save();
     if (blink) ctx.globalAlpha = 0.35;
     // sur un pont de corde, il s'enfonce un peu sous ses pieds (voir World.bridgeDip)
-    const dip = this.onGround && !this.dead ? this.world.bridgeDip(this.cx, Math.round((this.y + this.h) / TILE)) : 0;
+    // (et accroupie sur un champignon, elle s'enfonce avec son chapeau : voir springTile)
+    const dip = this.onGround && !this.dead ? this.world.bridgeDip(this.cx, Math.round((this.y + this.h) / TILE)) + (this.squatM ? 5 : 0) : 0;
+    if (this.squatM && !this.dead) {
+      // accroupie sur un champignon : c'est chargé, elle brille (un halo bleu qui palpite)
+      const k = 0.5 + 0.5 * Math.sin(this.world.t * 12);
+      const gy = this.y + this.h - 10 + dip;
+      const glow = ctx.createRadialGradient(this.cx, gy, 4, this.cx, gy, 44 + k * 6);
+      glow.addColorStop(0, `rgba(200,255,255,${0.55 + 0.25 * k})`);
+      glow.addColorStop(0.5, `rgba(127,240,255,${0.3 + 0.2 * k})`);
+      glow.addColorStop(1, 'rgba(127,240,255,0)');
+      ctx.fillStyle = glow;
+      circlePath(ctx, this.cx, gy, 50 + k * 6);
+      ctx.fill();
+    }
     if (this.onGround && !this.dead) {
       ctx.fillStyle = 'rgba(0,0,0,0.18)';
       ellipsePath(ctx, this.cx, this.y + this.h + 1 + dip, 15, 4);
@@ -4816,6 +4885,115 @@ class Nest {
 
   draw(ctx) {
     Art.nest(ctx, this.x, this.y, { t: this.t, up: this.up, v: this.v });
+  }
+}
+
+// Le nid secret (p), caché tout en haut d'un arbre (voir "cachette" dans levels.js) : un petit oisillon vert de la
+// forêt (un cousin du bébé oiseau !) y fait la sieste. Quand Malice arrive tout près, il se réveille et sautille de
+// joie ; quand elle le touche, il s'envole lui faire un câlin… et lui donne une vie en plus. Une seule fois par
+// niveau, même si elle perd une vie et revient (comme l'œil bonbon : voir Game.caughtEyes). Et la vie, une seule fois
+// en tout (gardé dans la sauvegarde, "nids") : quand on rejoue le stage, il fait encore un câlin (les cœurs à fond, des
+// points), mais sans vie en plus.
+const NEST_COLORS = { light: '#c8f5a0', mid: '#6fcf4a', dark: '#2f9a3a', wing: '#3fae4a', tuft: '#2f8a3a' };
+
+class SecretNest {
+  constructor(world, x, y, key) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+    this.key = 'nid:' + key;
+    this.given = world.game.caughtEyes.has(this.key);
+    this.saveKey = world.def.key + ':' + key;
+    this.up = 0;
+    this.t = rand(0, 6);
+    this.chirpT = 0;
+    // le câlin : le temps depuis qu'il s'est envolé (-1 : pas encore), et où il vole
+    this.hug = -1;
+    this.bx = x;
+    this.by = y;
+  }
+
+  update(dt) {
+    const w = this.world;
+    const p = w.player;
+    this.t += dt;
+    const dx = p.cx - this.x;
+    const dy = p.y + p.h - this.y;
+    const near = !p.dead && Math.abs(dx) < 160 && Math.abs(dy) < 130;
+    // (de plus loin, tant qu'il n'a pas eu de visite : sur les branches en dessous, on l'entend piailler de temps en
+    // temps, pour donner envie de monter voir)
+    const hear = !p.dead && !this.given && Math.abs(dx) < 330 && dy > -60 && dy < 430;
+    this.up = approach(this.up, near ? 1 : 0, dt * (near ? 4 : 1.2));
+    this.chirpT -= dt;
+    if ((near || hear) && this.chirpT <= 0 && this.hug < 0 && (this.up > 0.6 || !near)) {
+      this.chirpT = near ? rand(0.6, 1.1) : rand(1.6, 2.6);
+      Sound.sfx.chirp();
+    }
+    // Malice le touche (même un peu à côté) : il s'envole vers elle
+    if (!this.given && this.hug < 0 && !p.dead && Math.abs(dx) < 46 && Math.abs(dy) < 60) {
+      this.hug = 0;
+      this.given = true;
+      w.game.caughtEyes.add(this.key);
+    }
+    if (this.hug < 0) return;
+    this.hug += dt;
+    // il vole jusqu'à la tête de Malice, tourne un peu autour d'elle en battant des ailes, puis rentre au nid
+    const k = this.hug;
+    let tx = this.x;
+    let ty = this.y - 18;
+    if (k < 2.6) {
+      tx = p.cx + Math.sin(k * 5) * 26;
+      ty = p.y - 22 + Math.cos(k * 5) * 8;
+    }
+    const f = Math.min(1, dt * (k < 2.6 ? 9 : 5));
+    this.bx += (tx - this.bx) * f;
+    this.by += (ty - this.by) * f;
+    if (k - dt < 0.7 && k >= 0.7) this.gift();
+    if (k > 0.7 && k < 3) w.bubble(this.bx, this.by - 40, w.game.textFor('Cui-cui\u00a0! Merci d\'être montée jusqu\'ici, Malice\u00a0!'), 1);
+    if (k > 4) this.hug = 99;
+  }
+
+  // le câlin : une vie en plus (ou tous ses cœurs, quand les vies sont infinies), et plein de petits cœurs
+  // (la vie, une seule fois par sauvegarde ; ensuite, seulement les cœurs à fond)
+  gift() {
+    const w = this.world;
+    const p = w.player;
+    const game = w.game;
+    p.heal(game.energyMax);
+    const nids = Array.isArray(game.save.nids) ? game.save.nids : (game.save.nids = []);
+    if (!nids.includes(this.saveKey)) {
+      nids.push(this.saveKey);
+      Save.save(game.save);
+      game.extraLife(p.cx, p.y - 30);
+    } else {
+      w.popText(p.cx, p.y - 30, 'Cœurs à fond !', '#ff7ab8', 24);
+    }
+    game.addScore(500);
+    Sound.sfx.nestHug();
+    for (let i = 0; i < 10; i++) {
+      w.spawn({ type: 'heart', x: p.cx + rand(-18, 18), y: p.y + 10, vy: rand(-170, -60), vx: rand(-70, 70), life: 1.1, size: 1 });
+    }
+  }
+
+  draw(ctx) {
+    const flying = this.hug >= 0 && this.hug < 4;
+    if (!flying) {
+      Art.babyBird(ctx, this.x, this.y, this.t, { colors: NEST_COLORS, happy: this.up > 0.6, chirp: this.up > 0.6 && Math.sin(this.t * 9) > 0 });
+      if (this.up < 0.2) {
+        // zzz…
+        const k = (this.t * 0.6) % 1;
+        ctx.save();
+        ctx.globalAlpha = Math.sin(k * Math.PI) * 0.8;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px Fredoka, sans-serif';
+        ctx.fillText('z', this.x + 14 + k * 8, this.y - 40 - k * 14);
+        ctx.restore();
+      }
+      return;
+    }
+    // le nid tout vide, et l'oisillon qui vole autour de Malice
+    Art.babyBird(ctx, this.x, this.y, this.t, { colors: NEST_COLORS, onlyNest: true });
+    Art.babyBird(ctx, this.bx, this.by + 18, this.t, { colors: NEST_COLORS, noNest: true, happy: true, chirp: Math.sin(this.t * 12) > 0 });
   }
 }
 
