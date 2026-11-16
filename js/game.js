@@ -333,6 +333,7 @@ const Game = {
     $('#btn-fs').addEventListener('click', () => this.toggleFullscreen());
     window.addEventListener('keydown', (e) => {
       if (e.key === 'm' || e.key === 'M') $('#btn-sound').click();
+      if ((e.key === 'f' || e.key === 'F') && !e.repeat && $('#btn-fs').style.display !== 'none') this.toggleFullscreen();
     });
     this.updateSoundBtn();
     const fsOk = document.fullscreenEnabled || document.webkitFullscreenEnabled;
