@@ -2208,6 +2208,29 @@ const Art = (() => {
     ctx.fillStyle = '#fff';
     circlePath(ctx, lx - 2.5, cy + ly - 3, 2.2);
     ctx.fill();
+    // fâché : une paupière en biais, plus basse vers l'avant, qui cache le haut de l'iris
+    if (o.chasing) {
+      const back = cy - R * 0.55;
+      const front = cy - R * 0.12;
+      ctx.save();
+      circlePath(ctx, 0, cy, R);
+      ctx.clip();
+      ctx.fillStyle = '#d58fb0';
+      ctx.beginPath();
+      ctx.moveTo(-R * dir, cy - R);
+      ctx.lineTo(R * dir, cy - R);
+      ctx.lineTo(R * dir, front);
+      ctx.lineTo(-R * dir, back);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#3b1a33';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-R * dir, back);
+      ctx.lineTo(R * dir, front);
+      ctx.stroke();
+      ctx.restore();
+    }
     // paupière
     const lid = o.lid || 0;
     if (lid > 0) {
@@ -2223,14 +2246,6 @@ const Art = (() => {
       ctx.lineTo(R, cy - R + R * 2 * lid);
       ctx.stroke();
       ctx.restore();
-    }
-    if (o.chasing) {
-      ctx.strokeStyle = '#3b1a33';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(-12 * dir, cy - R - 2);
-      ctx.lineTo(6 * dir, cy - R + 5);
-      ctx.stroke();
     }
     ctx.restore();
   }
