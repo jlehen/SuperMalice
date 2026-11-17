@@ -259,6 +259,8 @@ const Heroes = (() => {
       case 'scramble': return { color: `hsl(${Math.floor(k.t * 900) % 360},90%,55%)`, a: 0.55 * clamp(left / 0.5, 0, 1) };
       case 'hypno': return { color: '#b070ff', a: 0.25 * clamp(left / 0.5, 0, 1) };
       case 'wet': return { color: '#3a8ae8', a: 0.3 * clamp(left / 0.5, 0, 1) };
+      // trempé par la pluie d'un petit nuage (il s'ébroue comme un chien)
+      case 'shake': return { color: '#3a8ae8', a: 0.25 * clamp(left / 0.5, 0, 1) };
       case 'slime': return { color: '#8ee05a', a: 0.38 * clamp(left / 0.5, 0, 1) };
       case 'dirt': return { color: '#7a4a24', a: 0.38 * clamp(left / 0.5, 0, 1) };
       // tout vert (la grenouille), puis il reprend sa couleur après avoir coassé deux fois
@@ -307,6 +309,21 @@ const Heroes = (() => {
       if (turn.whirl > 0) Art.spinWhirl(ctx, x, cy, (-top / 2 + 10) * sc, o.ouch.t, turn.whirl);
       return;
     }
+    // trempé par la pluie d'un petit nuage, il s'ébroue comme un chien : tout son corps se tortille de gauche à droite
+    // (autour du milieu de son corps), voir Art.shakeTilt
+    const tilt = o.ouch && o.ouch.kind === 'shake' && !o.shook ? Art.shakeTilt(o.ouch) : 0;
+    if (tilt) {
+      const top = id === 'malice' || !HERO_BY_ID[id] ? -62 : HERO_BY_ID[id].headY - 16;
+      const cy = y + (top / 2) * (o.scale || 1);
+      ctx.save();
+      ctx.translate(x, cy);
+      ctx.rotate(tilt);
+      ctx.scale(1 + Math.abs(tilt) * 0.3, 1 - Math.abs(tilt) * 0.15);
+      ctx.translate(-x, -cy);
+      draw(ctx, id, x, y, Object.assign({}, o, { shook: true }));
+      ctx.restore();
+      return;
+    }
     if (id === 'malice' || !DRAW[id]) {
       Art.malice(ctx, x, y, Object.assign({}, o, {
         palette: o.star ? Art.maliceRainbow(o.t || 0) : o.palette,
@@ -349,7 +366,7 @@ const Heroes = (() => {
       ctx.restore();
     }
     if (k && k.kind === 'spots') Art.spotsOverlay(ctx, k);
-    if (k && k.kind === 'wet') Art.wetOverlay(ctx, k, info.headY - 12);
+    if (k && (k.kind === 'wet' || k.kind === 'shake')) Art.wetOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'slime') Art.slimeOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'dirt') Art.dirtOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'pins') Art.pinsOverlay(ctx, k, head);

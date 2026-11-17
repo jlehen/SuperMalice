@@ -4590,7 +4590,72 @@ const Scenery = (() => {
     ctx.restore();
   }
 
+  // ---------- La Crue ----------
+  // (on dessine dans les cases vides seulement : voir Flood.clip ; y : la surface de l'eau, bottom : le bas de l'écran)
+  // L'eau du fond, derrière tout ce qui bouge : bien bleue, plus foncée en profondeur, avec des rayons de lumière.
+  function floodBack(ctx, x0, x1, y, bottom, t) {
+    const g = ctx.createLinearGradient(0, y, 0, y + 420);
+    g.addColorStop(0, '#5aaee0');
+    g.addColorStop(0.4, '#3a86c4');
+    g.addColorStop(1, '#22578e');
+    ctx.fillStyle = g;
+    ctx.fillRect(x0, y - 4, x1 - x0, bottom - y + 4);
+    // des rayons de lumière qui ondulent sous la surface
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    for (let i = Math.floor(x0 / 160); i * 160 < x1; i++) {
+      const x = i * 160 + Math.sin(t * 0.8 + i * 1.7) * 18;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 6);
+      ctx.lineTo(x + 34, y + 6);
+      ctx.lineTo(x + 10, y + 260);
+      ctx.lineTo(x - 30, y + 260);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // L'eau de devant (un peu transparente, comme la rivière) ; boil : la rivière bouillonne (de grosses vagues).
+  function floodFront(ctx, x0, x1, y, bottom, t, boil) {
+    if (boil) {
+      // de grosses vagues qui se soulèvent
+      ctx.fillStyle = 'rgba(200,240,255,0.55)';
+      ctx.beginPath();
+      ctx.moveTo(x0, y + 6);
+      for (let x = x0; x <= x1 + 0.1; x += 8) ctx.lineTo(x, y + 4 - Math.abs(Math.sin(x * 0.03 + t * 9)) * 7);
+      ctx.lineTo(x1, y + 6);
+      ctx.closePath();
+      ctx.fill();
+    }
+    drawWaterRun(ctx, x0, x1, y - 14, bottom, t);
+  }
+
+  // L'eau qui monte, encore sous l'écran : le bas de l'écran devient bleu (k : de 0, loin, à 1, tout près), avec des
+  // vagues et des bulles qui montent. (x, y) : le bas de l'écran, à gauche.
+  function floodEdge(ctx, x, y, k, t) {
+    const h = 30 + 40 * k;
+    const g = ctx.createLinearGradient(0, y - h, 0, y);
+    g.addColorStop(0, 'rgba(90,180,240,0)');
+    g.addColorStop(1, `rgba(60,150,230,${0.35 + 0.4 * k})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y - h, VIEW_W, h);
+    ctx.strokeStyle = `rgba(230,250,255,${0.35 + 0.5 * k})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let sx = 0; sx <= VIEW_W; sx += 12) {
+      const yy = y - 8 - 10 * k + Math.sin((x + sx) * 0.04 + t * 5) * 3;
+      if (sx === 0) ctx.moveTo(x + sx, yy); else ctx.lineTo(x + sx, yy);
+    }
+    ctx.stroke();
+    ctx.fillStyle = `rgba(230,250,255,${0.5 * k + 0.2})`;
+    for (let i = 0; i < 9; i++) {
+      const ph = (t * 0.9 + hash(i * 4.3)) % 1;
+      circlePath(ctx, x + hash(i * 7.1) * VIEW_W, y - ph * h * 1.2, 2 + 2 * hash(i * 2.9));
+      ctx.fill();
+    }
+  }
+
   return {
+    floodBack, floodFront, floodEdge,
     windmill, millPlank, rain,
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
     rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,

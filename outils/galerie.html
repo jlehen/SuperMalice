@@ -42,7 +42,7 @@
     const withBird = P.has('oiseau');
     // poses communes, puis les poses spéciales des pouvoirs
     const POSES = ['idle', 'walk', 'run', 'jump', 'fall', 'pound', 'crouch', 'throw', 'hang', 'hurt', 'win', 'hold', 'float', 'vine', 'slip',
-      'ouch:butt', 'ouch:ko', 'ouch:soot', 'ouch:zap', 'ouch:wet', 'ouch:slime', 'ouch:dirt', 'ouch:pins', 'ouch:spin', 'ouch:croak', 'star', 'power1', 'power2'];
+      'ouch:butt', 'ouch:ko', 'ouch:soot', 'ouch:zap', 'ouch:wet', 'ouch:slime', 'ouch:dirt', 'ouch:pins', 'ouch:spin', 'ouch:croak', 'ouch:shake', 'star', 'power1', 'power2'];
     // les poses spéciales des pouvoirs (voir pouvoirs.js), et Malice en boule (la roulade)
     const POWER_POSES = {
       malice: ['roll'], lutin: ['magic'], bonbon: ['ball'], ronaxel: ['kick', 'siu'], poussin: ['flap'], luisy: ['glide'],
@@ -105,6 +105,8 @@
           o.ouch = { kind: c.p.slice(5), t: (t % 1.2) * 0.4, dur: 1.4, seed: 1, shock: c.p === 'ouch:zap' };
           // (la grenouille : toute verte, pendant qu'elle coasse, la gorge gonflée)
           if (c.p === 'ouch:croak') Object.assign(o.ouch, { t: Art.CROAKS[0] + 0.1 + (t % 1.2) * 0.1, dur: 1.9 });
+          // (le petit nuage : toute trempée, elle s'ébroue comme un chien)
+          if (c.p === 'ouch:shake') Object.assign(o.ouch, { t: Art.SHAKE.t0 + 0.05 + (t % 1.2) * 0.5, dur: 1.6 });
         } else if (c.p === 'star') {
           pose = 'run';
           o.star = true;

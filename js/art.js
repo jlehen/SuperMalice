@@ -1190,6 +1190,16 @@ const Art = (() => {
     const i = croakAt(k);
     return i < 0 ? 0 : Math.sin(clamp((k.t - CROAKS[i] + 0.1) / 0.42, 0, 1) * Math.PI);
   }
+  // Le petit nuage grognon : trempée (les mains sur la tête), puis, de t0 à t1, elle s'ébroue comme un chien (tout son
+  // corps se tortille de gauche à droite, n fois par seconde, et les gouttes volent : voir Player.updateOuch).
+  const SHAKE = { t0: 0.45, t1: 1.2, n: 7, a: 0.2 };
+  const shaking = (k) => k.t > SHAKE.t0 && k.t < SHAKE.t1;
+  // de combien tout son corps est penché pendant qu'elle s'ébroue (radians)
+  function shakeTilt(k) {
+    if (!shaking(k)) return 0;
+    const u = (k.t - SHAKE.t0) / (SHAKE.t1 - SHAKE.t0);
+    return Math.sin(u * (SHAKE.t1 - SHAKE.t0) * SHAKE.n * TAU) * SHAKE.a * Math.sin(u * Math.PI);
+  }
   // les moments où elle enlève chaque piquant (aïe !)
   const PIN_PULLS = PINS.map((_, i) => 0.55 + i * 0.24);
   // head : [x, y] du haut de la tête (Malice : [0, -62])
@@ -1298,6 +1308,8 @@ const Art = (() => {
       case 'zap': return k.shock ? C : mixPalette(C, SOOT, 0.45 * clamp(left / 0.5, 0, 1));
       case 'scramble': return scramblePalette(C, k);
       case 'wet': return mixPalette(C, WET, clamp(left / 0.5, 0, 1));
+      // (trempée par la pluie d'un petit nuage : un peu moins, elle s'ébroue)
+      case 'shake': return mixPalette(C, WET, 0.8 * clamp(left / 0.5, 0, 1));
       case 'slime': return mixPalette(C, SLIMY, clamp(left / 0.5, 0, 1));
       case 'dirt': return mixPalette(C, DIRTY, clamp(left / 0.5, 0, 1));
       // toute verte d'un coup, puis elle reprend sa couleur après avoir coassé deux fois
@@ -1388,6 +1400,15 @@ const Art = (() => {
       const s = croakSac(k) * 0.08;
       return { legF: -1.25 - s, legB: 1.05 + s, armF: -0.42, armB: 0.3, lean: 0.14, crouch: 8 };
     }
+    if (k.kind === 'shake') {
+      if (shaking(k)) {
+        // elle s'ébroue comme un chien : les jambes écartées bien plantées, les bras qui ballottent
+        const s = Math.sin((k.t - SHAKE.t0) * SHAKE.n * TAU);
+        return { legF: -0.32, legB: 0.34, armF: -0.6 + s * 0.7, armB: 0.6 + s * 0.7, lean: 0, crouch: 2 };
+      }
+      // splash ! les deux mains sur la tête, sous la pluie
+      return { legF: 0.12, legB: -0.12, armF: -2.55, armB: 2.45, lean: 0.06 };
+    }
     if (k.kind === 'wet') {
       // elle se serre dans ses bras, les genoux qui s'entrechoquent
       const s = Math.sin(ot * 40) * 0.05;
@@ -1434,6 +1455,18 @@ const Art = (() => {
         // les yeux fermés en ressortant, puis tout ronds ; elle claque des dents
         fx.eye = t < 0.3 ? 'blink' : 'wide';
         fx.mouth = t > 0.3 && t < k.dur - 0.3 ? (Math.floor(t * 16) % 2 ? 'wide' : 'small') : 'o';
+        break;
+      case 'shake':
+        // splash ! les yeux plissés sous la pluie ; elle s'ébroue en grimaçant (brrr !) ; puis ouf
+        if (t < SHAKE.t0) {
+          fx.eye = 'squeeze';
+          fx.mouth = 'o';
+        } else if (shaking(k)) {
+          fx.eye = 'squeeze';
+          fx.mouth = 'wide';
+        } else if (t < SHAKE.t1 + 0.15) {
+          fx.eye = 'blink';
+        }
         break;
       case 'slime':
         // beurk !
@@ -1582,8 +1615,8 @@ const Art = (() => {
       paint(ctx, '#9fe0ff', '#2f8fd0', 0.8);
       ctx.restore();
     });
-    // brrr : des petits traits qui tremblent de chaque côté
-    if (t > 0.25) {
+    // brrr : des petits traits qui tremblent de chaque côté (pas sous la pluie d'un petit nuage : elle s'ébroue)
+    if (t > 0.25 && k.kind !== 'shake') {
       ctx.strokeStyle = 'rgba(120,200,255,0.9)';
       ctx.lineWidth = 1.6;
       ctx.lineCap = 'round';
@@ -1892,7 +1925,7 @@ const Art = (() => {
     if (kind === 'ko') koStars(ctx, k, t);
     if (tilt) ctx.restore();
     if (kind === 'spots') spotsOverlay(ctx, k);
-    if (kind === 'wet') wetOverlay(ctx, k, -62);
+    if (kind === 'wet' || kind === 'shake') wetOverlay(ctx, k, -62);
     if (kind === 'slime') slimeOverlay(ctx, k, -62);
     if (kind === 'dirt') dirtOverlay(ctx, k, -62);
     if (kind === 'pins') pinsOverlay(ctx, k);
@@ -6141,7 +6174,165 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // Petit nuage grognon (la Crue), le bas du nuage en (x, y). o : t, mood (de 0, grognon, à 1 : tout noir, il va
+  // pleuvoir), empty (de 0 à 1 : tout vide et tout pâle, après avoir plu), look, dir, happy (de 0 à 1 : pouf ! tout
+  // blanc, il rit), fat (le ventre plein de chips, posé par terre, tout essoufflé), stuck (collé par le caramel).
+  const CLOUD_PUFFS = [[-20, -15, 13], [-7, -24, 15], [10, -25, 14], [22, -15, 12], [0, -11, 17], [-14, -8, 10], [15, -8, 10]];
+  function grumpyCloud(ctx, x, y, o) {
+    const t = o.t || 0;
+    const mood = o.mood || 0;
+    const happy = o.happy || 0;
+    const empty = o.empty || 0;
+    const fat = !!o.fat;
+    // sa couleur : lilas (grognon), presque noir (fâché), tout pâle (vide), tout blanc (gentil)
+    // (gris-bleu, pas violet comme les nuages du fond : on voit bien que c'est lui)
+    let fill = mixColor('#bcc4de', '#484c66', mood);
+    let line = mixColor('#3e4470', '#1a1c2e', mood);
+    fill = mixColor(fill, '#eef0ff', empty * 0.8);
+    fill = mixColor(fill, '#ffffff', happy);
+    line = mixColor(line, '#8f8fb8', happy);
+    ctx.save();
+    ctx.translate(x, y);
+    const breathe = fat ? Math.sin(t * 9) * 0.04 : Math.sin(t * 2.6) * 0.02;
+    const sx = (fat ? 1.25 : 1 - 0.1 * empty) + breathe;
+    const sy = (fat ? 0.88 : 1 - 0.12 * empty) - breathe;
+    ctx.scale(sx, sy);
+    // le contour (un gros trait sous chaque boule), puis les boules par-dessus : on ne voit que le bord du nuage
+    ctx.fillStyle = line;
+    for (const [px, py, r] of CLOUD_PUFFS) {
+      circlePath(ctx, px, py, r + 2.2);
+      ctx.fill();
+    }
+    ctx.fillStyle = fill;
+    for (const [px, py, r] of CLOUD_PUFFS) {
+      circlePath(ctx, px, py, r);
+      ctx.fill();
+    }
+    // un peu de lumière en haut
+    ctx.fillStyle = `rgba(255,255,255,${0.35 - 0.25 * mood})`;
+    ellipsePath(ctx, -6, -31, 9, 4, -0.2);
+    ctx.fill();
+    // la figure
+    const lx = (o.look ? o.look.x : 0) * 2.5;
+    const ly = (o.look ? o.look.y : 0) * 1.5;
+    const ex = 8;
+    const ey = -17;
+    ctx.lineCap = 'round';
+    if (happy > 0 || fat) {
+      // pouf : les yeux tout plissés de rire (^ ^) ; avec les chips : les yeux fermés, tout repu
+      ctx.strokeStyle = '#3a2f55';
+      ctx.lineWidth = 2.2;
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        if (fat) {
+          ctx.moveTo(s * ex - 4, ey);
+          ctx.lineTo(s * ex + 4, ey);
+        } else {
+          ctx.moveTo(s * ex - 4, ey + 1.5);
+          ctx.quadraticCurveTo(s * ex, ey - 4, s * ex + 4, ey + 1.5);
+        }
+        ctx.stroke();
+      }
+      // les joues roses
+      ctx.fillStyle = 'rgba(255,140,180,0.55)';
+      for (const s of [-1, 1]) {
+        ellipsePath(ctx, s * 15, ey + 7, 4.5, 3);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#7a2f4a';
+      if (fat) {
+        // il halète, la bouche ouverte
+        ellipsePath(ctx, 0, ey + 9, 3.2, 2.2 + Math.abs(Math.sin(t * 9)) * 1.6);
+        ctx.fill();
+      } else {
+        // un grand sourire
+        ctx.beginPath();
+        ctx.moveTo(-7, ey + 6);
+        ctx.quadraticCurveTo(0, ey + 15, 7, ey + 6);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else {
+      // les yeux (à moitié fermés quand il est tout vide)
+      for (const s of [-1, 1]) {
+        ellipsePath(ctx, s * ex, ey, 4.2, 4.6);
+        paint(ctx, '#ffffff', '#2a2240', 1);
+        ctx.fillStyle = '#1c1630';
+        circlePath(ctx, s * ex + lx, ey + ly + 0.5, 2.1);
+        ctx.fill();
+        if (empty > 0.3) {
+          ctx.fillStyle = fill;
+          ctx.fillRect(s * ex - 5, ey - 5.5, 10, 5 * empty);
+        }
+      }
+      // les sourcils froncés (encore plus quand il est fâché)
+      ctx.strokeStyle = '#2a2240';
+      ctx.lineWidth = 2.4;
+      const frown = 2 + 3 * mood - 2 * empty;
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(s * (ex + 5), ey - 7 - frown * 0.3);
+        ctx.lineTo(s * (ex - 4), ey - 5 + frown * 0.5);
+        ctx.stroke();
+      }
+      // la bouche boudeuse (toute ronde quand il est vide)
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (empty > 0.5) {
+        circlePath(ctx, 0, ey + 9, 2);
+        ctx.stroke();
+      } else {
+        ctx.moveTo(-5, ey + 11);
+        ctx.quadraticCurveTo(0, ey + 6 - 2 * mood, 5, ey + 11);
+        ctx.stroke();
+      }
+      // fâché : des joues gonflées toutes grises, et une petite colère (une croix rouge) sur le côté
+      if (mood > 0.4) {
+        ctx.save();
+        ctx.globalAlpha *= clamp((mood - 0.4) / 0.4, 0, 1);
+        ctx.translate(20, -32);
+        ctx.rotate(Math.sin(t * 14) * 0.15);
+        ctx.strokeStyle = '#ff5a6a';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        for (const a of [0.6, 2.2, 3.8, 5.4]) {
+          ctx.moveTo(Math.cos(a) * 2, Math.sin(a) * 2);
+          ctx.lineTo(Math.cos(a) * 6, Math.sin(a) * 6);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+
+  // La pluie d'un petit nuage : des traits qui tombent de top à bottom, sur w de large (k : de 0, quelques gouttes, à 1).
+  function cloudRain(ctx, x, top, bottom, t, w, k) {
+    if (bottom <= top) return;
+    const h = bottom - top;
+    ctx.save();
+    if (k > 0.5) {
+      ctx.fillStyle = `rgba(150,195,245,${0.16 * k})`;
+      ctx.fillRect(x - w / 2, top, w, h);
+    }
+    ctx.strokeStyle = 'rgba(175,220,255,0.9)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    const n = Math.max(2, Math.round(14 * k));
+    for (let i = 0; i < n; i++) {
+      const xx = x - w / 2 + 3 + hash(i * 3.1) * (w - 6);
+      const ph = (t * 2.6 + hash(i * 7.7)) % 1;
+      const yy = top + ph * h;
+      ctx.moveTo(xx, yy);
+      ctx.lineTo(xx - 1.5, Math.min(bottom, yy + 13));
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
   return {
+    grumpyCloud, cloudRain, SHAKE, shaking, shakeTilt,
     MALICE, MIMIC_DUR, CUBE_COLORS, COUGHS, SCRAMBLE_BACK, MALICE_SPOTS, spotPop, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,

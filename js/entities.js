@@ -111,6 +111,9 @@ const OUCH = {
   // la grenouille sauteuse : elle devient toute verte, et fait « Croa ! » deux fois (accroupie comme une grenouille,
   // la gorge qui se gonfle : voir Art.CROAKS), puis elle reprend sa couleur
   croak: { dur: 1.9, pose: 0.3, lock: 0.25, vx: 230, vy: -500, hold: 0.55, color: '#8ef06a' },
+  // le petit nuage grognon : toute trempée par sa pluie (les mains sur la tête), elle s'ébroue comme un chien (les
+  // gouttes volent partout : voir Art.SHAKE), puis, encore mouillée, elle avance moins vite un moment (Player.soak)
+  shake: { dur: 1.6, pose: 0.4, lock: 0.25, vx: 120, vy: -260, hold: 0.3, text: 'Splash !', color: '#9fdcff' },
   // n'importe quoi d'autre
   hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
 };
@@ -207,6 +210,10 @@ class Player {
     this.safe = { x: x + this.w / 2, y: y + this.h, pad: null };
     this.slick = false;
     this.slipT = 0;
+    // la Crue : trempée par la pluie d'un petit nuage grognon, elle avance moins vite (soak : le temps qu'il reste ;
+    // dripT : le prochain « flic » de ses pas mouillés)
+    this.soak = 0;
+    this.dripT = 0;
     // le personnage choisi et son pouvoir (voir heroes.js et pouvoirs.js)
     this.hero = world.game.hero || 'malice';
     this.pow = POWERS[this.hero] || {};
@@ -249,6 +256,7 @@ class Player {
     if (this.throwT > 0) this.throwT -= dt;
     if (this.throwAnim > 0) this.throwAnim -= dt;
     if (this.land > 0) this.land -= dt;
+    if (this.soak > 0) this.updateSoak(dt);
     if (this.star > 0) {
       this.star -= dt;
       this.sparkT -= dt;
@@ -364,6 +372,8 @@ class Player {
     if (pow.top && !this.inChoco) top = pow.top(this, top);
     // avec le pissenlit, on plane sans se presser
     if (this.puff) top = PHYS.puffRun;
+    // toute trempée (la pluie d'un petit nuage grognon), elle avance moins vite
+    if (this.soak > 0) top *= w.diff.soakSlow;
 
     if (this.pound) {
       this.vx = 0;
@@ -584,12 +594,17 @@ class Player {
       w.spawn({ type: 'ring', x: this.cx, y: surf, life: 0.5, size: 50, color: 'rgba(200,240,255,0.9)' });
     }
     this.swim = true;
-    if (this.y + this.h >= depth && this.vy >= 0) {
-      this.y = depth - this.h;
+    // (l'eau qui monte, dans la Crue, ne la colle jamais à un plafond : sous une dalle, elle nage juste dessous)
+    let ny = depth - this.h;
+    while (ny < this.y && w.boxSolid(this.x, ny, this.w, this.h)) ny = Math.min(this.y, (Math.floor(ny / TILE) + 1) * TILE);
+    if (this.y + this.h >= ny + this.h && this.vy >= 0) {
+      this.y = ny;
       this.vy = 0;
       this.pound = 0;
       if (!this.onGround) this.land = 0.12;
       this.onGround = true;
+      // (ses pieds, là où elle nage : c'est « son sol » tant qu'elle nage, pour la Crue, les fleurs, les nuages…)
+      this.groundY = this.y + this.h;
       this.coyote = PHYS.coyote;
       this.platform = null;
       // des petites vagues quand on nage
@@ -620,6 +635,8 @@ class Player {
     }
     // Gizmo devient un Gremlin
     if (this.pow.splash) this.pow.splash(this);
+    // la Crue : l'eau redescend sous l'endroit où elle va ressortir (et attend un peu avant de remonter)
+    if (w.flood) w.flood.dived(this.safeSpot());
   }
 
   // Sous l'eau : des bulles remontent, puis elle ressort là où elle était bien au sec.
@@ -632,6 +649,8 @@ class Player {
     if (this.dive > 0) return;
     this.dive = 0;
     const s = this.safeSpot();
+    // (l'eau de la Crue est déjà redescendue sous cet endroit : elle ne ressort jamais sous l'eau)
+    if (w.flood) w.flood.poppedOut(s);
     this.x = s.x - this.w / 2;
     this.y = s.y - this.h;
     this.vx = 0;
@@ -711,6 +730,28 @@ class Player {
     }
     if (Math.random() < dt * 22) {
       w.spawn({ type: 'dot', x: this.cx + rand(-8, 8), y: this.y + this.h - 2, vx: -Math.sign(this.vx) * rand(20, 90) + this.vx * 0.2, vy: rand(-140, -40), g: 900, life: 0.4, size: rand(1.8, 3), color: choose(['#d8ffc8', '#ffffff', '#b8f0a0']) });
+    }
+  }
+
+  // Toute trempée (la pluie d'un petit nuage grognon) : des gouttes tombent d'elle, et ses pas font « flic, floc ».
+  // (elle avance moins vite : voir soakSlow dans DIFFS)
+  updateSoak(dt) {
+    const w = this.world;
+    this.soak -= dt;
+    if (this.soak <= 0) {
+      this.soak = 0;
+      return;
+    }
+    if (Math.random() < dt * 10) {
+      w.spawn({ type: 'dot', x: this.cx + rand(-12, 12), y: this.y + rand(8, this.h - 10), vx: rand(-15, 15), vy: rand(30, 90), g: 900, life: 0.45, size: rand(1.8, 2.8), color: '#8fd8ff' });
+    }
+    this.dripT -= dt * (this.onGround ? Math.abs(this.vx) / 120 : 0);
+    if (this.dripT <= 0) {
+      this.dripT = 1;
+      Sound.sfx.squish();
+      for (let i = 0; i < 4; i++) {
+        w.spawn({ type: 'dot', x: this.cx + rand(-10, 10), y: this.y + this.h - 2, vx: rand(-70, 70), vy: rand(-150, -60), g: 1000, life: 0.35, size: rand(1.6, 2.6), color: i % 2 ? '#bfeaff' : '#ffffff' });
+      }
     }
   }
 
@@ -1585,6 +1626,21 @@ class Player {
           w.popText(this.cx + (i ? 14 : -10), this.y - 16, 'Croa !', '#8ef06a', 22);
         });
         break;
+      case 'shake':
+        // toute trempée, elle s'égoutte ; puis elle s'ébroue comme un chien : les gouttes volent tout autour d'elle
+        if (passed(Art.SHAKE.t0)) Sound.sfx.shakeOff();
+        if (Art.shaking(k)) {
+          // (elles partent du bord de son corps, vers l'extérieur)
+          if (Math.random() < dt * 50) {
+            const side = Math.random() < 0.5 ? -1 : 1;
+            const a = side > 0 ? rand(-1.2, 0.2) : rand(Math.PI - 0.2, Math.PI + 1.2);
+            w.spawn({ type: 'dot', x: this.cx + side * 14, y: this.y + rand(8, this.h - 16), vx: Math.cos(a) * rand(220, 380), vy: Math.sin(a) * rand(160, 320), g: 1100, life: 0.45, size: rand(2.2, 3.4), color: choose(['#8fd8ff', '#bfeaff', '#ffffff']) });
+          }
+        } else if (Math.random() < dt * 14) {
+          const p = at(rand(-12, 12), rand(-62, -8));
+          w.spawn({ type: 'dot', x: p.x, y: p.y, vx: rand(-20, 20), vy: rand(20, 90), g: 900, life: 0.5, size: rand(1.8, 2.8), color: '#8fd8ff' });
+        }
+        break;
       case 'spots':
         Art.MALICE_SPOTS.forEach(([x, y], i) => {
           if (!passed(Art.spotPop(i))) return;
@@ -1627,7 +1683,10 @@ class Player {
     const k = this.ouch;
     // tout son corps réagit à ce qui lui a fait mal
     // (et quand elle coasse, par terre : accroupie comme une grenouille, voir Art.croaking)
-    const ouching = k && (this.dead || k.t < OUCH[k.kind].pose || (k.kind === 'croak' && this.onGround && Art.croaking(k)));
+    // (et quand elle s'ébroue comme un chien, par terre et à l'arrêt : les jambes écartées, voir Art.shaking ; si elle
+    // marche, elle garde sa pose de marche, les gouttes et son corps qui se tortille suffisent)
+    const ouching = k && (this.dead || k.t < OUCH[k.kind].pose || (k.kind === 'croak' && this.onGround && Art.croaking(k)) ||
+      (k.kind === 'shake' && this.onGround && Math.abs(this.vx) < 40 && Art.shaking(k)));
     if (k) k.shock = k.kind === 'zap' && (this.dead ? this.deathT < 0.5 : this.stunT > 0);
     if (this.dead) pose = k ? 'ouch' : 'hurt';
     else if (this.won) pose = this.onGround ? 'win' : 'jump';
@@ -3944,6 +4003,528 @@ class MillPlank {
   }
 }
 
+// ======================= LA CRUE =======================
+// La rivière déborde (la Crue, voir "crue" dans levels.js). L'eau remplit tout ce qui est vide sous sa surface (y) : on
+// la dessine seulement dans les cases vides, jamais dans la terre. Quand Malice monte sur l'escalier d'une montée, la
+// rivière bouillonne (floodWarn) et « L'eau monte ! » : elle déborde d'un coup jusqu'au pied de l'escalier, puis l'eau
+// monte derrière Malice, jusqu'à l'arrêt de la montée (juste sous l'étage du dessus). Si Malice monte déjà l'escalier
+// suivant, elle ne s'arrête pas en chemin. Pour que ce soit juste :
+//  - tout près sous les pieds de Malice, l'eau ralentit (jusqu'à FLOOD.slow) ; quand Malice est loin au-dessus, elle
+//    accélère (jusqu'à FLOOD.fast fois plus vite), et elle ne reste jamais plus de FLOOD.leash cases sous ses pieds (la
+//    laisse) : on voit le bas de l'écran tout bleu, et dès qu'on hésite, l'eau entre dans l'écran ;
+//  - quand Malice est trempée par un petit nuage (elle avance moins vite), l'eau monte deux fois moins vite ;
+//  - elle ne monte pas pendant que Malice lit une fleur (debout à côté ; une fleur sous l'eau ne parle plus), ni
+//    pendant qu'elle a mal ou est sous l'eau ;
+//  - après un plouf, elle redescend d'au moins floodBack cases sous l'endroit où Malice ressort (jamais plus bas que là
+//    où elle était au début de la montée), et attend floodPause secondes avant de remonter (ou de re-déborder, si la
+//    rivière bouillonne encore) : on ne ressort jamais sous l'eau, et on ne replonge pas aussitôt ;
+//  - à la reprise d'un drapeau, les montées d'en dessous sont finies : l'eau est arrêtée sous l'étage du drapeau.
+// FLOOD : near (à moins de near cases sous ses pieds, l'eau ralentit, jusqu'à slow fois moins vite à une case), far (à
+// plus de far cases, elle accélère, jusqu'à fast fois plus vite à far + 4 cases), leash (la laisse : jamais plus de
+// leash cases sous ses pieds ; l'écran en montre 3,8, voir CLIMB_FEET_CRUE : elle est juste sous le bas de l'écran, qui
+// est tout bleu), pull (quand elle grimpe, la laisse tire l'eau au plus à pull pixels par seconde : moins vite que
+// l'écran ne monte, l'eau n'y saute jamais d'un coup), back (la vitesse de l'eau qui redescend, en pixels par seconde),
+// edge (quand l'eau qui monte est sous l'écran à moins de edge cases, le bas de l'écran devient bleu), surge (quand la
+// rivière déborde, elle monte d'un coup jusqu'à surge cases sous le haut du palier : le sol de l'étage est sous l'eau,
+// et depuis la 1re marche, on la voit bouillonner en bas de l'écran).
+const FLOOD = { near: 2.5, slow: 0.45, far: 3.5, fast: 3, leash: 4.5, pull: 150, back: 700, edge: 5, surge: 1 };
+
+class Flood {
+  constructor(world, def, start) {
+    this.world = world;
+    this.y = def.eau * TILE + 14;
+    // chaque montée : bas (le haut du palier), top (là où l'eau s'arrête), x0-x1 (l'escalier), k (sa vitesse)
+    this.ups = (def.montees || []).map(([bas, arret, c0, c1, k]) => ({
+      bas: bas * TILE, top: arret * TILE + 12, x0: c0 * TILE, x1: (c1 + 1) * TILE, k: k || 1, done: false,
+    }));
+    for (const u of this.ups) {
+      if (start.y < u.top) {
+        u.done = true;
+        this.y = u.top;
+      }
+    }
+    // low : le plus bas où elle redescend après un plouf (là où elle était au début de la montée)
+    this.low = this.y;
+    this.surge = this.y;
+    this.up = null;
+    // 'calm' : elle ne bouge pas ; 'warn' : la rivière bouillonne ; 'rise' : elle monte
+    this.state = 'calm';
+    this.timer = 0;
+    this.pause = 0;
+    this.backTo = null;
+    this.t = 0;
+    this.glugT = 1;
+  }
+
+  update(dt) {
+    const w = this.world;
+    const p = w.player;
+    this.t += dt;
+    if (this.backTo !== null) {
+      this.y = approach(this.y, this.backTo, FLOOD.back * dt);
+      if (this.y === this.backTo) this.backTo = null;
+    }
+    // l'escalier suivant : quand Malice y monte, l'eau monte (si elle montait déjà, loin en dessous, elle continue
+    // jusqu'en haut de ce nouvel escalier, sans s'arrêter en chemin)
+    const u = this.ups.find((m) => !m.done);
+    if (u && !p.dead && !p.won && p.onGround && p.dive <= 0) {
+      const feet = p.y + p.h;
+      const onStairs = feet < u.bas - 4 && p.cx >= u.x0 && p.cx < u.x1;
+      // (passée plus haut sans monter l'escalier, avec un pouvoir qui vole : l'eau monte quand même derrière elle)
+      if (onStairs || feet < u.top - 2 * TILE) this.start(u, onStairs && this.state === 'calm');
+    }
+    if (this.state === 'calm') return;
+    if (this.state === 'warn') {
+      // la rivière bouillonne, et déborde d'un coup jusqu'au pied de l'escalier
+      this.timer -= dt;
+      this.bubble(dt, 40);
+      // (après un plouf, elle attend aussi avant de re-déborder)
+      if (this.pause > 0) this.pause -= dt;
+      else if (this.backTo === null) this.y = approach(this.y, this.surge, ((this.low - this.surge) / w.diff.floodWarn) * dt);
+      if (this.timer <= 0) this.state = 'rise';
+      return;
+    }
+    this.bubble(dt, 8);
+    if (this.pause > 0) {
+      this.pause -= dt;
+      return;
+    }
+    if (this.backTo !== null || p.dead || p.won || p.dive > 0 || p.hurtT > 0) return;
+    // (pendant qu'elle lit une fleur, là où elle est : pas depuis la marche au-dessus d'une fleur, d'où on la lit aussi ;
+    // une fleur sous l'eau ne parle plus)
+    if (w.flowers.some((f) => f.show > 0.3 && f.y <= this.y && Math.abs(p.groundY - f.y) < TILE / 2)) return;
+    const up = this.up;
+    const gap = (this.y - p.groundY) / TILE;
+    let k = up.k;
+    if (gap < FLOOD.near) k *= FLOOD.slow + (1 - FLOOD.slow) * clamp((gap - 1) / (FLOOD.near - 1), 0, 1);
+    else if (gap > FLOOD.far) k *= 1 + (FLOOD.fast - 1) * clamp((gap - FLOOD.far) / 4, 0, 1);
+    if (p.soak > 0) k *= 0.5;
+    let y = this.y - w.diff.floodSpeed * k * dt;
+    // (la laisse : quand Malice grimpe plus vite qu'elle, l'eau la suit, jamais plus de FLOOD.leash cases sous ses pieds)
+    const leash = p.groundY + FLOOD.leash * TILE;
+    if (y > leash) y = Math.min(y, Math.max(leash, this.y - FLOOD.pull * dt));
+    this.y = Math.max(up.top, y);
+    // gloup… (de temps en temps, quand on la voit)
+    this.glugT -= dt;
+    if (this.glugT <= 0) {
+      this.glugT = rand(1.3, 2.2);
+      if (this.y < w.cam.y + VIEW_H + 30) Sound.sfx.floodGlug();
+    }
+    if (this.y <= up.top) this.stop();
+  }
+
+  // Malice monte sur l'escalier : la rivière déborde !
+  start(u, warn) {
+    const w = this.world;
+    const p = w.player;
+    u.done = true;
+    this.up = u;
+    // (si elle montait déjà, elle redescendra au plus bas jusqu'où elle était au début de cette montée-là)
+    if (this.state === 'calm') this.low = this.y;
+    // la rivière déborde d'un coup jusqu'au pied de l'escalier (FLOOD.surge cases sous le palier), pendant qu'elle
+    // bouillonne
+    this.surge = Math.min(this.y, u.bas + FLOOD.surge * TILE);
+    this.state = warn ? 'warn' : 'rise';
+    this.timer = w.diff.floodWarn;
+    Sound.sfx.floodRise();
+    w.shake(5);
+    // (un grand message, qui reste plus longtemps qu'un petit mot)
+    w.spawn({ type: 'text', x: p.cx, y: p.y - 40, vy: -22, life: 2.4, hold: 0.7, text: 'L\'eau monte ! Grimpe vite !', color: '#ffffff', size: 28 });
+  }
+
+  // Elle est arrivée sous l'étage du dessus : elle s'arrête.
+  stop() {
+    const w = this.world;
+    this.y = this.up.top;
+    this.low = this.y;
+    this.up = null;
+    this.state = 'calm';
+    if (this.y > w.cam.y - 20 && this.y < w.cam.y + VIEW_H + 20) Sound.sfx.floodStop();
+  }
+
+  // Plouf : Malice va ressortir en s (ses pieds) ; l'eau redescend sous elle, et attend avant de remonter.
+  dived(s) {
+    const D = this.world.diff;
+    const goal = Math.min(this.low, Math.max(this.y, s.y + D.floodBack * TILE));
+    if (goal > this.y + 0.5) this.backTo = goal;
+    if (this.state !== 'calm') this.pause = Math.max(this.pause, PHYS.diveTime + D.floodPause);
+  }
+
+  // (si elle n'avait pas fini de redescendre quand Malice ressort, elle y est d'un coup)
+  poppedOut() {
+    if (this.backTo === null) return;
+    this.y = this.backTo;
+    this.backTo = null;
+  }
+
+  // Des bulles à la surface (beaucoup quand la rivière bouillonne).
+  bubble(dt, rate) {
+    const w = this.world;
+    if (this.y > w.cam.y + VIEW_H + 10 || this.y < w.cam.y - 10 || Math.random() > dt * rate) return;
+    const x = w.cam.x + rand(10, VIEW_W - 10);
+    if (w.solidAt(x, this.y + 2)) return;
+    w.spawn({ type: 'ring', x, y: this.y + rand(-1, 2), life: 0.5, size: rand(10, 24), color: 'rgba(230,250,255,0.85)', flat: true });
+    if (this.state === 'warn') {
+      w.spawn({ type: 'dot', x, y: this.y - 2, vx: rand(-40, 40), vy: rand(-220, -90), g: 1100, life: 0.45, size: rand(2, 3.5), color: '#dff4ff' });
+    }
+  }
+
+  // front : l'eau devant Malice (un peu transparente) ; sinon l'eau du fond (derrière tout ce qui bouge).
+  draw(ctx, front) {
+    const w = this.world;
+    const bottom = w.cam.y + VIEW_H + 20;
+    if (this.y > bottom) {
+      if (front) this.drawEdge(ctx);
+      return;
+    }
+    const x0 = w.cam.x - 30;
+    const x1 = w.cam.x + VIEW_W + 30;
+    ctx.save();
+    this.clip(ctx, bottom);
+    if (front) Scenery.floodFront(ctx, x0, x1, this.y, bottom, this.t, this.state === 'warn');
+    else Scenery.floodBack(ctx, x0, x1, this.y, bottom, this.t);
+    ctx.restore();
+  }
+
+  // L'eau n'entre pas dans la terre : seulement dans les cases vides qu'on voit.
+  clip(ctx, bottom) {
+    const w = this.world;
+    const c0 = Math.max(0, Math.floor(w.cam.x / TILE) - 1);
+    const c1 = Math.min(w.cols - 1, Math.ceil((w.cam.x + VIEW_W) / TILE) + 1);
+    const r0 = Math.max(0, Math.floor((this.y - 12) / TILE));
+    const r1 = Math.min(w.rows - 1, Math.floor(bottom / TILE));
+    ctx.beginPath();
+    for (let r = r0; r <= r1; r++) {
+      let c = c0;
+      while (c <= c1) {
+        if (isSolidCh(w.tiles[r][c])) {
+          c++;
+          continue;
+        }
+        let e = c;
+        while (e + 1 <= c1 && !isSolidCh(w.tiles[r][e + 1])) e++;
+        ctx.rect(c * TILE, r * TILE, (e - c + 1) * TILE, TILE + (r === w.rows - 1 ? 80 : 0));
+        c = e + 1;
+      }
+    }
+    ctx.clip();
+  }
+
+  // L'eau qui monte arrive par le bas de l'écran : il devient tout bleu, de plus en plus.
+  drawEdge(ctx) {
+    if (this.state === 'calm') return;
+    const w = this.world;
+    const k = clamp(1 - (this.y - (w.cam.y + VIEW_H)) / (FLOOD.edge * TILE), 0, 1);
+    if (k > 0) Scenery.floodEdge(ctx, w.cam.x, w.cam.y + VIEW_H, k, this.t);
+  }
+}
+
+// Petit nuage grognon (la Crue ; lettre a) : il flotte au-dessus du sol de son étage, et ne le quitte jamais (son coin :
+// tant que ce sol continue, à la même hauteur, sans rien de solide à sa hauteur, et au plus à CLOUD.range cases de sa
+// place). Quand Malice marche sur son étage, il la suit en grognant (moins vite qu'elle ne marche). Arrivé au-dessus
+// d'elle, il s'arrête et se fâche : il devient tout noir, gronde, son ombre fonce par terre et ses premières gouttes
+// tombent (cloudWarn) ; puis il pleut (CLOUD.rain secondes) : toute trempée, Malice s'ébroue comme un chien (OUCH.shake),
+// puis elle avance moins vite un moment (soakTime). Ensuite il est tout vide, tout pâle, et se repose (cloudRest).
+// On le touche (on saute dedans par en dessous, on lui saute dessus, on le frôle) : pouf ! il éclate de rire, devient tout
+// blanc et gentil, et s'envole. Il ne fait jamais mal en le touchant : seule sa pluie mouille (et sous un bloc, on est à
+// l'abri). Le caramel le colle sur place (il ne bouge plus, il ne pleut plus) ; avec les chips, il a le ventre trop plein
+// pour pleuvoir (il se pose par terre, tout essoufflé). L'étoile et les pouvoirs qui renversent le font éclater aussi.
+// Il ne pleut jamais pendant qu'une fleur parle, ni juste au début ou à la reprise d'un drapeau. Il ne quitte jamais son
+// étage : il ne pleut jamais sur un escalier de la crue (Malice y avancerait moins vite devant l'eau qui monte).
+// CLOUD : alt (de son sol au bas du nuage, en pixels : on l'atteint même avec un tout petit saut), range (en cases),
+// rain (combien de temps il pleut), rainW (la largeur de la pluie), calm (au début, il attend avant de pouvoir pleuvoir).
+const CLOUD = { alt: 116, range: 7, rain: 1.1, rainW: 50, calm: 2 };
+
+class GrumpyCloud extends Enemy {
+  constructor(world, x, y) {
+    super(world, x - 32, y - 20, 64, 40);
+    this.ouch = 'shake';
+    this.home = x;
+    // son sol (là où tombe sa pluie), et la hauteur où il flotte
+    this.floor = world.surfaceBelow(x, y);
+    this.hover = this.floor - CLOUD.alt - this.h;
+    this.y = this.hover;
+    this.range = this.findRange();
+    // 'idle' : il flotte chez lui ; 'follow' : il suit Malice ; 'brew' : il se fâche ; 'rain' : il pleut ;
+    // 'empty' : tout vide, il se repose
+    this.state = 'idle';
+    this.timer = 0;
+    this.calm = CLOUD.calm;
+    // mood : de 0 (grognon) à 1 (tout noir, il va pleuvoir) ; empty : de 0 à 1 (tout pâle, il n'a plus d'eau)
+    this.mood = 0;
+    this.empty = 0;
+    this.look = { x: 0, y: 1 };
+    this.grumbleT = rand(1.5, 3);
+    this.dir = 1;
+  }
+
+  // Son coin : les cases de son sol autour de sa place (le sol continue à la même hauteur, rien de solide là où il flotte).
+  findRange() {
+    const w = this.world;
+    const r = Math.round(this.floor / TILE);
+    const c0 = Math.floor(this.home / TILE);
+    const r0 = Math.floor(this.hover / TILE);
+    const r1 = Math.floor((this.hover + this.h) / TILE);
+    const ok = (c) => {
+      if (!isSolidCh(w.tileAt(c, r)) || isSolidCh(w.tileAt(c, r - 1))) return false;
+      for (let k = r0; k <= r1; k++) if (isSolidCh(w.tileAt(c, k))) return false;
+      return true;
+    };
+    let a = c0;
+    let b = c0;
+    while (a > c0 - CLOUD.range && ok(a - 1)) a--;
+    while (b < c0 + CLOUD.range && ok(b + 1)) b++;
+    return { x0: a * TILE + TILE / 2, x1: b * TILE + TILE / 2 };
+  }
+
+  // Le toucher ne fait jamais mal (seule sa pluie mouille) : on le fait éclater (voir nudge).
+  harmful() { return false; }
+
+  // Le caramel, les chips et les tirs le touchent aussi sous lui, dans sa pluie (sinon, lancés de par terre, ils
+  // passeraient dessous).
+  shotBox() {
+    return { x: this.x, y: this.y, w: this.w, h: Math.max(this.h, this.floor - 20 - this.y) };
+  }
+
+  // Malice marche sur son étage, pas trop loin ?
+  sees(p) {
+    if (p.dead || p.won) return false;
+    const R = this.range;
+    return Math.abs(p.groundY - this.floor) < 0.6 * TILE && p.cx > R.x0 - 3 * TILE && p.cx < R.x1 + 3 * TILE;
+  }
+
+  // Il n'ose pas pleuvoir pendant qu'une fleur parle (ni au début, ni à la reprise d'un drapeau).
+  hush() {
+    return this.calm > 0 || this.world.flowers.some((f) => f.show > 0.3 && Math.abs(f.x - this.cx) < 9 * TILE);
+  }
+
+  // Là où tombe sa pluie : son sol (ou un bloc, ou l'eau de la crue, juste sous lui).
+  rainBottom() {
+    return Math.min(this.floor, this.world.surfaceBelow(this.cx, this.y + this.h));
+  }
+
+  rainBox() {
+    const top = this.y + this.h - 6;
+    return { x: this.cx - CLOUD.rainW / 2, y: top, w: CLOUD.rainW, h: Math.max(0, this.rainBottom() - top) };
+  }
+
+  update(dt) {
+    const w = this.world;
+    this.t += dt;
+    if (this.dying) {
+      this.dieT += dt;
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      if (this.dieT > 1.6) this.dead = true;
+      return;
+    }
+    // l'eau de la crue a recouvert son sol : il s'en va, tout content (il n'a plus personne à mouiller)
+    if (w.flood && w.flood.y < this.floor - TILE) {
+      this.dying = true;
+      this.deathType = 'away';
+      this.dieT = 0.6;
+      this.vx = 0;
+      this.vy = -90;
+      return;
+    }
+    if (this.stuck > 0) {
+      // collé par le caramel : il ne bouge plus, il ne pleut plus
+      this.stuck -= dt;
+      this.vx = 0;
+      this.state = 'idle';
+      this.mood = approach(this.mood, 0, dt * 2);
+      if (this.stuck <= 0) {
+        Sound.sfx.unstuck();
+        for (let i = 0; i < 6; i++) {
+          w.spawn({ type: 'dot', x: this.cx, y: this.y + this.h - 8, vx: rand(-150, 150), vy: rand(-200, -60), g: 900, life: 0.5, size: 4, color: '#d98a2e' });
+        }
+        this.onUnstuck();
+      }
+    } else if (this.fat) {
+      // le ventre plein de chips : trop lourd pour voler, il se pose par terre, tout essoufflé (il ne pleut plus)
+      this.vx = 0;
+      this.state = 'idle';
+      this.mood = approach(this.mood, 0, dt * 2);
+      this.y = approach(this.y, this.floor - this.h + 4, 70 * dt);
+      this.restT += dt;
+      this.pantT -= dt;
+      if (this.pantT <= 0) {
+        this.pantT = 0.6;
+        if (w.onScreen(this) && this.restT < 4) Sound.sfx.pant();
+      }
+    } else {
+      this.ai(dt);
+    }
+  }
+
+  ai(dt) {
+    const w = this.world;
+    const p = w.player;
+    const D = w.diff;
+    const R = this.range;
+    this.calm -= dt;
+    this.timer -= dt;
+    const sees = this.sees(p);
+    let tx = this.home;
+    let speed = D.cloudSpeed * 0.5;
+    switch (this.state) {
+      case 'idle':
+        // il flotte chez lui, en grognant tout bas
+        tx = this.home + Math.sin(this.t * 0.6) * TILE;
+        if (sees && !this.hush()) this.state = 'follow';
+        break;
+      case 'follow':
+        tx = p.cx;
+        speed = D.cloudSpeed;
+        if (!sees || this.hush()) this.state = 'idle';
+        else if (Math.abs(p.cx - this.cx) < 20 && p.onGround && !p.tumbling()) this.brew();
+        break;
+      case 'brew':
+        // il s'arrête, et devient tout noir : on a le temps de s'écarter, ou de sauter dedans
+        tx = this.cx;
+        speed = 0;
+        if (this.timer <= 0) this.pour();
+        break;
+      case 'rain':
+        tx = this.cx;
+        speed = 0;
+        this.soak(p);
+        this.splashes(dt);
+        if (this.timer <= 0) {
+          this.state = 'empty';
+          this.timer = rand(D.cloudRest[0], D.cloudRest[1]);
+        }
+        break;
+      case 'empty':
+        tx = sees ? p.cx : this.home;
+        speed = D.cloudSpeed * 0.4;
+        if (this.timer <= 0) this.state = sees ? 'follow' : 'idle';
+        break;
+      default: break;
+    }
+    tx = clamp(tx, R.x0, R.x1);
+    this.vx = approach(this.vx, clamp((tx - this.cx) * 4, -speed, speed), 500 * dt);
+    this.x = clamp(this.x + this.vx * dt, R.x0 - this.w / 2, R.x1 - this.w / 2);
+    if (Math.abs(this.vx) > 8) this.dir = Math.sign(this.vx);
+    this.y = this.hover + Math.sin(this.t * 2.2) * 4;
+    const dark = this.state === 'brew' || this.state === 'rain';
+    this.mood = approach(this.mood, dark ? 1 : 0, dt * (this.state === 'brew' ? 1.3 / D.cloudWarn : 2));
+    this.empty = approach(this.empty, this.state === 'empty' ? 1 : 0, dt * 2.5);
+    // il regarde Malice quand il la voit (sinon, devant lui)
+    const dx = p.cx - this.cx;
+    const dy = p.cy - this.cy;
+    const d = Math.hypot(dx, dy) || 1;
+    const lx = sees ? dx / d : this.dir * 0.6;
+    const ly = sees ? dy / d : 0.3;
+    this.look.x += (lx - this.look.x) * Math.min(1, dt * 6);
+    this.look.y += (ly - this.look.y) * Math.min(1, dt * 6);
+    // grrr… (de temps en temps, quand il la suit)
+    this.grumbleT -= dt;
+    if (this.grumbleT <= 0) {
+      this.grumbleT = rand(2.5, 4.5);
+      if (this.state === 'follow' && w.onScreen(this)) Sound.sfx.cloudGrumble();
+    }
+  }
+
+  brew() {
+    const w = this.world;
+    this.state = 'brew';
+    this.timer = w.diff.cloudWarn;
+    this.vx = 0;
+    if (w.onScreen(this)) Sound.sfx.cloudThunder();
+    w.popText(this.cx, this.y - 8, 'Grrr !', '#c8c0e8', 20);
+  }
+
+  pour() {
+    this.state = 'rain';
+    this.timer = CLOUD.rain;
+    if (this.world.onScreen(this)) Sound.sfx.cloudRain();
+  }
+
+  // Sa pluie tombe sur Malice : toute trempée ! (Gizmo devient un Gremlin, comme dans l'eau)
+  soak(p) {
+    const b = this.rainBox();
+    if (p.dead || p.dive > 0 || b.h <= 0) return;
+    if (!boxOverlap({ x: p.x + 3, y: p.y + 4, w: p.w - 6, h: p.h - 4 }, b.x, b.y, b.w, b.h)) return;
+    const gremlin = !!p.pw.gremlin;
+    if (!p.hurt(this, this.ouch)) return;
+    if (p.ouch && p.ouch.kind === 'shake' && p.ouch.t === 0) p.soak = this.world.diff.soakTime;
+    if (!gremlin && !p.dead && p.pow.splash) p.pow.splash(p);
+  }
+
+  // des gouttes qui éclaboussent par terre, sous la pluie
+  splashes(dt) {
+    const w = this.world;
+    if (!w.onScreen(this, 120) || Math.random() > dt * 30) return;
+    const y = this.rainBottom();
+    const x = this.cx + rand(-CLOUD.rainW / 2, CLOUD.rainW / 2);
+    w.spawn({ type: 'ring', x, y: y - 1, life: 0.22, size: rand(8, 14), color: 'rgba(220,240,255,0.8)', flat: true });
+    w.spawn({ type: 'dot', x, y: y - 2, vx: rand(-60, 60), vy: rand(-140, -60), g: 900, life: 0.25, size: rand(1.2, 2), color: '#e4f2ff' });
+  }
+
+  onUnstuck() {
+    this.state = 'idle';
+    this.calm = 1;
+  }
+
+  stomp() { this.kill('stomp'); }
+
+  // On le frôle, ou on saute dedans par en dessous : pouf !
+  nudge() { this.kill('bump'); }
+
+  // Pouf ! Il éclate de rire, devient tout blanc et tout gentil, et s'envole.
+  kill(type) {
+    if (this.dying) return;
+    const w = this.world;
+    super.kill(type);
+    this.deathType = 'pouf';
+    this.vx = 0;
+    this.vy = -70;
+    Sound.sfx.cloudPouf();
+    w.popText(this.cx, this.y - 26, 'Hi hi hi !', '#ffffff', 20);
+    for (let i = 0; i < 12; i++) {
+      w.spawn({ type: 'spark', x: this.cx + rand(-26, 26), y: this.cy + rand(-14, 14), vx: rand(-160, 160), vy: rand(-160, 60), life: 0.6, size: rand(3, 6), color: `hsl(${i * 30},95%,72%)` });
+    }
+    for (let i = 0; i < 6; i++) {
+      w.spawn({ type: 'smoke', x: this.cx + rand(-24, 24), y: this.cy + rand(-10, 10), vx: rand(-80, 80), vy: rand(-60, 20), life: 0.5, size: rand(8, 13), color: '#ffffff' });
+    }
+  }
+
+  draw(ctx) {
+    const fade = this.dying ? clamp(1 - (this.dieT - 0.9) / 0.7, 0, 1) : 1;
+    if (fade <= 0) return;
+    const by = this.y + this.h;
+    ctx.save();
+    ctx.globalAlpha *= fade;
+    const shake = this.state === 'brew' && !this.dying ? Math.sin(this.t * 50) * 1.2 * this.mood : 0;
+    Art.grumpyCloud(ctx, this.cx + shake, by, {
+      t: this.t, mood: this.mood, empty: this.empty, look: this.look, dir: this.dir,
+      happy: this.dying ? clamp(this.dieT / 0.2, 0, 1) : 0, fat: this.fat && !this.dying, stuck: this.stuck > 0 && !this.dying,
+    });
+    if (this.stuck > 0 && !this.dying) {
+      const blink = this.stuck < 2 && Math.floor(this.stuck * 8) % 2 === 0 ? 0.5 : 1;
+      Art.caramelGoo(ctx, this.cx, by + 1, this.w * 0.9, 20, this.t, Math.min(1, this.stuck / 1.5) * blink);
+    }
+    ctx.restore();
+  }
+
+  // Son ombre par terre (elle fonce quand il va pleuvoir), et sa pluie : dessinées par-dessus Malice, pour qu'on les
+  // voie bien (comme l'ombre des éclairs).
+  drawWarning(ctx) {
+    if (this.dying || this.stuck > 0 || this.fat) return;
+    const w = this.world;
+    if (!w.onScreen(this, 200)) return;
+    const bottom = this.rainBottom();
+    const k = this.mood;
+    ctx.fillStyle = `rgba(40,30,80,${0.1 + 0.32 * k})`;
+    ellipsePath(ctx, this.cx, bottom - 1, 20 + 10 * k, 4.5 + 2.5 * k);
+    ctx.fill();
+    if (this.state === 'brew' || this.state === 'rain') {
+      Art.cloudRain(ctx, this.cx, this.y + this.h - 8, bottom, this.t, CLOUD.rainW, this.state === 'rain' ? 1 : 0.2 * k);
+    }
+  }
+}
+
 // Gros œil bonbon : il est gentil mais timide. Il s'enfuit quand Malice approche ;
 // si on l'attrape, on gagne une vie (et tous ses cœurs).
 class CandyEye {
@@ -4868,7 +5449,8 @@ class TalkFlower {
     this.t += dt;
     // dans un niveau où l'on grimpe, seulement depuis son étage (pas du dessous, à travers le plancher)
     const dy = this.world.def.grimpe ? (p.y + p.h - this.y <= 24 && this.y - p.cy < 200) : Math.abs(p.cy - this.y) < 200;
-    const near = Math.abs(p.cx - this.x) < 170 && dy;
+    // (sous l'eau de la Crue, elle ne parle plus)
+    const near = Math.abs(p.cx - this.x) < 170 && dy && !(this.world.flood && this.y > this.world.flood.y);
     this.show = approach(this.show, near ? 1 : 0, dt * 5);
     this.look = approach(this.look, Math.sign(p.cx - this.x) || 1, dt * 4);
   }

@@ -37,6 +37,8 @@
 //      emportent (elles montent à gauche, passent en haut vers la droite, redescendent à droite). Les planches passent
 //      à 3,5 cases de l'axe : tout autour (5 colonnes de chaque côté, de la rangée de l'axe moins 5 jusqu'à plus 4),
 //      rien de solide. La tour descend jusqu'au sol (ou jusqu'en bas, dans un trou)
+//   a  petit nuage grognon (il flotte au-dessus du sol de son étage, sans jamais le quitter : quand Malice y passe,
+//      il la suit, devient tout noir au-dessus d'elle et lui pleut dessus. On saute dedans : pouf, il redevient gentil)
 //   J  liane : elle pend du haut de la première case J, aussi longue que les J les uns sous les autres (mettre du
 //      bois ou un champignon juste au-dessus). On l'attrape en sautant dessus, on se balance avec ← →, et on saute
 //      pour se lancer (tous les personnages)
@@ -67,7 +69,8 @@
 //   X  la famille du bébé oiseau (fin du jeu)
 //   &  le boss du niveau (voir "boss" ; ses pieds sur le sol de la case du dessous)
 //
-//  "storms" : les colonnes où tombent les éclairs au chocolat [début, fin].
+//  "storms" : les colonnes où tombent les éclairs au chocolat [début, fin] (dans un niveau où l'on grimpe :
+//             [début, fin, rangée], seulement quand Malice marche sur le sol de cette rangée).
 //  "winds" : les colonnes où souffle le vent [début, fin, sens] (1 = vers la droite, -1 = vers la gauche).
 //  "updrafts" : les colonnes où l'air monte [début, fin, rangée] : avec un pissenlit, on remonte
 //             jusqu'à cette rangée (des feuilles s'envolent pour qu'on les voie).
@@ -98,6 +101,13 @@
 //             dehors (la forêt) : on voit le tronc de l'extérieur, avec sa porte (le trou en bas de son mur de gauche),
 //             et dedans, l'écran reste entre ses murs.
 //  "couronne" : tout en haut, la rangée (dans le fond) où le tronc s'ouvre sur les feuilles du chêne.
+//  "crue" : la rivière déborde (avec "grimpe") : { eau, montees }. Au début, l'eau est en haut de la rangée "eau"
+//             (elle remplit tout ce qui est vide en dessous). "montees" : [palier, arrêt, première colonne, dernière
+//             colonne, vitesse] : quand Malice monte plus haut que la rangée du palier, entre ces deux colonnes (sur
+//             l'escalier), la rivière bouillonne, puis l'eau monte derrière elle, jusqu'en haut de la rangée "arrêt"
+//             (juste sous l'étage du dessus), où elle s'arrête. vitesse : 1 = la vitesse de la difficulté (floodSpeed).
+//             Les drapeaux sont sur les étages calmes, plus haut que l'arrêt de l'eau d'avant : on y repart avec l'eau
+//             arrêtée en dessous. Si Malice tombe dans l'eau, elle redescend (voir floodBack, floodPause dans DIFFS).
 //  "music" : la musique du niveau, si ce n'est pas celle de son monde (voir SONGS dans music.js).
 //  "sansBadges" : pour les personnages qui n'ont pas les badges (tous sauf Malice) :
 //             "add" : des cases en plus [ligne, colonne, "lettres"] (les anneaux dorés disparaissent),
@@ -608,6 +618,95 @@ const LEVELS = [
       '..P..T..ooo.w.T.............###############..T.....oo..w..f..w...ooo.!..........R.....w.f..........o.T.!...............T.!......ooo...R.....w.f...w....w..f.....oo..!.T...........############....!.....oo..R....w.......w.f..oo..G.....',
       '################################################################################################..########...........###############################################################################################..##################',
       '################################################################################################~~########...........###############################################################################################~~##################',
+    ],
+  },
+  {
+    world: 3,
+    name: "La Crue",
+    theme: "storm",
+    intro: "L'eau monte : grimpe vite !",
+    // il pleut, et la rivière déborde : on grimpe (voir "grimpe"), et l'eau monte derrière Malice (voir "crue")
+    pluie: true,
+    grimpe: true,
+    crue: { eau: 64, montees: [[59, 48, 41, 50, 0.85], [43, 32, 1, 10, 1], [27, 16, 41, 50, 1.15]] },
+    storms: [[19, 31, 46]],
+    talk: [
+      "Bienvenue à la Crue\u00a0! Il a tellement plu que la rivière est toute pleine… Tout là-haut, sur la colline, on sera au sec\u00a0!",
+      "Oh, un petit nuage grognon\u00a0! Il te suit pour te pleuvoir dessus. Quand il devient tout noir au-dessus de toi, saute dedans\u00a0: pouf\u00a0! Ou alors, écarte-toi vite.",
+      "Voici l'escalier de nuages. Attention\u00a0: dès que tu montes dessus, la rivière déborde, et l'eau monte\u00a0! Grimpe vite tout en haut, sans t'arrêter\u00a0!",
+      "Ouf, ici l'eau ne monte plus\u00a0! Mais il pleut des éclairs au chocolat\u00a0: regarde bien les ombres par terre.",
+      "Encore un escalier, avec de tout petits nuages\u00a0: vise bien\u00a0! Si tu tombes dans l'eau, pas de panique\u00a0: elle redescend un peu, le temps que tu repartes.",
+      "Les grenouilles adorent la pluie, et les petits nuages aussi\u00a0! Trempée, tu avances moins vite. Avec les chips, un petit nuage a le ventre trop plein pour pleuvoir, et le caramel le colle sur place.",
+      "Le dernier escalier, le plus haut\u00a0! Ici, l'eau monte encore plus vite… Courage, tu y es presque\u00a0!",
+      "Bravo\u00a0! Tu as échappé à la crue. D'ici, on voit toute la Vallée… et là-bas, le vieux phare sur la falaise\u00a0!",
+    ],
+    map: [
+      '....................................................',
+      '....................................................',
+      '....................................................',
+      '....................................................',
+      '....................................................',
+      '....................................................',
+      '....................................................',
+      '....................................................',
+      '....................................................',
+      '..............................a.....................',
+      '....................................................',
+      '......................yoy...........................',
+      '....................................................',
+      '.....G...T..........oo..........o.o.o.oo....o.o.....',
+      '#########################################----------#',
+      '#########################################..........#',
+      '.............................................oo.....',
+      '.............................................--.....',
+      '.................................................yy.',
+      '.................................................--.',
+      '....................................................',
+      '...............................................o....',
+      '..............................................--....',
+      '..........................................o.........',
+      '..........................................--........',
+      '.......................a.........a..................',
+      '.................BCB.......oyo........T.!...........',
+      '......................................###...........',
+      '......................................###...........',
+      '............T.!....oo...f......f..o.o.###...........',
+      '#----------#########################################',
+      '#..........#########################################',
+      '...o................................................',
+      '...--...............................................',
+      '........y...........................................',
+      '.......--...........................................',
+      '...oo...............................................',
+      '...--...............................................',
+      '....................................................',
+      '.......o............................................',
+      '.......--...........................................',
+      '......................a.............................',
+      '...........T.!..BFB.............BKB.................',
+      '...........###......................................',
+      '...........###.......o........o.....................',
+      '...........###...R.oo#....R...#.ooo..!..T...........',
+      '#########################################----------#',
+      '#########################################..........#',
+      '..............................................ooo...',
+      '..............................................---...',
+      '..........................................y.........',
+      '..........................................---.......',
+      '....................................................',
+      '...............................................o....',
+      '..............................................---...',
+      '...........................................o........',
+      '..........................................---.......',
+      '...............................a....................',
+      '........BLB...........................T.!...........',
+      '......................................###...........',
+      '.............o.o.............o........###...........',
+      '..P..T.ooo........o.o.oT...oo#...R....###...........',
+      '#############...####################################',
+      '#############...####################################',
+      '#############...####################################',
+      '#############...####################################',
     ],
   },
   {

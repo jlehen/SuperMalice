@@ -20,6 +20,15 @@
 // saut (plus long : on a plus de temps pour s'écarter de l'ombre) ; frogRest : combien de temps elle reste assise
 // entre deux sauts [au moins, au plus] (on peut lui sauter dessus).
 // millTurn : le temps que mettent les ailes d'un moulin à vent à faire un tour (secondes).
+// floodSpeed : la vitesse de l'eau qui monte, dans la Crue (pixels par seconde ; plus lente tout près de Malice, plus
+// rapide quand elle est loin en dessous, voir Flood) ; floodWarn : combien de temps la rivière bouillonne avant de
+// monter ; floodBack : après un plouf, l'eau redescend au moins à tant de cases sous l'endroit où Malice ressort ;
+// floodPause : et elle attend ce temps-là avant de remonter (secondes).
+// cloudSpeed : la vitesse d'un petit nuage grognon qui suit Malice ; cloudWarn : combien de temps il se fâche (il devient
+// tout noir) avant de pleuvoir (on peut sauter dedans, ou s'écarter) ; cloudRest : combien de temps il reste vide après
+// avoir plu [au moins, au plus]. soakTime : combien de temps Malice reste trempée (elle avance moins vite ; depuis la
+// pluie, le temps qu'elle s'ébroue compris : OUCH.shake dure 1,6 s) ;
+// soakSlow : sa vitesse quand elle est trempée (une part de sa vitesse).
 // vineReach : à combien de pixels du milieu de Malice on attrape une liane (le Vieux Chêne).
 // bossK : la vitesse des boss (et de leurs attaques) ; plus petit, ils sont plus lents et attendent plus longtemps.
 // acornHits : combien de gros glands il faut renvoyer sur le nez de Pépé Chêne pour le battre (la dernière manche).
@@ -32,6 +41,8 @@ const DIFFS = {
     hogSpeed: 26, hogNear: 2.2, hogCurl: 1.3, hogOpen: 2.6,
     boarSee: 4.5, boarWarn: 1.7, boarRush: 230, boarDizzy: 3.4, boarWalk: 30,
     frogSee: 4, frogWarn: 1.3, frogAir: 1.6, frogRest: [2.6, 3.4], millTurn: 12,
+    floodSpeed: 12, floodWarn: 2.5, floodBack: 4.5, floodPause: 3,
+    cloudSpeed: 60, cloudWarn: 1.4, cloudRest: [3.5, 4.5], soakTime: 2.6, soakSlow: 0.75,
     vineReach: 46,
   },
   gentil: {
@@ -42,6 +53,8 @@ const DIFFS = {
     hogSpeed: 34, hogNear: 2.6, hogCurl: 1.6, hogOpen: 2.0,
     boarSee: 5, boarWarn: 1.35, boarRush: 285, boarDizzy: 2.8, boarWalk: 36,
     frogSee: 4.5, frogWarn: 1.05, frogAir: 1.4, frogRest: [2.1, 2.9], millTurn: 11,
+    floodSpeed: 18, floodWarn: 2, floodBack: 4, floodPause: 2.5,
+    cloudSpeed: 80, cloudWarn: 1.15, cloudRest: [2.8, 3.6], soakTime: 3, soakSlow: 0.7,
     vineReach: 40,
   },
   classique: {
@@ -52,6 +65,8 @@ const DIFFS = {
     hogSpeed: 40, hogNear: 3, hogCurl: 1.9, hogOpen: 1.6,
     boarSee: 5.5, boarWarn: 1.1, boarRush: 335, boarDizzy: 2.3, boarWalk: 40,
     frogSee: 5, frogWarn: 0.85, frogAir: 1.25, frogRest: [1.7, 2.5], millTurn: 10,
+    floodSpeed: 24, floodWarn: 1.6, floodBack: 3.5, floodPause: 2,
+    cloudSpeed: 100, cloudWarn: 0.95, cloudRest: [2.2, 3], soakTime: 3.4, soakSlow: 0.65,
     vineReach: 36,
   },
   difficile: {
@@ -62,6 +77,8 @@ const DIFFS = {
     hogSpeed: 46, hogNear: 3.4, hogCurl: 2.2, hogOpen: 1.25,
     boarSee: 6, boarWarn: 0.9, boarRush: 380, boarDizzy: 1.9, boarWalk: 44,
     frogSee: 5.5, frogWarn: 0.7, frogAir: 1.1, frogRest: [1.3, 2.1], millTurn: 9,
+    floodSpeed: 30, floodWarn: 1.2, floodBack: 3, floodPause: 1.5,
+    cloudSpeed: 120, cloudWarn: 0.8, cloudRest: [1.6, 2.4], soakTime: 3.8, soakSlow: 0.6,
     vineReach: 34,
   },
 };

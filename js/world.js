@@ -22,6 +22,7 @@ const CAM_HEAD_MIN = 40;
 // hauteur de l'écran (on voit bien l'étage du dessus) ; sa tête n'est jamais à moins de CLIMB_TOP pixels du haut de
 // l'écran, ni ses pieds à moins de CLIMB_BOTTOM pixels du bas
 const CLIMB_FEET = 0.78;
+const CLIMB_FEET_CRUE = 0.66;
 const CLIMB_TOP = 36;
 const CLIMB_BOTTOM = 24;
 // Une tache de lumière (pour percer le noir) : dessinée une fois, puis agrandie à la taille de chaque lumière.
@@ -71,6 +72,8 @@ class World {
     this.mills = [];
     this.rain = !!def.pluie;
     this.rainT = 0;
+    // la Crue : l'eau de la rivière qui déborde et monte (voir Flood ; créée plus bas, quand on sait où Malice repart)
+    this.flood = null;
     this.checkpoints = [];
     this.flowers = [];
     this.critters = [];
@@ -193,6 +196,8 @@ class World {
           case 'f': this.enemies.push(new Frog(this, mx - 20, by - 30)); break;
           // le moulin à vent : l'axe de ses ailes (ses planches sont des plateformes, voir Windmill)
           case 'x': this.mills.push(new Windmill(this, mx, y + TILE / 2)); break;
+          // la Crue : un petit nuage grognon (il flotte au-dessus du sol de son étage)
+          case 'a': this.enemies.push(new GrumpyCloud(this, mx, y + TILE / 2)); break;
           case '&':
             this.boss = Boss.create(this, def.boss, mx, by);
             if (this.boss) this.enemies.push(this.boss);
@@ -267,6 +272,8 @@ class World {
     this.player.y = start.y - this.player.h;
     // (si elle tombe à l'eau et que l'endroit où elle était a disparu, elle ressort ici)
     this.startPos = { x: start.x, y: start.y, pad: null };
+    // la Crue : à la reprise d'un drapeau, l'eau est arrêtée sous l'étage du drapeau (voir Flood)
+    if (def.crue) this.flood = new Flood(this, def.crue, start);
     // les escargots, les hérissons et les sangliers partent du côté opposé à l'endroit où Malice apparaît
     // (au début, ou à un drapeau) : ils ne foncent pas tout de suite sur elle
     for (const e of this.enemies) {
@@ -390,12 +397,14 @@ class World {
 
   surfaceBelow(x, fromY) {
     const c = Math.floor(x / TILE);
-    for (let r = Math.max(0, Math.floor(fromY / TILE)); r < this.rows; r++) {
+    // (la Crue : l'eau qui a monté)
+    const f = this.flood && this.flood.y >= fromY ? this.flood.y : Infinity;
+    for (let r = Math.max(0, Math.floor(fromY / TILE)); r < this.rows && r * TILE < f; r++) {
       const ch = this.tileAt(c, r);
       if (isSolidCh(ch) || isLedgeCh(ch)) return r * TILE;
       if (ch === '~' || ch === WATER) return r * TILE + 12;
     }
-    return this.height + 200;
+    return f < Infinity ? f : this.height + 200;
   }
 
   // Au-dessus de la lave (ou du chocolat, ou de la boue) ? Il suffit d'un bout de Malice,
@@ -452,6 +461,8 @@ class World {
   // de la surface (sinon null).
   waterSurface(b, deep) {
     const feet = b.y + b.h;
+    // la Crue : l'eau remplit tout ce qui est vide sous sa surface
+    if (this.flood && feet > this.flood.y + deep) return this.flood.y;
     const r = Math.min(Math.floor((feet - 4) / TILE), this.rows - 1);
     const c0 = Math.floor((b.x + 4) / TILE);
     const c1 = Math.floor((b.x + b.w - 4) / TILE);
@@ -976,6 +987,7 @@ class World {
     for (const pl of this.platforms) pl.update(dt);
     p.update(dt);
     if (this.arena) this.keepInArena(p);
+    if (this.flood) this.flood.update(dt);
     const left = this.cam.x - 300;
     const right = this.cam.x + VIEW_W + 260;
     for (const e of this.enemies) {
@@ -1253,7 +1265,8 @@ class World {
     }
     if (p.dead || p.won) return;
     const col = p.cx / TILE;
-    const z = this.storms.find(([a, b]) => col >= a - 3 && col <= b + 2);
+    // (dans un niveau où l'on grimpe, un orage peut n'être que sur un étage : [début, fin, rangée de son sol])
+    const z = this.storms.find(([a, b, r]) => col >= a - 3 && col <= b + 2 && (r === undefined || Math.abs(p.groundY - r * TILE) < TILE));
     if (!z) {
       this.stormT = Math.max(this.stormT, 0.8);
       return;
@@ -1402,7 +1415,8 @@ class World {
       // (à une liane : là où seraient ses pieds si elle pendait tout droit, pour que l'écran ne suive pas le balancement)
       if (g) this.camFeet = g.anchor.y + g.len + p.h - g.hy;
       else if (snap || p.onGround || p.swim || feet > this.camFeet) this.camFeet = feet;
-      ty = this.camFeet - VIEW_H * CLIMB_FEET;
+      // (dans la Crue, ses pieds sont un peu plus haut sur l'écran : on voit mieux l'eau qui monte derrière elle)
+      ty = this.camFeet - VIEW_H * (this.flood ? CLIMB_FEET_CRUE : CLIMB_FEET);
     }
     // le terrier secret : la caméra ne descend sous terre que quand Malice y est
     const under = this.terrier && p.y + p.h > (this.terrier - 1) * TILE;
@@ -1453,7 +1467,12 @@ class World {
     }
     if (this.trunk) this.drawOakBackground(ctx);
     // (un niveau plus haut que l'écran, "haut" : tout en bas, le fond est à sa place, comme dans un niveau ordinaire)
-    else if (sky > 0) Scenery.drawBackground(ctx, this.theme, this.cam.x, this.def.haut ? this.cam.y - Math.max(0, this.height - VIEW_H) + 84 : this.cam.y, this.t, this.flash);
+    // (dans la Crue aussi, et trois fois plus vite : dès qu'on grimpe, les collines du fond descendent sous l'écran, pour
+    // qu'on ne les prenne pas pour le sol, et tout en haut, on est dans le ciel)
+    else if (sky > 0) {
+      const lift = this.cam.y - Math.max(0, this.height - VIEW_H);
+      Scenery.drawBackground(ctx, this.theme, this.cam.x, this.flood ? lift * 3 + 84 : this.def.haut ? lift + 84 : this.cam.y, this.t, this.flash);
+    }
     if (sky < VIEW_H) ctx.restore();
     // la pluie, au loin (plus fine, derrière tout le reste)
     if (this.rain) Scenery.rain(ctx, this.t, this.cam.x, this.cam.y, false);
@@ -1471,6 +1490,8 @@ class World {
     this.drawBurrow(ctx, camX, camY);
     this.drawTunnels(ctx, camX, camY);
     this.drawRiverBeds(ctx);
+    // la Crue : l'eau du fond (derrière tout ce qui bouge ; l'eau de devant est dessinée plus loin)
+    if (this.flood) this.flood.draw(ctx, false);
     this.drawDecor(ctx, camX, camY);
     // les moulins à vent : la tour et les ailes (leurs planches sont dessinées avec les plateformes)
     for (const m of this.mills) {
@@ -1547,6 +1568,7 @@ class World {
     this.drawLava(ctx, camX, camY);
     if (this.mud) this.drawMist(ctx, camX);
     this.drawWater(ctx);
+    if (this.flood) this.flood.draw(ctx, true);
     for (const pl of this.platforms) {
       if (pl.onWater) pl.draw(ctx);
     }
@@ -2185,7 +2207,8 @@ class World {
 
   drawParticles(ctx) {
     for (const q of this.particles) {
-      const a = Math.max(0, Math.min(1, q.life / q.max));
+      // (hold : elle ne s'efface que pendant ses hold dernières secondes, comme le grand « L'eau monte ! »)
+      const a = Math.max(0, Math.min(1, q.life / (q.hold || q.max)));
       ctx.save();
       ctx.globalAlpha = a;
       switch (q.type) {

@@ -211,6 +211,29 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      s'écarter). On y retrouve les éclairs au chocolat et les Rubik's cubes (pas en même temps que les grenouilles).
      En Bébé, les grenouilles visent Malice de moins loin, se ramassent plus longtemps, restent plus longtemps en
      l'air et assises, et les ailes tournent moins vite ; en Difficile, c'est le contraire.
+   - 3-3 **La Crue** : il a tant plu que la rivière déborde ! On grimpe la colline, étage par étage : sur chaque
+     étage, c'est calme (l'eau reste en dessous), puis, au bout, un palier avec un drapeau et une fleur, et un
+     **escalier de nuages**. Dès qu'on monte sur la première marche, la rivière bouillonne (« L'eau monte ! Grimpe
+     vite ! »), déborde d'un coup jusqu'au pied de l'escalier, puis **l'eau monte doucement derrière Malice** :
+     il faut grimper vite jusqu'à l'étage du dessus, où elle s'arrête. Trois escaliers, de plus en plus hauts et
+     rapides. L'eau ne monte jamais plus vite que Malice ne grimpe : tout près d'elle, elle ralentit, et quand
+     Malice grimpe vite, elle la suit de loin, jamais à plus de 4 cases et demie sous ses pieds (juste sous le bas
+     de l'écran, qui devient tout bleu) : dès qu'on hésite, on la voit arriver en bas de l'écran. Si on tombe dedans, plouf : un cœur en moins, on ressort sur la dernière marche
+     où l'on était, et l'eau est redescendue bien en dessous (elle attend un peu avant de remonter) : on ne
+     ressort jamais sous l'eau. Elle ne monte pas pendant qu'on lit une fleur, et les drapeaux sont toujours au sec
+     (on y repart avec l'eau arrêtée sous l'étage). La Sirène et le Pingouin nagent : l'eau les emporte vers le haut.
+     Les **petits nuages grognons** (l'idée d'Alice) suivent Malice sur leur étage en grognant (moins vite qu'elle
+     ne marche) ; arrivés au-dessus d'elle, ils s'arrêtent et se fâchent : ils deviennent tout noirs (« Grrr ! »),
+     leur ombre fonce par terre et les premières gouttes tombent… puis ils lui pleuvent dessus. **Saute dedans** (ou
+     sur eux, ou touche-les) : pouf ! ils éclatent de rire, deviennent tout blancs et gentils, et s'envolent ; ils
+     ne font jamais mal quand on les touche, seule leur pluie mouille (et sous un bloc, on est à l'abri). Le caramel
+     les colle sur place, et avec les chips ils ont le ventre trop plein pour pleuvoir (ils se posent par terre,
+     tout essoufflés). Trempée, Malice avance moins vite un moment (et Gizmo devient un Gremlin). Les petits nuages
+     ne quittent jamais leur étage : jamais de pluie sur un escalier, pendant que l'eau monte ; et si Malice est
+     trempée près de l'eau qui monte, l'eau monte deux fois moins vite. On y retrouve les éclairs au chocolat, les
+     Rubik's cubes et les grenouilles sauteuses. En Bébé, l'eau monte moins vite, bouillonne plus longtemps avant de
+     monter, redescend plus bas après un plouf, et les petits nuages sont plus lents, se fâchent plus longtemps et
+     mouillent moins longtemps ; en Difficile, c'est le contraire.
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    (aucune coccinelle ne tire quand Malice est au-dessus de la lave, même debout sur une planche : elles attendent qu'elle soit
    retombée sur le sol)
@@ -344,6 +367,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Hérisson | couverte de piquants comme une pelote d'épingles ! Elle les enlève un par un, en grimaçant : « Aïe ! Aïe ! Aïe ! » |
 | Pépé Chêne et Ronchon | un gland qui tombe fait une bosse sous la casquette ; une racine qui sort du plancher pique les fesses ; Ronchon en boule, c'est la pelote d'épingles |
 | Grenouille sauteuse | toute verte d'un coup ! Accroupie comme une grenouille, la gorge qui se gonfle, elle fait « Croa ! » deux fois, puis elle reprend sa couleur |
+| Petit nuage grognon | « Splash ! » toute trempée par sa pluie, les mains sur la tête, puis elle **s'ébroue comme un chien** : tout son corps se tortille, et les gouttes volent tout autour d'elle ! Encore mouillée, elle avance moins vite un moment (des gouttes tombent d'elle, et ses pas font « flic, floc ») |
 | Sanglier qui fonce | projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe la tête en bas, les jambes en l'air ; une taupe sort de terre à côté d'elle, toute interloquée (« ? »), et replonge aussitôt. Dans la boue, plof : elle s'y enfonce tout de suite (vite, il faut sauter !) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre) |
 
 ## Commandes
@@ -408,11 +432,13 @@ Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) 
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
 `O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `f` = grenouille sauteuse,
-`x` = l'axe des ailes d'un moulin à vent (tout autour, rien de solide), `i` = lucioles, `j` = fleur-lanterne,
+`x` = l'axe des ailes d'un moulin à vent (tout autour, rien de solide), `a` = petit nuage grognon, `i` = lucioles, `j` = fleur-lanterne,
 `J` = liane, `q` = écureuil, `k` = nid, `p` = le nid secret de l'oisillon qui donne une vie…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
 par la lune : `clairDeLune`), monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne),
-se passer sous la pluie (`pluie`, comme le Moulin à Vent), ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
+se passer sous la pluie (`pluie`, comme le Moulin à Vent), avoir une rivière qui déborde et dont l'eau monte pendant
+qu'on grimpe (`crue`, avec `grimpe` : voir la Crue ; ses orages peuvent n'être que sur un étage, `storms: [[début,
+fin, rangée]]`), ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
 Défi du Super Saut, dont le décor `sousbois` a des branches `=` sur les troncs `|`, et des feuillages de décor d'où
 pendent les lianes : `feuillage`).
 Il suffit de modifier les lettres et de recharger la page.
@@ -479,7 +505,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Dans le Vieux Chêne | la même, dans le bois du tronc creux : la mélodie au marimba, la flûte en écho tout là-haut, pizzicati, et des wood-blocks qui toquent comme un pic-vert |
   | Le combat contre Pépé Chêne et Ronchon | une marche grognonne sur la pointe des pieds, comme celle du vieux roi de la montagne : do mineur en 4/4 bien carré, la mélodie au basson tout en staccato doublée aux pizzicati, le tuba et les timbales qui marquent le pas, des wood-blocks comme des glands qui tombent ; au refrain, les cordes et les cuivres s'emportent |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
-  | La Vallée des Orages (la Vallée des Orages, le Moulin à Vent) | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
+  | La Vallée des Orages (la Vallée des Orages, le Moulin à Vent, la Crue) | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |

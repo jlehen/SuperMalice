@@ -174,6 +174,10 @@ const Sound = (() => {
           noise({ filter: 'lowpass', f: 1200, f2: 250, d: 0.2, v: 0.3 });
           tone({ type: 'sine', f: 700, f2: 260, d: 0.25, v: 0.16, vib: 16, vibDepth: 60 });
           break;
+        case 'shake': // splash ! toute la pluie d'un coup sur la tête
+          noise({ filter: 'bandpass', f: 1600, f2: 600, d: 0.35, v: 0.32, q: 0.8 });
+          tone({ type: 'sine', f: 900, f2: 380, d: 0.2, v: 0.1 });
+          break;
         default: break;
       }
     },
@@ -552,6 +556,51 @@ const Sound = (() => {
     // elle retombe : splotch
     frogLand() {
       noise({ filter: 'lowpass', f: 900, f2: 300, d: 0.12, v: 0.16 });
+    },
+
+    // ---- La Crue ----
+    // la rivière déborde : un grondement sourd, et des gros gloups
+    floodRise() {
+      noise({ filter: 'lowpass', f: 320, f2: 110, d: 1.3, v: 0.4 });
+      tone({ type: 'sine', f: 74, f2: 52, d: 1.2, v: 0.22 });
+      for (let i = 0; i < 3; i++) tone({ type: 'sine', f: 220 + i * 40, f2: 560 + i * 80, d: 0.09, v: 0.07, delay: 0.25 + i * 0.22 });
+    },
+    // l'eau qui monte fait gloup
+    floodGlug() {
+      tone({ type: 'sine', f: 240, f2: 620, d: 0.08, v: 0.05 });
+      tone({ type: 'sine', f: 200, f2: 520, d: 0.08, v: 0.04, delay: 0.13 });
+    },
+    // elle s'arrête : ouf (trois petites notes qui montent)
+    floodStop() { arp([523, 659, 784], { type: 'triangle', d: 0.12, v: 0.06, gap: 0.08 }); },
+    // un petit nuage grognon qui suit Malice : mrrmm…
+    cloudGrumble() {
+      tone({ type: 'sawtooth', f: 115, f2: 92, d: 0.45, v: 0.05, vib: 9, vibDepth: 12 });
+      tone({ type: 'triangle', f: 150, f2: 125, d: 0.3, v: 0.04, delay: 0.12 });
+    },
+    // il se fâche, il devient tout noir : un petit tonnerre
+    cloudThunder() {
+      noise({ filter: 'lowpass', f: 500, f2: 140, d: 0.6, v: 0.25 });
+      tone({ type: 'sawtooth', f: 90, f2: 70, d: 0.4, v: 0.05, vib: 12, vibDepth: 15 });
+    },
+    // il pleut : chhhhh
+    cloudRain() {
+      noise({ filter: 'highpass', f: 2600, d: 1.1, v: 0.12 });
+      noise({ filter: 'bandpass', f: 900, d: 1.1, v: 0.08, q: 0.7 });
+    },
+    // pouf ! il éclate de rire : hi hi hi
+    cloudPouf() {
+      noise({ f: 1600, f2: 300, d: 0.16, v: 0.22 });
+      arp([988, 1175, 988, 1319], { type: 'triangle', d: 0.07, v: 0.07, gap: 0.09, vib: 18, vibDepth: 40 });
+    },
+    // Malice s'ébroue comme un chien : brrrrrr, et les gouttes qui volent
+    shakeOff() {
+      tone({ type: 'sawtooth', f: 130, f2: 110, d: 0.7, v: 0.06, vib: 28, vibDepth: 30 });
+      for (let i = 0; i < 6; i++) noise({ filter: 'highpass', f: 3000, d: 0.04, v: 0.1, delay: 0.05 + i * 0.1 });
+    },
+    // ses pas tout mouillés : flic, floc
+    squish() {
+      noise({ filter: 'lowpass', f: 800, f2: 300, d: 0.07, v: 0.09 });
+      tone({ type: 'sine', f: 520, f2: 320, d: 0.05, v: 0.035 });
     },
 
     // les lucioles se mettent à suivre Malice : des petites clochettes qui scintillent
