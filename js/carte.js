@@ -29,7 +29,7 @@ const Carte = (() => {
   // ---------- Le dessin de la carte (calculé une fois) ----------
   let built = false;
   let MAP_W = 0;
-  let main = []; // le chemin : un point tous les 6 pixels environ { x, y }
+  let main = []; // le chemin : un point tous les 6 pixels environ { x, y, d } (d : la distance depuis le début)
   let worlds = []; // { k, def, look, x0, x1, bx0, bx1, sign, castle }
   const nodes = {}; // une case par niveau (numéro dans LEVELS) : { i, x, y, s, spur }
   let back = []; // décorations derrière le chemin, puis devant (triées de loin à près)
@@ -109,6 +109,7 @@ const Carte = (() => {
       }
     });
     main = smooth(pts, 6);
+    main.forEach((p, k) => (p.d = k ? main[k - 1].d + Math.hypot(p.x - main[k - 1].x, p.y - main[k - 1].y) : 0));
 
     anchors.forEach((a) => {
       const p = main[a.s];
@@ -281,7 +282,9 @@ const Carte = (() => {
     const len = [0];
     for (let k = 1; k < pts.length; k++) len.push(len[k - 1] + Math.hypot(pts[k].x - pts[k - 1].x, pts[k].y - pts[k - 1].y));
     const total = len[len.length - 1];
-    return { pts, len, total, to: b, d: 0, speed: clamp(total / 1.4, SPEED, SPEED * 1.9) };
+    // où en sont les pointillés au début du trajet, pour qu'ils tombent pile sur ceux du chemin
+    const off = d > 0 ? main[A.s].d - len[A.spur ? A.spur.length - 1 : 0] : 0;
+    return { pts, len, total, off, to: b, d: 0, speed: clamp(total / 1.4, SPEED, SPEED * 1.9) };
   }
 
   function pointAt(r, d) {
@@ -1491,8 +1494,11 @@ const Carte = (() => {
 
   // ---------- Le chemin ----------
   // style : les couleurs d'un monde, ou GREY (pas encore ouvert).
-  function strokeLine(ctx, pts, a, b, look, locked) {
+  // off : la distance déjà parcourue au point a, pour que les pointillés restent collés au sol
+  // quand on ne dessine qu'un bout du chemin (sinon ils glissent quand la carte défile).
+  function strokeLine(ctx, pts, a, b, look, locked, off) {
     if (b - a < 1) return;
+    ctx.lineDashOffset = off || 0;
     ctx.beginPath();
     ctx.moveTo(pts[a].x, pts[a].y);
     for (let k = a + 1; k <= b; k++) ctx.lineTo(pts[k].x, pts[k].y);
@@ -1566,8 +1572,8 @@ const Carte = (() => {
       ctx.beginPath();
       ctx.rect(W.bx0, -10, W.bx1 - W.bx0, VIEW_H + 20);
       ctx.clip();
-      strokeLine(ctx, main, F, b, W.look, true);
-      strokeLine(ctx, main, a, F, W.look, false);
+      strokeLine(ctx, main, F, b, W.look, true, main[F].d);
+      strokeLine(ctx, main, a, F, W.look, false, main[a].d);
       for (const i of seq) {
         const n = nodes[i];
         if (n.spur && n.x > L - 120 && n.x < R + 120) strokeLine(ctx, n.spur, 0, n.spur.length - 1, W.look, !isOpen(i));
@@ -1576,7 +1582,7 @@ const Carte = (() => {
       if (anim && !anim.popped && anim.r > 0) {
         const p = pointAt(anim.route, anim.r);
         const pts = anim.route.pts.slice(0, p.k).concat([{ x: p.x, y: p.y }]);
-        strokeLine(ctx, pts, 0, pts.length - 1, W.look, false);
+        strokeLine(ctx, pts, 0, pts.length - 1, W.look, false, anim.route.off);
       }
       ctx.restore();
     }
