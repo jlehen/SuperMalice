@@ -31,6 +31,12 @@
 //   h  hérisson (quand Malice approche, il se met en boule : ça pique ! On lui saute dessus quand il se déroule)
 //   s  sanglier (quand il voit Malice, il gratte le sol, puis il fonce tout droit jusqu'à se cogner ou jusqu'au
 //      bord : on lui saute dessus pendant qu'il gratte, ou quand il est étourdi ; seul le sanglier qui fonce fait mal)
+//   f  grenouille sauteuse (elle adore la pluie ; de temps en temps, elle se ramasse et saute très haut, parfois sur
+//      Malice : son ombre montre où elle va retomber. On lui saute dessus quand elle est assise ou ramassée)
+//   x  l'axe des ailes d'un moulin à vent : au bout de ses 4 ailes pendent des planches qui restent à plat et nous
+//      emportent (elles montent à gauche, passent en haut vers la droite, redescendent à droite). Les planches passent
+//      à 3,5 cases de l'axe : tout autour (5 colonnes de chaque côté, de la rangée de l'axe moins 5 jusqu'à plus 4),
+//      rien de solide. La tour descend jusqu'au sol (ou jusqu'en bas, dans un trou)
 //   J  liane : elle pend du haut de la première case J, aussi longue que les J les uns sous les autres (mettre du
 //      bois ou un champignon juste au-dessus). On l'attrape en sautant dessus, on se balance avec ← →, et on saute
 //      pour se lancer (tous les personnages)
@@ -69,6 +75,7 @@
 //             la caméra n'y descend que quand Malice y tombe. Le niveau a alors plus de 13 rangées.
 //             Un bloc lutin posé sur un trou qui descend au terrier le cache : on l'écrase pour y entrer.
 //  "lapins" : ce que disent les lapins du terrier, dans l'ordre, de gauche à droite.
+//  "pluie" : il pleut (des gouttes qui éclaboussent le sol ; les grenouilles sauteuses adorent ça).
 //  "dark" : il fait noir (on ne voit qu'autour de Malice et de ce qui brille).
 //             "nuit" : c'est la nuit, en plus doux (la lune, les lucioles et les fleurs éclairent).
 //  "clairDeLune" : [première colonne, dernière colonne] : la nuit, la lune éclaire ce grand champ
@@ -569,6 +576,38 @@ const LEVELS = [
       '..P..T.......oo.T....ww.R.................####....E.........R....^........D.....!......T..ww..R....R........E....D...^^...E...!...........######......R.........D.ww..E.....R...^.......!............E.....D............G........',
       '###########################...####################################################...###########################################...#######################################################.....##################################',
       '###########################~~~####################################################~~~###########################################~~~#######################################################~~~~~##################################',
+    ],
+  },
+  {
+    world: 3,
+    name: "Le Moulin à Vent",
+    theme: "storm",
+    intro: "Monte sur les ailes du moulin !",
+    // il pleut (voir "pluie"), et les grenouilles sauteuses adorent ça
+    pluie: true,
+    storms: [[74, 82], [127, 135], [198, 207]],
+    talk: [
+      "Bienvenue au Moulin à Vent\u00a0! Il pleut, il pleut… et là-bas, le grand moulin fait tourner ses ailes.",
+      "Au bout de chaque aile du moulin, il y a une planche\u00a0: saute dessus, elle t'emporte tout là-haut\u00a0! Quand tu es assez haut, saute sur la falaise.",
+      "Les grenouilles adorent la pluie, et elles sautent très haut… parfois sur toi\u00a0! Quand une grenouille se ramasse, regarde son ombre par terre, et écarte-toi\u00a0! Saute-lui sur la tête quand elle est assise.",
+      "Oh, le grand trou\u00a0! Monte sur une planche du moulin, et quand elle redescend de l'autre côté, saute sur l'herbe.",
+      "Le caramel colle les grenouilles par terre, et avec les chips, elles sont bien trop lourdes pour sauter\u00a0! Casse le bloc lutin pour en avoir.",
+      "Le très grand moulin\u00a0! Reste sur ta planche jusqu'en haut, puis saute sur la falaise.",
+    ],
+    map: [
+      '........................................................................................................................................................................................................................................',
+      '......................y.....................................................................................................................................................o...........................................................',
+      '.................................BKB..........................................................................oyo...................................................................yoooooy.............................................',
+      '..................o.......o.............................................................................................................................................o.......o.############..........................................',
+      '..................................................................................................................................................................................############..........................................',
+      '......................x.......ooo....o.o....................................................................................................................................x.....############..ooo.....................................',
+      '............................#############......................................................................x..................................................................############..---.....................................',
+      '........BLB.................#############oo................................BSB...............................................BCB..................................................############.........BFB..............................',
+      '............................###############.....................................................oo................................................................................############.....o.o..................................',
+      '............................###############.......................................................................................................................................############.....---..................................',
+      '..P..T..ooo.w.T.............###############..T.....oo..w..f..w...ooo.!..........R.....w.f..........o.T.!...............T.!......ooo...R.....w.f...w....w..f.....oo..!.T...........############....!.....oo..R....w.......w.f..oo..G.....',
+      '################################################################################################..########...........###############################################################################################..##################',
+      '################################################################################################~~########...........###############################################################################################~~##################',
     ],
   },
   {

@@ -67,6 +67,10 @@ class World {
     this.projectiles = [];
     this.hazards = [];
     this.platforms = [];
+    // le Moulin à Vent : les moulins (leurs planches sont dans platforms), et la pluie ("pluie")
+    this.mills = [];
+    this.rain = !!def.pluie;
+    this.rainT = 0;
     this.checkpoints = [];
     this.flowers = [];
     this.critters = [];
@@ -186,6 +190,9 @@ class World {
           case 'm': this.enemies.push(new Mole(this, mx, by)); break;
           case 'h': this.enemies.push(new Hedgehog(this, mx - 20, by - 30)); break;
           case 's': this.enemies.push(new Boar(this, mx - 28, by - 40)); break;
+          case 'f': this.enemies.push(new Frog(this, mx - 20, by - 30)); break;
+          // le moulin à vent : l'axe de ses ailes (ses planches sont des plateformes, voir Windmill)
+          case 'x': this.mills.push(new Windmill(this, mx, y + TILE / 2)); break;
           case '&':
             this.boss = Boss.create(this, def.boss, mx, by);
             if (this.boss) this.enemies.push(this.boss);
@@ -1006,6 +1013,7 @@ class World {
     this.updateWinds(dt);
     this.updateUpdrafts(dt);
     this.updateSlime(dt);
+    if (this.rain) this.updateRain(dt);
     this.updateLight(dt);
     for (const [k, v] of this.springs) {
       if (v > 0.4) this.springs.delete(k); else this.springs.set(k, v + dt);
@@ -1259,6 +1267,21 @@ class World {
     }
   }
 
+  // La pluie (le Moulin à Vent) : des gouttes qui éclaboussent le sol, partout à l'écran (dessin : Scenery.rain).
+  updateRain(dt) {
+    this.rainT += dt * 30;
+    while (this.rainT >= 1) {
+      this.rainT--;
+      const x = this.cam.x + rand(0, VIEW_W);
+      const y = this.surfaceBelow(x, this.cam.y);
+      if (y > this.cam.y + VIEW_H || y >= this.height) continue;
+      this.spawn({ type: 'ring', x, y: y - 1, life: 0.22, size: rand(8, 14), color: 'rgba(220,240,255,0.7)', flat: true });
+      for (let i = 0; i < 2; i++) {
+        this.spawn({ type: 'dot', x, y: y - 2, vx: rand(-50, 50), vy: rand(-110, -50), g: 900, life: 0.22, size: rand(1.1, 1.7), color: '#e4f2ff' });
+      }
+    }
+  }
+
   updateParticles(dt) {
     for (const q of this.particles) {
       q.life -= dt;
@@ -1432,6 +1455,8 @@ class World {
     // (un niveau plus haut que l'écran, "haut" : tout en bas, le fond est à sa place, comme dans un niveau ordinaire)
     else if (sky > 0) Scenery.drawBackground(ctx, this.theme, this.cam.x, this.def.haut ? this.cam.y - Math.max(0, this.height - VIEW_H) + 84 : this.cam.y, this.t, this.flash);
     if (sky < VIEW_H) ctx.restore();
+    // la pluie, au loin (plus fine, derrière tout le reste)
+    if (this.rain) Scenery.rain(ctx, this.t, this.cam.x, this.cam.y, false);
     ctx.save();
     ctx.translate(-camX, -camY);
     this.lights.length = 0;
@@ -1447,6 +1472,10 @@ class World {
     this.drawTunnels(ctx, camX, camY);
     this.drawRiverBeds(ctx);
     this.drawDecor(ctx, camX, camY);
+    // les moulins à vent : la tour et les ailes (leurs planches sont dessinées avec les plateformes)
+    for (const m of this.mills) {
+      if (m.seen(camX)) m.draw(ctx);
+    }
     // (dehors, ce qui est derrière la façade du Vieux Chêne n'est pas dessiné : voir facadeEnd)
     const xMax = this.facadeEnd();
     for (const v of this.vines) {
@@ -1511,6 +1540,10 @@ class World {
     this.player.draw(ctx);
     if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);
+    // (l'ombre des grenouilles sauteuses, là où elles vont retomber)
+    for (const e of this.enemies) {
+      if (e.drawWarning) e.drawWarning(ctx);
+    }
     this.drawLava(ctx, camX, camY);
     if (this.mud) this.drawMist(ctx, camX);
     this.drawWater(ctx);
@@ -1525,6 +1558,11 @@ class World {
       if (this.onScreen(f, 60)) f.draw(ctx);
     }
     this.drawParticles(ctx);
+    ctx.restore();
+    // la pluie, tout près (par-dessus tout, sauf les bulles des fleurs qui parlent)
+    if (this.rain) Scenery.rain(ctx, this.t, this.cam.x, this.cam.y, true);
+    ctx.save();
+    ctx.translate(-camX, -camY);
     this.drawBubbles(ctx);
     ctx.restore();
   }
@@ -2194,8 +2232,10 @@ class World {
           break;
         case 'ring':
           ctx.strokeStyle = q.color;
-          ctx.lineWidth = 4 * a;
-          circlePath(ctx, q.x, q.y, q.size * (1 - a) + 4);
+          ctx.lineWidth = (q.flat ? 2 : 4) * a;
+          // (flat : à plat sur le sol, comme une goutte de pluie qui éclabousse)
+          if (q.flat) ellipsePath(ctx, q.x, q.y, q.size * (1 - a) + 3, (q.size * (1 - a) + 3) * 0.3);
+          else circlePath(ctx, q.x, q.y, q.size * (1 - a) + 4);
           ctx.stroke();
           break;
         case 'heart':

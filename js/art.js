@@ -1158,6 +1158,7 @@ const Art = (() => {
   //   wet : tombée dans la rivière, elle grelotte     slime : couverte de bave d'escargot
   //   dirt : projetée en l'air par une taupe, toute pleine de terre (avec un ver de terre sur la tête)
   //   pins : piquée par un hérisson, couverte de piquants comme une pelote d'épingles
+  //   croak : une grenouille sauteuse lui est tombée dessus : toute verte, elle coasse deux fois (« Croa ! »)
   const NO_FX = {};
   // Moments où Malice noircie tousse.
   const COUGHS = [0.35, 0.8, 1.25];
@@ -1179,6 +1180,16 @@ const Art = (() => {
   // la hauteur suit leur taille, et ceux de la tête suivent leur tête (voir Heroes.headTop).
   const PINS = [[7, 0.55, -0.15, 0], [-5, 1, -1.85, 1], [-13, 0.78, -2.7, 1], [10, 0.93, -1.05, 1],
     [-12, 0.6, 3.05, 0], [5, 0.34, 0.35, 0], [-10, 0.27, 2.6, 0]];
+  // La grenouille : les deux moments où Malice coasse (« Croa ! »), et pendant chacun, un petit moment où elle est
+  // accroupie comme une grenouille, la gorge qui se gonfle.
+  const CROAKS = [0.45, 1.05];
+  const croakAt = (k) => CROAKS.findIndex((c) => k.t > c - 0.1 && k.t < c + 0.32);
+  const croaking = (k) => croakAt(k) >= 0;
+  // la gorge : de 0 à 1, puis 0
+  function croakSac(k) {
+    const i = croakAt(k);
+    return i < 0 ? 0 : Math.sin(clamp((k.t - CROAKS[i] + 0.1) / 0.42, 0, 1) * Math.PI);
+  }
   // les moments où elle enlève chaque piquant (aïe !)
   const PIN_PULLS = PINS.map((_, i) => 0.55 + i * 0.24);
   // head : [x, y] du haut de la tête (Malice : [0, -62])
@@ -1239,6 +1250,12 @@ const Art = (() => {
   SLIMY.mustache = MALICE.mustache;
   SLIMY.eye = MALICE.eye;
 
+  // Toute verte (la grenouille).
+  const FROGGY = {};
+  for (const key in MALICE) FROGGY[key] = mixColor(MALICE[key], '#4cd040', /^hair/.test(key) ? 0.55 : 0.62);
+  FROGGY.mustache = MALICE.mustache;
+  FROGGY.eye = MALICE.eye;
+
   // Toute pleine de terre.
   const DIRTY = {};
   for (const key in MALICE) DIRTY[key] = mixColor(MALICE[key], '#7a5232', 0.38);
@@ -1283,6 +1300,8 @@ const Art = (() => {
       case 'wet': return mixPalette(C, WET, clamp(left / 0.5, 0, 1));
       case 'slime': return mixPalette(C, SLIMY, clamp(left / 0.5, 0, 1));
       case 'dirt': return mixPalette(C, DIRTY, clamp(left / 0.5, 0, 1));
+      // toute verte d'un coup, puis elle reprend sa couleur après avoir coassé deux fois
+      case 'croak': return mixPalette(C, FROGGY, clamp(k.t / 0.12, 0, 1) * clamp(left / 0.5, 0, 1));
       // (comme les autres personnages : rouge au début, voir Heroes)
       case 'pins': return mixPalette(C, PRICKED, clamp(1 - k.t / 0.6, 0, 1));
       default: return C;
@@ -1363,6 +1382,11 @@ const Art = (() => {
       if (ph === 'back') return { legF: -1.5, legB: -1.15, armF: -1.1, armB: -0.8, lean: 0.2 };
       // projetée en l'air comme une toupie : les bras en l'air, les jambes écartées
       return { legF: -0.55 + s * 0.2, legB: 0.6 - s * 0.2, armF: -2.6 + s * 0.3, armB: 2.5 - s * 0.3, lean: 0 };
+    }
+    if (k.kind === 'croak' && croaking(k)) {
+      // « Croa ! » : accroupie comme une grenouille, les genoux écartés, les mains par terre devant elle
+      const s = croakSac(k) * 0.08;
+      return { legF: -1.25 - s, legB: 1.05 + s, armF: -0.42, armB: 0.3, lean: 0.14, crouch: 8 };
     }
     if (k.kind === 'wet') {
       // elle se serre dans ses bras, les genoux qui s'entrechoquent
@@ -1448,6 +1472,11 @@ const Art = (() => {
         } else {
           fx.mouth = 'o';
         }
+        break;
+      case 'croak':
+        // les yeux tout ronds, comme une grenouille, et la bouche grande ouverte quand elle coasse
+        fx.eye = 'wide';
+        fx.mouth = croaking(k) ? 'wide' : t < 0.3 ? 'o' : '';
         break;
       case 'scramble':
       case 'spots':
@@ -1593,6 +1622,21 @@ const Art = (() => {
       ellipsePath(ctx, x - r * 0.35, y - r * 0.3, r * 0.3, r * 0.15, -0.4);
       ctx.fill();
     });
+    ctx.restore();
+  }
+
+  // « Croa ! » : la gorge qui se gonfle comme celle d'une grenouille, sous le menton.
+  // headY : la hauteur de sa tête, hx : où est sa tête (pour les autres personnages, voir Heroes).
+  function croakOverlay(ctx, k, headY, hx) {
+    hx = hx || 0;
+    const s = croakSac(k);
+    if (s <= 0.02) return;
+    ctx.save();
+    circlePath(ctx, hx + 9, headY + 17, 2.5 + 6.5 * s);
+    paint(ctx, 'rgba(230,255,170,0.95)', 'rgba(70,150,50,0.9)', 1.1);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ellipsePath(ctx, hx + 7, headY + 14 - 2 * s, 2.2 * s, 1.3 * s, -0.4);
+    ctx.fill();
     ctx.restore();
   }
 
@@ -1786,7 +1830,7 @@ const Art = (() => {
       case 'throw': armF = -1.6; armB = 0.6; legF = 0.3; legB = -0.3; break;
       case 'win': armF = -1.85 + Math.sin(t * 10) * 0.22; armB = 1.3; legF = 0.2; legB = -0.2; break;
       case 'hurt': armF = -1.25; armB = 1.5; legF = 0.45; legB = -0.45; lean = -0.12; break;
-      case 'ouch': ({ legF, legB, armF, armB, lean } = ouchPose(k)); break;
+      case 'ouch': ({ legF, legB, armF, armB, lean, crouch = 0 } = ouchPose(k)); break;
       case 'hold': armF = -1.0; armB = -0.8; break;
       case 'crouch': crouch = 7; legF = -1.25; legB = -0.85; legLen = 8; armF = -0.6; armB = 0.3; break;
       // en boule (la roulade) : les genoux contre le ventre, les bras autour, la tête rentrée
@@ -1852,6 +1896,7 @@ const Art = (() => {
     if (kind === 'slime') slimeOverlay(ctx, k, -62);
     if (kind === 'dirt') dirtOverlay(ctx, k, -62);
     if (kind === 'pins') pinsOverlay(ctx, k);
+    if (kind === 'croak') croakOverlay(ctx, k, -46);
     if (o.holding) {
       o.holding(ctx);
       drawArm(ctx, C, 1.2, -27.8, armF, false);
@@ -4972,6 +5017,169 @@ const Art = (() => {
   // Hérisson (les Champignons Géants), les pieds en (x, y), tourné vers dir.
   // o : t, phase (les pattes qui trottinent), moving, curl (0 : déroulé, 1 : roulé en boule), look,
   //     sniff (déroulé, il renifle autour de lui), fat / rest (après les chips)
+  // Grenouille sauteuse (le Moulin à Vent), les pieds en (x, y). o : dir, t, look, crouch (elle se ramasse, de 0 à 1),
+  // air (-1 : elle monte, les pattes tendues ; 1 : elle retombe, les pattes écartées), land (elle retombe, tout
+  // écrasée, de 1 à 0), sac (la gorge qui se gonfle quand elle coasse), tongue (la langue qui attrape une goutte de
+  // pluie, de 0 à 1), phase / moving (elle se dandine, avec les chips), fat.
+  function frog(ctx, x, y, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const dir = o.dir || 1;
+    const fat = !!o.fat;
+    const line = '#1f5a24';
+    const skin = '#6fd44e';
+    const dark = '#3f9a34';
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    // elle se ramasse (et tremble), ou retombe tout écrasée, ou s'étire en sautant
+    const squash = Math.max(o.crouch || 0, o.land || 0);
+    let sx = 1 + 0.16 * squash;
+    let sy = 1 - 0.28 * squash;
+    if (o.air < 0) { sx = 0.9; sy = 1.14; }
+    if (o.crouch > 0) ctx.translate(Math.sin(t * 46) * 0.9 * o.crouch, 0);
+    if (fat && o.moving) ctx.rotate(Math.sin((o.phase || 0) * 1.3) * 0.06);
+    ctx.scale(sx, sy);
+    const rx = fat ? 22 : 17;
+    const ry = fat ? 15 : 12;
+    // les grandes pattes arrière : repliées (assise), tendues vers le bas (elle monte), écartées (elle retombe)
+    ctx.fillStyle = skin;
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 1.6;
+    if (o.air < 0) {
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(-8, -8);
+        ctx.quadraticCurveTo(-16 + s * 2, 2, -20 + s * 3, 10);
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = line;
+        ctx.stroke();
+        ctx.lineWidth = 3.6;
+        ctx.strokeStyle = skin;
+        ctx.stroke();
+        ellipsePath(ctx, -21 + s * 3, 11, 5, 2.4, -0.4);
+        paint(ctx, skin, line, 1.2);
+      }
+    } else if (o.air > 0) {
+      for (const s of [-1, 1]) {
+        ellipsePath(ctx, s * 18, -4, 8, 3.6, s * 0.5);
+        paint(ctx, skin, line, 1.3);
+        ellipsePath(ctx, s * 25, -1, 4.6, 2.4, s * 0.3);
+        paint(ctx, skin, line, 1.2);
+      }
+    } else {
+      // assise : la cuisse repliée sur le côté, et le grand pied posé devant
+      ellipsePath(ctx, -9, -7, 9, 6.5, -0.3);
+      paint(ctx, skin, line, 1.4);
+      ellipsePath(ctx, -3, -1.6, 9, 2.6);
+      paint(ctx, dark, line, 1.2);
+    }
+    // le corps
+    ellipsePath(ctx, 0, -12, rx, ry);
+    const g = ctx.createLinearGradient(0, -12 - ry, 0, 0);
+    g.addColorStop(0, '#8ff06a');
+    g.addColorStop(1, '#4cb43c');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    // le ventre tout clair
+    ellipsePath(ctx, 6, -7, rx * 0.62, ry * 0.5, -0.15);
+    ctx.fillStyle = '#e9ffb0';
+    ctx.fill();
+    // des taches sur le dos
+    ctx.fillStyle = 'rgba(40,120,40,0.55)';
+    for (const [px, py, r] of [[-8, -17, 3], [-2, -20, 2.2], [-12, -11, 2]]) {
+      ellipsePath(ctx, px * (fat ? 1.2 : 1), py, r, r * 0.8);
+      ctx.fill();
+    }
+    // la petite patte avant
+    if (!o.air) {
+      ellipsePath(ctx, 12, -1.8, 5, 2.4);
+      paint(ctx, skin, line, 1.2);
+    }
+    // la gorge qui se gonfle (croâ !)
+    const sac = clamp(o.sac || 0, 0, 1);
+    if (sac > 0.02) {
+      circlePath(ctx, 13, -6, 3 + 6.5 * sac);
+      paint(ctx, '#fff6b0', '#b8a040', 1.1);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ellipsePath(ctx, 11, -8 - 2 * sac, 2 * sac, 1.2 * sac, -0.4);
+      ctx.fill();
+    }
+    // les gros yeux sur le dessus de la tête
+    const look = o.look || { x: 1, y: 0 };
+    const lx = clamp(look.x * dir, -1, 1);
+    const ly = clamp(look.y, -1, 1);
+    const blink = (t % 3.3) < 0.12 && !o.crouch;
+    for (const [ex, ey, r] of [[3, -23, 5.6], [13, -21, 5.2]]) {
+      circlePath(ctx, ex, ey, r);
+      paint(ctx, skin, line, 1.4);
+      if (blink) {
+        ctx.strokeStyle = line;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(ex - r * 0.6, ey);
+        ctx.lineTo(ex + r * 0.6, ey);
+        ctx.stroke();
+        continue;
+      }
+      circlePath(ctx, ex, ey - 0.5, r - 1.6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      // (en se ramassant, elle regarde là où elle va sauter, les yeux tout ronds)
+      const pr = o.crouch ? 2.6 : 2.2;
+      circlePath(ctx, ex + lx * 1.6, ey - 0.5 + ly * 1.4, pr);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fill();
+      circlePath(ctx, ex + lx * 1.6 - 0.8, ey - 1.5 + ly * 1.4, 0.8);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+    // les joues roses, et le grand sourire (elle adore la pluie !)
+    ctx.fillStyle = 'rgba(255,130,170,0.5)';
+    ellipsePath(ctx, 15, -12, 3, 1.8);
+    ctx.fill();
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    if (o.air || o.crouch) {
+      // la bouche en O : hop !
+      ellipsePath(ctx, 17, -13, 2, 2.4);
+      ctx.fillStyle = '#7a1e2e';
+      ctx.fill();
+    } else {
+      ctx.moveTo(6, -14);
+      ctx.quadraticCurveTo(13, -9, 19, -14.5);
+      ctx.stroke();
+    }
+    // la langue qui file attraper une goutte de pluie
+    const tg = o.tongue > 0 ? Math.sin(clamp(o.tongue, 0, 1) * Math.PI) : 0;
+    if (tg > 0.02) {
+      const tx = 18 + 10 * tg;
+      const ty = -14 - 22 * tg;
+      ctx.strokeStyle = '#ff6a9a';
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(18, -14);
+      ctx.quadraticCurveTo(24, -16, tx, ty);
+      ctx.stroke();
+      if (o.tongue < 0.5) {
+        // la goutte, juste au bout
+        ctx.fillStyle = '#bfe6ff';
+        ctx.beginPath();
+        ctx.moveTo(tx, ty - 6);
+        ctx.quadraticCurveTo(tx + 3, ty - 1, tx, ty + 1);
+        ctx.quadraticCurveTo(tx - 3, ty - 1, tx, ty - 6);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
   function hedgehog(ctx, x, y, o) {
     o = o || {};
     const t = o.t || 0;
@@ -5942,7 +6150,7 @@ const Art = (() => {
     dandelion, dandelionStem, dandelionLeaves, dandelionFlower, dandelionSeed,
     snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow, hedgehog, boar, squirrel, nest,
     // pour les autres personnages (heroes.js)
-    paint, mixColor, ouchPose, koStars, spotsOverlay, wetOverlay, slimeOverlay, dirtOverlay,
+    paint, mixColor, ouchPose, koStars, spotsOverlay, wetOverlay, slimeOverlay, dirtOverlay, frog, CROAKS, croaking, croakOverlay,
     PIN_PULLS, PIN_REACH_POSES, pinAt, pinsWince, pinsReach, pinsOverlay, spinTurn, spinWhirl,
   };
 })();

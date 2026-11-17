@@ -4248,7 +4248,350 @@ const Scenery = (() => {
     ctx.restore();
   }
 
+  // ---------- Le Moulin à Vent ----------
+  // La tour du moulin (dans le décor : on passe devant), de son toit jusqu'au sol, h pixels sous l'axe des ailes.
+  // Dans le sprite, l'axe est en (MILL_SX, MILL_SY). Une tour de crème rose et blanche, un toit en chocolat
+  // avec de la crème qui coule, une porte et une petite fenêtre éclairée. Au-dessus d'un trou sans fond, elle est
+  // posée sur un grand rocher (rock pixels de haut) qui s'enfonce et disparaît dans le vide, et n'a pas de porte.
+  const MILL_SX = 80;
+  const MILL_SY = 64;
+  function millTower(h, rock) {
+    const W = 2 * MILL_SX;
+    const H = MILL_SY + h + 4 + rock;
+    return sprite('mill:' + Math.round(h) + ':' + Math.round(rock), W, H, (g) => {
+      const cx = MILL_SX;
+      const top = MILL_SY + 14;
+      const bot = MILL_SY + h;
+      const tw = 34;
+      const bw = 62;
+      if (rock) millRock(g, cx, bot - 8, bw + 6, rock + 8);
+      // la tour, un peu plus large en bas
+      g.beginPath();
+      g.moveTo(cx - tw, top);
+      g.lineTo(cx + tw, top);
+      g.lineTo(cx + bw, bot);
+      g.lineTo(cx - bw, bot);
+      g.closePath();
+      const gr = g.createLinearGradient(cx - bw, 0, cx + bw, 0);
+      gr.addColorStop(0, '#f6e6f2');
+      gr.addColorStop(0.45, '#fff8fc');
+      gr.addColorStop(1, '#d9bcd8');
+      g.fillStyle = gr;
+      g.fill();
+      g.strokeStyle = '#8a5a7a';
+      g.lineWidth = 3;
+      g.stroke();
+      // des rayures roses, comme un sucre d'orge
+      g.save();
+      g.clip();
+      g.strokeStyle = 'rgba(255,140,190,0.35)';
+      g.lineWidth = 9;
+      for (let y = top - 60; y < bot + 60; y += 34) {
+        g.beginPath();
+        g.moveTo(cx - bw - 10, y + 24);
+        g.lineTo(cx + bw + 10, y - 10);
+        g.stroke();
+      }
+      g.restore();
+      // la petite fenêtre, éclairée
+      const wy = top + Math.min(70, (bot - top) * 0.3);
+      g.fillStyle = '#ffd77a';
+      roundRectPath(g, cx - 9, wy, 18, 22, 9);
+      g.fill();
+      g.strokeStyle = '#6a3a28';
+      g.lineWidth = 2.5;
+      g.stroke();
+      g.beginPath();
+      g.moveTo(cx, wy);
+      g.lineTo(cx, wy + 22);
+      g.moveTo(cx - 9, wy + 11);
+      g.lineTo(cx + 9, wy + 11);
+      g.stroke();
+      // la porte en chocolat, au pied de la tour
+      if (h > 120 && !rock) {
+        g.fillStyle = '#7a4428';
+        roundRectPath(g, cx - 15, bot - 46, 30, 48, 15);
+        g.fill();
+        g.strokeStyle = '#4a2414';
+        g.lineWidth = 2.5;
+        g.stroke();
+        g.fillStyle = '#ffcf6a';
+        circlePath(g, cx + 8, bot - 22, 2.5);
+        g.fill();
+      }
+      // le toit en chocolat, avec la crème qui coule
+      g.beginPath();
+      g.moveTo(cx - tw - 10, top + 2);
+      g.quadraticCurveTo(cx - tw - 6, MILL_SY - 40, cx, MILL_SY - 50);
+      g.quadraticCurveTo(cx + tw + 6, MILL_SY - 40, cx + tw + 10, top + 2);
+      g.closePath();
+      g.fillStyle = '#7a4428';
+      g.fill();
+      g.strokeStyle = '#4a2414';
+      g.lineWidth = 3;
+      g.stroke();
+      g.fillStyle = '#fff2f8';
+      g.beginPath();
+      g.moveTo(cx - 26, MILL_SY - 32);
+      g.quadraticCurveTo(cx, MILL_SY - 52, cx + 26, MILL_SY - 32);
+      for (let i = 4; i >= 0; i--) {
+        const x = cx - 26 + i * 13;
+        g.quadraticCurveTo(x + 6, MILL_SY - 24 + (i % 2) * 8, x, MILL_SY - 30);
+      }
+      g.closePath();
+      g.fill();
+      // une cerise tout en haut
+      g.fillStyle = '#ff3a5a';
+      circlePath(g, cx, MILL_SY - 54, 6);
+      g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.7)';
+      circlePath(g, cx - 2, MILL_SY - 56, 2);
+      g.fill();
+    });
+  }
+
+  // Le grand rocher sous la tour, au-dessus d'un trou sans fond : son haut (large de 2 hw) en y, et il descend de
+  // hgt pixels en s'amincissant, de plus en plus sombre, puis s'efface dans le vide (rien où se poser).
+  function millRock(g, cx, y, hw, hgt) {
+    const pts = [];
+    const n = 9;
+    for (let i = 0; i <= n; i++) {
+      const k = i / n;
+      pts.push([cx - hw * (1 - 0.55 * k) + (i % 2 ? 7 : -3) * (1 - k), y + hgt * k]);
+    }
+    for (let i = n; i >= 0; i--) {
+      const k = i / n;
+      pts.push([cx + hw * (1 - 0.6 * k) + (i % 2 ? -6 : 4) * (1 - k), y + hgt * k]);
+    }
+    g.beginPath();
+    pts.forEach(([x, yy], i) => (i ? g.lineTo(x, yy) : g.moveTo(x, yy)));
+    g.closePath();
+    const gr = g.createLinearGradient(0, y, 0, y + hgt);
+    gr.addColorStop(0, '#a08aae');
+    gr.addColorStop(1, '#4a3a5e');
+    g.fillStyle = gr;
+    g.fill();
+    g.strokeStyle = '#4a3a5e';
+    g.lineWidth = 3;
+    g.stroke();
+    // des facettes plus claires, et des fentes
+    g.save();
+    g.clip();
+    g.fillStyle = 'rgba(255,240,255,0.16)';
+    for (let i = 0; i < 4; i++) {
+      const fy = y + 14 + i * hgt * 0.22;
+      const fx = cx - hw * 0.7 + (i % 2) * hw * 0.5;
+      g.beginPath();
+      g.moveTo(fx, fy);
+      g.lineTo(fx + 30, fy + 6);
+      g.lineTo(fx + 18, fy + 34);
+      g.lineTo(fx - 6, fy + 26);
+      g.closePath();
+      g.fill();
+    }
+    g.strokeStyle = 'rgba(40,24,56,0.45)';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(cx - 20, y + 10);
+    g.lineTo(cx - 8, y + 40);
+    g.lineTo(cx - 16, y + 70);
+    g.moveTo(cx + 30, y + 24);
+    g.lineTo(cx + 22, y + 58);
+    g.stroke();
+    g.restore();
+    // il s'efface dans le vide, tout en bas
+    g.save();
+    g.globalCompositeOperation = 'destination-out';
+    const fade = g.createLinearGradient(0, y + hgt * 0.3, 0, y + hgt - 10);
+    fade.addColorStop(0, 'rgba(0,0,0,0)');
+    fade.addColorStop(1, 'rgba(0,0,0,1)');
+    g.fillStyle = fade;
+    g.fillRect(cx - hw - 20, y + hgt * 0.3, 2 * hw + 40, hgt * 0.7 + 4);
+    g.restore();
+  }
+
+  // Une aile (couchée, l'axe à gauche) : un long bras en bois et une toile à rayures roses tendue sur un cadre.
+  // (la toile est du côté d'où vient l'aile : elle tourne dans le sens des aiguilles d'une montre)
+  function millSail(r) {
+    const L = r + 8;
+    return sprite('mill:sail:' + r, L, 34, (g) => {
+      const y = 26;
+      const x0 = 34;
+      const x1 = r - 4;
+      // la toile
+      g.fillStyle = '#fff4fa';
+      g.fillRect(x0, 4, x1 - x0, y - 4);
+      g.fillStyle = 'rgba(255,120,180,0.55)';
+      for (let x = x0; x < x1; x += 24) g.fillRect(x, 4, 12, y - 4);
+      // le cadre et ses barreaux
+      g.strokeStyle = '#a0683c';
+      g.lineWidth = 3;
+      g.strokeRect(x0, 3, x1 - x0, y - 3);
+      g.lineWidth = 1.5;
+      g.beginPath();
+      for (let x = x0 + 12; x < x1; x += 12) {
+        g.moveTo(x, 3);
+        g.lineTo(x, y);
+      }
+      g.moveTo(x0, 14);
+      g.lineTo(x1, 14);
+      g.stroke();
+      // le grand bras
+      g.fillStyle = '#c08048';
+      roundRectPath(g, 0, y - 3, L, 7, 3);
+      g.fill();
+      g.strokeStyle = '#6a3e1e';
+      g.lineWidth = 2;
+      g.stroke();
+    });
+  }
+
+  // Le moulin : la tour (en cache), les quatre ailes qui tournent (angle a), et l'axe par-dessus.
+  function windmill(ctx, x, y, ground, a, r, rock = 0) {
+    const tower = millTower(Math.max(20, ground - y), rock);
+    ctx.drawImage(tower, x - MILL_SX, y - MILL_SY, tower.width / scale, tower.height / scale);
+    const sail = millSail(r);
+    const L = r + 8;
+    ctx.save();
+    ctx.translate(x, y);
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.rotate(a + (i * Math.PI) / 2);
+      ctx.drawImage(sail, 0, -26, L, 34);
+      ctx.restore();
+    }
+    // l'axe : un gros bonbon tourbillon
+    ctx.rotate(a);
+    circlePath(ctx, 0, 0, 15);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = '#6a3e1e';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.strokeStyle = '#ff6aa8';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    for (let k = 0; k <= 24; k++) {
+      const an = k * 0.55;
+      const rr = 1 + k * 0.5;
+      if (k === 0) ctx.moveTo(Math.cos(an) * rr, Math.sin(an) * rr);
+      else ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Une planche au bout d'une aile (une grosse gaufrette), toujours à plat : son dessus en (x, y), et le bout de
+  // l'aile en (tx, ty). Elle y est accrochée comme la nacelle d'une grande roue : un gros anneau doré autour du bout
+  // de l'aile, et un étrier du même bois que l'aile (un poteau et deux bras) qui tient la planche.
+  function millPlank(ctx, x, y, w, h, tx, ty) {
+    const hold = [[x + 14, y + 4], [tx, y + 4], [x + w - 14, y + 4]];
+    ctx.lineCap = 'round';
+    for (const [lw, col] of [[8, '#6a3e1e'], [4.5, '#c08048']]) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      for (const [hx, hy] of hold) {
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(hx, hy);
+      }
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    const img = sprite('mill:plank:' + w, w, h + 4, (g) => {
+      const gr = g.createLinearGradient(0, 0, 0, h);
+      gr.addColorStop(0, '#ffd998');
+      gr.addColorStop(0.5, '#e8a85a');
+      gr.addColorStop(1, '#b8743a');
+      g.fillStyle = gr;
+      roundRectPath(g, 0, 0, w, h, 6);
+      g.fill();
+      // le quadrillage de la gaufrette
+      g.save();
+      roundRectPath(g, 0, 0, w, h, 6);
+      g.clip();
+      g.strokeStyle = 'rgba(140,80,30,0.45)';
+      g.lineWidth = 1.5;
+      g.beginPath();
+      for (let i = 8; i < w; i += 8) {
+        g.moveTo(i, 0);
+        g.lineTo(i, h);
+      }
+      g.moveTo(0, h / 2);
+      g.lineTo(w, h / 2);
+      g.stroke();
+      g.restore();
+      g.strokeStyle = '#7a4420';
+      g.lineWidth = 2;
+      roundRectPath(g, 1, 1, w - 2, h - 2, 6);
+      g.stroke();
+      // un peu de crème rose sur le dessus
+      g.fillStyle = '#ffd0e6';
+      roundRectPath(g, 4, 1, w - 8, 4, 2);
+      g.fill();
+    });
+    ctx.drawImage(img, x, y, w, h + 4);
+    // le gros anneau doré autour du bout de l'aile (la planche tourne dedans pour rester à plat)
+    circlePath(ctx, tx, ty, 8);
+    ctx.fillStyle = '#ffcf6a';
+    ctx.fill();
+    ctx.strokeStyle = '#6a3e1e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    circlePath(ctx, tx, ty, 3.5);
+    ctx.fillStyle = '#8a5a2e';
+    ctx.fill();
+  }
+
+  // La pluie : des traits penchés, dessinés une fois dans un carré qu'on répète sur tout l'écran (front : tout près,
+  // gros et rapides ; sinon au loin, fins, plus lents et plus pâles).
+  let RAIN = null;
+  function rainTile() {
+    if (!RAIN) {
+      RAIN = [0, 1].map((near) => {
+        const c = document.createElement('canvas');
+        c.width = 256;
+        c.height = 256;
+        const g = c.getContext('2d');
+        g.strokeStyle = near ? 'rgba(225,240,255,0.75)' : 'rgba(225,235,255,0.5)';
+        g.lineWidth = near ? 2 : 1.2;
+        g.lineCap = 'round';
+        const n = near ? 22 : 40;
+        const len = near ? 22 : 13;
+        g.beginPath();
+        for (let i = 0; i < n; i++) {
+          const x = hash(i * 7.31 + near) * 256;
+          const y = hash(i * 3.17 + 11 + near) * 256;
+          // (chaque trait est aussi dessiné de l'autre côté du carré, pour qu'on ne voie pas les bords)
+          for (const [ox, oy] of [[0, 0], [-256, 0], [0, -256], [-256, -256], [256, 0], [0, 256]]) {
+            g.moveTo(x + ox, y + oy);
+            g.lineTo(x + ox - len * 0.28, y + oy + len);
+          }
+        }
+        g.stroke();
+        return c;
+      });
+    }
+    return RAIN;
+  }
+
+  function rain(ctx, t, camX, camY, front) {
+    const img = rainTile()[front ? 1 : 0];
+    const k = front ? 1 : 0.5;
+    // (au pixel près : plus rapide à dessiner)
+    const wrap = (v) => Math.round(((v % 256) + 256) % 256) - 256;
+    const ox = wrap(-camX * k - t * (front ? 260 : 150));
+    const oy = wrap(-camY * k + t * (front ? 900 : 520));
+    ctx.save();
+    ctx.globalAlpha = front ? 0.55 : 0.6;
+    for (let y = oy; y < VIEW_H; y += 256) {
+      for (let x = ox; x < VIEW_W; x += 256) ctx.drawImage(img, x, y);
+    }
+    ctx.restore();
+  }
+
   return {
+    windmill, millPlank, rain,
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
     rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
     drawMudRun, mudMist, stilt, cabinSprite, CABIN_H, ropeBridge,

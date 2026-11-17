@@ -170,6 +170,10 @@ const Sound = (() => {
           for (let i = 0; i < 5; i++) noise({ filter: 'highpass', f: 4200, d: 0.03, v: 0.16, delay: i * 0.035 });
           tone({ type: 'triangle', f: 900, f2: 1700, d: 0.18, v: 0.1, delay: 0.05, vib: 30, vibDepth: 90 });
           break;
+        case 'croak': // splatch ! une grenouille lui tombe dessus (et plouf, elle devient toute verte)
+          noise({ filter: 'lowpass', f: 1200, f2: 250, d: 0.2, v: 0.3 });
+          tone({ type: 'sine', f: 700, f2: 260, d: 0.25, v: 0.16, vib: 16, vibDepth: 60 });
+          break;
         default: break;
       }
     },
@@ -523,6 +527,31 @@ const Sound = (() => {
     pluck(i) {
       tone({ type: 'sine', f: 600, f2: 1500, d: 0.05, v: 0.12 });
       tone({ type: 'triangle', f: 700 + i * 45, f2: 1150 + i * 60, d: 0.14, v: 0.07, delay: 0.04, vib: 24, vibDepth: 60 });
+    },
+
+    // ---- Le Moulin à Vent ----
+    // Malice coasse : « Croa ! » (une voix qui grince, un peu plus aiguë la deuxième fois)
+    croak(i) {
+      const f = 190 + (i || 0) * 40;
+      tone({ type: 'sawtooth', f, f2: f * 0.8, d: 0.12, v: 0.1, vib: 38, vibDepth: 45 });
+      tone({ type: 'sawtooth', f: f * 1.15, f2: f * 0.75, d: 0.16, v: 0.1, delay: 0.13, vib: 38, vibDepth: 45 });
+    },
+    // la grenouille coasse de joie sous la pluie : rrribbit (tout doux)
+    frogCroak() {
+      tone({ type: 'square', f: 260, f2: 200, d: 0.09, v: 0.035, vib: 50, vibDepth: 40 });
+      tone({ type: 'square', f: 300, f2: 220, d: 0.1, v: 0.035, delay: 0.11, vib: 50, vibDepth: 40 });
+    },
+    // elle se ramasse avant de sauter : un petit ressort qui se tend
+    frogCrouch() {
+      tone({ type: 'triangle', f: 420, f2: 180, d: 0.22, v: 0.08 });
+    },
+    // boiiing ! (plus long pour le grand saut)
+    frogJump(big) {
+      tone({ type: 'sine', f: 240, f2: big ? 1300 : 800, d: big ? 0.32 : 0.18, v: 0.14 });
+    },
+    // elle retombe : splotch
+    frogLand() {
+      noise({ filter: 'lowpass', f: 900, f2: 300, d: 0.12, v: 0.16 });
     },
 
     // les lucioles se mettent à suivre Malice : des petites clochettes qui scintillent

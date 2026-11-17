@@ -15,6 +15,11 @@
 // boarSee : à combien de cases un sanglier voit Malice ; boarWarn : combien de temps il gratte le sol avant de
 // foncer (on peut lui sauter dessus) ; boarRush : sa vitesse quand il fonce ; boarDizzy : combien de temps il
 // reste étourdi après s'être cogné (on peut lui sauter dessus) ; boarWalk : sa vitesse quand il se promène.
+// frogSee : à combien de cases une grenouille sauteuse saute sur Malice ; frogWarn : combien de temps elle se ramasse
+// avant (son ombre est déjà là où elle va retomber) ; frogAir : combien de temps elle reste en l'air pendant ce grand
+// saut (plus long : on a plus de temps pour s'écarter de l'ombre) ; frogRest : combien de temps elle reste assise
+// entre deux sauts [au moins, au plus] (on peut lui sauter dessus).
+// millTurn : le temps que mettent les ailes d'un moulin à vent à faire un tour (secondes).
 // vineReach : à combien de pixels du milieu de Malice on attrape une liane (le Vieux Chêne).
 // bossK : la vitesse des boss (et de leurs attaques) ; plus petit, ils sont plus lents et attendent plus longtemps.
 // acornHits : combien de gros glands il faut renvoyer sur le nez de Pépé Chêne pour le battre (la dernière manche).
@@ -26,6 +31,7 @@ const DIFFS = {
     snailSpeed: 18, padShake: 1.5, moleDig: 90, moleWarn: 0.9, moleOut: 2.6, bossK: 0.7, acornHits: 2,
     hogSpeed: 26, hogNear: 2.2, hogCurl: 1.3, hogOpen: 2.6,
     boarSee: 4.5, boarWarn: 1.7, boarRush: 230, boarDizzy: 3.4, boarWalk: 30,
+    frogSee: 4, frogWarn: 1.3, frogAir: 1.6, frogRest: [2.6, 3.4], millTurn: 12,
     vineReach: 46,
   },
   gentil: {
@@ -35,6 +41,7 @@ const DIFFS = {
     snailSpeed: 24, padShake: 0.95, moleDig: 115, moleWarn: 0.7, moleOut: 1.9, bossK: 1, acornHits: 3,
     hogSpeed: 34, hogNear: 2.6, hogCurl: 1.6, hogOpen: 2.0,
     boarSee: 5, boarWarn: 1.35, boarRush: 285, boarDizzy: 2.8, boarWalk: 36,
+    frogSee: 4.5, frogWarn: 1.05, frogAir: 1.4, frogRest: [2.1, 2.9], millTurn: 11,
     vineReach: 40,
   },
   classique: {
@@ -44,6 +51,7 @@ const DIFFS = {
     snailSpeed: 28, padShake: 0.8, moleDig: 135, moleWarn: 0.58, moleOut: 1.6, bossK: 1.15, acornHits: 4,
     hogSpeed: 40, hogNear: 3, hogCurl: 1.9, hogOpen: 1.6,
     boarSee: 5.5, boarWarn: 1.1, boarRush: 335, boarDizzy: 2.3, boarWalk: 40,
+    frogSee: 5, frogWarn: 0.85, frogAir: 1.25, frogRest: [1.7, 2.5], millTurn: 10,
     vineReach: 36,
   },
   difficile: {
@@ -53,6 +61,7 @@ const DIFFS = {
     snailSpeed: 32, padShake: 0.65, moleDig: 155, moleWarn: 0.48, moleOut: 1.35, bossK: 1.3, acornHits: 5,
     hogSpeed: 46, hogNear: 3.4, hogCurl: 2.2, hogOpen: 1.25,
     boarSee: 6, boarWarn: 0.9, boarRush: 380, boarDizzy: 1.9, boarWalk: 44,
+    frogSee: 5.5, frogWarn: 0.7, frogAir: 1.1, frogRest: [1.3, 2.1], millTurn: 9,
     vineReach: 34,
   },
 };

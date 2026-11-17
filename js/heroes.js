@@ -261,6 +261,8 @@ const Heroes = (() => {
       case 'wet': return { color: '#3a8ae8', a: 0.3 * clamp(left / 0.5, 0, 1) };
       case 'slime': return { color: '#8ee05a', a: 0.38 * clamp(left / 0.5, 0, 1) };
       case 'dirt': return { color: '#7a4a24', a: 0.38 * clamp(left / 0.5, 0, 1) };
+      // tout vert (la grenouille), puis il reprend sa couleur après avoir coassé deux fois
+      case 'croak': return { color: '#3ed03a', a: 0.6 * clamp(k.t / 0.12, 0, 1) * clamp(left / 0.5, 0, 1) };
       // tout rouge d'avoir été piqué, au début
       // (ensuite plus rien : inutile de redessiner le personnage à part)
       case 'pins': return k.t < 0.6 ? { color: '#ff5a6a', a: 0.22 * (1 - k.t / 0.6) } : null;
@@ -351,6 +353,7 @@ const Heroes = (() => {
     if (k && k.kind === 'slime') Art.slimeOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'dirt') Art.dirtOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'pins') Art.pinsOverlay(ctx, k, head);
+    if (k && k.kind === 'croak') Art.croakOverlay(ctx, k, info.headY, head[0]);
     // le bébé oiseau assis sur la tête
     if (o.onHead) {
       const [hx, hy] = head;

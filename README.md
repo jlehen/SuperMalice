@@ -194,7 +194,23 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      vies sont infinies), une seule fois dans toute la partie (gardé dans la sauvegarde, `nids`) : quand on rejoue le
      stage, il fait encore son câlin (tous les cœurs, des points), mais sans vie en plus. Il n'y a aucun danger
      dans ce stage : on ne peut ni tomber dans un trou ni se coincer (en tombant d'une liane ou d'un arbre, on retrouve toujours son champignon).
-3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
+3. **La Vallée des Orages**
+   - 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
+   - 3-2 **Le Moulin à Vent** : il pleut, il pleut (des gouttes qui éclaboussent partout). De grands **moulins à
+     vent** en crème rose font tourner leurs ailes, et au bout de chaque aile pend une **planche** (une grosse
+     gaufrette, accrochée à un gros anneau doré) qui reste toujours à plat, comme les nacelles d'une grande roue : on
+     saute dessus, et elle nous emporte. Elle monte à gauche, passe tout en haut vers la droite et redescend à droite
+     : on saute sur une falaise, tout là-haut, ou sur l'autre bord d'un très grand trou. Les planches ne poussent
+     jamais Malice dans un mur ni dans un plafond, et si on tombe, on retombe dans l'herbe (sauf au-dessus du grand
+     trou). Les **grenouilles sauteuses** (l'idée d'Alice) adorent la pluie : elles attrapent les gouttes avec leur
+     langue et coassent de joie, la gorge toute gonflée. Elles sautent très haut… parfois sur Malice : « ! », elles se
+     ramassent en tremblant, et leur **ombre** apparaît déjà là où elles vont retomber (avec un cercle vert qui se
+     resserre) ; il suffit de s'en écarter. On leur saute sur la tête quand elles sont assises ou ramassées (croâ !
+     elles redeviennent gentilles) ; le caramel les colle par terre, et avec les chips elles sont trop lourdes pour
+     sauter. Une grenouille qui monte en sautant ne fait pas mal (c'est quand elle retombe sur Malice qu'il faut
+     s'écarter). On y retrouve les éclairs au chocolat et les Rubik's cubes (pas en même temps que les grenouilles).
+     En Bébé, les grenouilles visent Malice de moins loin, se ramassent plus longtemps, restent plus longtemps en
+     l'air et assises, et les ailes tournent moins vite ; en Difficile, c'est le contraire.
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    (aucune coccinelle ne tire quand Malice est au-dessus de la lave, même debout sur une planche : elles attendent qu'elle soit
    retombée sur le sol)
@@ -327,6 +343,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Taupe qui jaillit du sol | projetée en l'air dans une gerbe de terre, elle retombe toute sale, des mottes sur la tête, et un petit ver de terre rose en sort pour lui faire coucou |
 | Hérisson | couverte de piquants comme une pelote d'épingles ! Elle les enlève un par un, en grimaçant : « Aïe ! Aïe ! Aïe ! » |
 | Pépé Chêne et Ronchon | un gland qui tombe fait une bosse sous la casquette ; une racine qui sort du plancher pique les fesses ; Ronchon en boule, c'est la pelote d'épingles |
+| Grenouille sauteuse | toute verte d'un coup ! Accroupie comme une grenouille, la gorge qui se gonfle, elle fait « Croa ! » deux fois, puis elle reprend sa couleur |
 | Sanglier qui fonce | projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe la tête en bas, les jambes en l'air ; une taupe sort de terre à côté d'elle, toute interloquée (« ? »), et replonge aussitôt. Dans la boue, plof : elle s'y enfonce tout de suite (vite, il faut sauter !) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre) |
 
 ## Commandes
@@ -390,11 +407,12 @@ sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
-`O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `i` = lucioles, `j` = fleur-lanterne,
+`O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `f` = grenouille sauteuse,
+`x` = l'axe des ailes d'un moulin à vent (tout autour, rien de solide), `i` = lucioles, `j` = fleur-lanterne,
 `J` = liane, `q` = écureuil, `k` = nid, `p` = le nid secret de l'oisillon qui donne une vie…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
 par la lune : `clairDeLune`), monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne),
-ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
+se passer sous la pluie (`pluie`, comme le Moulin à Vent), ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
 Défi du Super Saut, dont le décor `sousbois` a des branches `=` sur les troncs `|`, et des feuillages de décor d'où
 pendent les lianes : `feuillage`).
 Il suffit de modifier les lettres et de recharger la page.
@@ -461,7 +479,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Dans le Vieux Chêne | la même, dans le bois du tronc creux : la mélodie au marimba, la flûte en écho tout là-haut, pizzicati, et des wood-blocks qui toquent comme un pic-vert |
   | Le combat contre Pépé Chêne et Ronchon | une marche grognonne sur la pointe des pieds, comme celle du vieux roi de la montagne : do mineur en 4/4 bien carré, la mélodie au basson tout en staccato doublée aux pizzicati, le tuba et les timbales qui marquent le pas, des wood-blocks comme des glands qui tombent ; au refrain, les cordes et les cuivres s'emportent |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
-  | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
+  | La Vallée des Orages (la Vallée des Orages, le Moulin à Vent) | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |

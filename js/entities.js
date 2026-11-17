@@ -108,6 +108,9 @@ const OUCH = {
   // la tête en bas, les jambes en l'air (et une taupe sort de terre pour voir). Toute l'animation suit
   // le vrai vol : voir SPIN et Player.updateSpin (dur est fixé quand elle s'est remise sur ses pieds).
   spin: { dur: 9, pose: 9, lock: 0.3, vx: 150, vy: -880, hold: 0.2, text: 'Wouaaah !', color: '#ffb08a', textY: -70 },
+  // la grenouille sauteuse : elle devient toute verte, et fait « Croa ! » deux fois (accroupie comme une grenouille,
+  // la gorge qui se gonfle : voir Art.CROAKS), puis elle reprend sa couleur
+  croak: { dur: 1.9, pose: 0.3, lock: 0.25, vx: 230, vy: -500, hold: 0.55, color: '#8ef06a' },
   // n'importe quoi d'autre
   hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
 };
@@ -294,8 +297,18 @@ class Player {
     if (pow.update) pow.update(this, dt, I);
 
     if (this.platform) {
+      // (la plateforme ne l'emporte jamais dans un mur : contre le mur, elle glisse sous ses pieds ; ni dans un
+      // plafond : si elle monte trop haut, Malice la lâche et elle passe sous ses pieds, voir checkPlatforms)
+      const ox = this.x;
+      const oy = this.y;
       this.x += this.platform.dx;
+      if (this.platform.dx && w.boxSolid(this.x, this.y, this.w, this.h)) this.x = ox;
       this.y = this.platform.y - this.h;
+      if (this.y < oy && w.boxSolid(this.x, this.y, this.w, this.h)) {
+        this.y = oy;
+        this.platform = null;
+        this.onGround = false;
+      }
     }
 
     let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0);
@@ -1275,7 +1288,8 @@ class Player {
       if (p.sunk) continue;
       if (this.x + this.w > p.x + 3 && this.x < p.x + p.w - 3) {
         const bottom = this.y + this.h;
-        if (bottom >= p.y && this.prevBottom <= p.y + 8) {
+        // (pas si elle s'y retrouverait la tête dans un plafond)
+        if (bottom >= p.y && this.prevBottom <= p.y + 8 && !(bottom > p.y && this.world.boxSolid(this.x, p.y - this.h, this.w, this.h))) {
           this.y = p.y - this.h;
           this.vy = 0;
           this.onGround = true;
@@ -1563,6 +1577,14 @@ class Player {
           w.spawn({ type: 'straw', x: p.x, y: p.y, vx: f * rand(-40, 120), vy: rand(-260, -160), g: 900, life: 0.6, size: 10, color: '#6a4a2e', rot: rand(0, 6), vr: rand(-14, 14) });
         });
         break;
+      case 'croak':
+        // toute verte, elle coasse deux fois : « Croa ! » (sa gorge se gonfle comme celle d'une grenouille)
+        Art.CROAKS.forEach((time, i) => {
+          if (!passed(time)) return;
+          Sound.sfx.croak(i);
+          w.popText(this.cx + (i ? 14 : -10), this.y - 16, 'Croa !', '#8ef06a', 22);
+        });
+        break;
       case 'spots':
         Art.MALICE_SPOTS.forEach(([x, y], i) => {
           if (!passed(Art.spotPop(i))) return;
@@ -1604,7 +1626,8 @@ class Player {
     const hanging = this.grap && (this.grap.phase === 'pull' || this.grap.phase === 'swing');
     const k = this.ouch;
     // tout son corps réagit à ce qui lui a fait mal
-    const ouching = k && (this.dead || k.t < OUCH[k.kind].pose);
+    // (et quand elle coasse, par terre : accroupie comme une grenouille, voir Art.croaking)
+    const ouching = k && (this.dead || k.t < OUCH[k.kind].pose || (k.kind === 'croak' && this.onGround && Art.croaking(k)));
     if (k) k.shock = k.kind === 'zap' && (this.dead ? this.deathT < 0.5 : this.stunT > 0);
     if (this.dead) pose = k ? 'ouch' : 'hurt';
     else if (this.won) pose = this.onGround ? 'win' : 'jump';
@@ -3521,6 +3544,403 @@ class PeekMole {
     ctx.rotate(-tilt * this.dir);
     Art.mole(ctx, 0, 0, { dir: this.dir, t: this.t, look: { x: this.dir, y: -0.1 } });
     ctx.restore();
+  }
+}
+
+// Grenouille sauteuse (le Moulin à Vent) : elle adore la pluie ! Assise, elle attrape les gouttes avec sa langue, et
+// coasse de joie, la gorge toute gonflée. De temps en temps, elle saute, très haut : d'abord elle se ramasse (elle
+// s'aplatit et tremble, et son ombre apparaît déjà là où elle va retomber), puis hop ! Quand Malice est tout près,
+// sur son étage, « ! » : elle saute sur elle (là où Malice était quand elle s'est ramassée : il suffit de s'écarter
+// de l'ombre). Sinon, elle fait de petits bonds sur son coin d'herbe (jamais sur Malice), qu'elle ne quitte jamais
+// (pas de trou, de ronces, ni rien au-dessus d'elle, où elle se cognerait ou se poserait).
+// On lui saute dessus (assise, ramassée, ou même en l'air, en lui tombant dessus) : « Croâ ! », elle redevient
+// toute gentille (des petits cœurs). Si elle retombe sur Malice, ou si Malice la touche, Malice devient toute verte
+// (voir OUCH.croak). Le caramel la colle par terre (elle ne saute plus) ; avec les chips, elle est trop lourde pour
+// sauter (elle se dandine, toute essoufflée). Les pouvoirs qui renversent marchent, et en roulade on passe dessous.
+// (w.diff : frogSee, frogWarn, frogAir, frogRest, voir DIFFS dans game.js)
+// FROG : high (la hauteur du grand saut sur Malice, en cases), hop (celle d'un petit bond), hopAir (le temps en l'air
+// d'un petit bond, en secondes), range (jusqu'où elle s'éloigne de sa place, en cases), land (le temps où elle reste
+// tout écrasée en retombant), far (un petit bond fait au plus far cases), shy (un petit bond ne finit jamais à moins
+// de shy cases de Malice).
+const FROG = { high: 5, hop: 2, hopAir: 0.75, range: 4, land: 0.3, far: 2.2, shy: 1.8 };
+
+class Frog extends Enemy {
+  constructor(world, x, y) {
+    super(world, x, y, 40, 30);
+    this.ouch = 'croak'; // Malice devient toute verte, et coasse (voir OUCH)
+    // 'sit' : assise ; 'crouch' : elle se ramasse ; 'air' : elle saute ; 'land' : elle retombe, tout écrasée
+    this.state = 'sit';
+    this.timer = rand(1, 2.2);
+    // au début (et à la reprise d'un drapeau), elle ne saute pas tout de suite sur Malice
+    this.calm = 1.5;
+    this.fatSpeed = 18;
+    this.home = this.cx;
+    this.range = this.findRange();
+    // là où elle va retomber (son ombre) : { x, y, big } ; big : le grand saut sur Malice
+    this.target = null;
+    this.warn = 1;
+    this.air = 1;
+    this.airT = 0;
+    this.g = PHYS.gravity;
+    // la gorge qui se gonfle quand elle coasse, et la langue qui attrape une goutte de pluie
+    this.sacT = 0;
+    this.croakT = rand(1.5, 4);
+    this.tongue = 0;
+    this.tongueT = rand(0.8, 2.5);
+    this.look = { x: -1, y: 0 };
+  }
+
+  // Son coin d'herbe : les cases de sol de son étage autour de sa place, avec rien au-dessus (ni ronces, ni plafond,
+  // ni planche où elle se poserait), assez haut pour son grand saut.
+  findRange() {
+    const w = this.world;
+    const c0 = Math.floor(this.home / TILE);
+    const r = Math.round((this.y + this.h) / TILE);
+    const free = (ch) => !isSolidCh(ch) && !isLedgeCh(ch) && ch !== '^' && ch !== 'v' && ch !== '~';
+    const ok = (c) => {
+      if (!isSolidCh(w.tileAt(c, r))) return false;
+      for (let k = 1; k <= FROG.high + 2; k++) if (!free(w.tileAt(c, r - k))) return false;
+      return true;
+    };
+    let a = c0;
+    let b = c0;
+    while (a > c0 - FROG.range && ok(a - 1)) a--;
+    while (b < c0 + FROG.range && ok(b + 1)) b++;
+    return { x0: a * TILE + TILE / 2, x1: b * TILE + TILE / 2, y: r * TILE };
+  }
+
+  // Quand elle monte en sautant, elle ne fait pas mal : elle file vers le haut, et Malice qui lui saute dessus n'y est
+  // pour rien (si Malice retombe sur elle, c'est un « Croâ ! » ; si c'est elle qui retombe sur Malice, ça fait mal).
+  harmful() {
+    return super.harmful() && !(this.state === 'air' && this.vy < 0);
+  }
+
+  // Elle est petite : le caramel, les chips et les tirs des pouvoirs la touchent un peu plus haut.
+  shotBox() {
+    return { x: this.x, y: this.y - 18, w: this.w, h: this.h + 18 };
+  }
+
+  // Elle saute sur Malice ? Seulement si Malice est tout près, sur son étage (là où elle avait les pieds la dernière
+  // fois qu'elle était par terre : pas sur une planche du moulin), et pas pendant qu'elle lit une fleur qui parle.
+  aims(p) {
+    if (p.dead || p.won || this.calm > 0 || p.tumbling()) return false;
+    const w = this.world;
+    if (Math.abs(p.cx - this.cx) > w.diff.frogSee * TILE) return false;
+    if (Math.abs(p.groundY - this.range.y) > 0.6 * TILE) return false;
+    return !w.flowers.some((f) => f.show > 0.3 && Math.abs(f.x - this.cx) < 9 * TILE);
+  }
+
+  ai(dt) {
+    const w = this.world;
+    const p = w.player;
+    const D = w.diff;
+    this.calm -= dt;
+    this.timer -= dt;
+    if (this.sacT > 0) this.sacT -= dt;
+    if (this.tongue > 0) {
+      this.tongue += dt / 0.32;
+      if (this.tongue >= 1) this.tongue = 0;
+    }
+    switch (this.state) {
+      case 'sit':
+        this.vx = 0;
+        this.walkPhysics(dt, false);
+        // elle adore la pluie : elle attrape les gouttes avec sa langue, et coasse de joie
+        this.croakT -= dt;
+        if (this.croakT <= 0) {
+          this.croakT = rand(2.5, 5);
+          this.croak();
+        }
+        this.tongueT -= dt;
+        if (this.tongueT <= 0) {
+          this.tongueT = rand(1.2, 3);
+          this.tongue = 0.001;
+        }
+        if (this.timer <= 0 && this.onGround) this.plan();
+        break;
+      case 'crouch':
+        this.vx = 0;
+        this.walkPhysics(dt, false);
+        if (this.timer <= 0) this.leap();
+        break;
+      case 'air': {
+        this.airT += dt;
+        this.vy = Math.min(this.vy + this.g * dt, PHYS.maxFall);
+        const res = w.moveBody(this, dt);
+        if (res.wall) this.vx = 0;
+        if (res.landed) this.touchDown();
+        break;
+      }
+      case 'land':
+        this.vx = 0;
+        this.walkPhysics(dt, false);
+        if (this.timer <= 0) {
+          this.state = 'sit';
+          this.timer = rand(D.frogRest[0], D.frogRest[1]);
+        }
+        break;
+      default: break;
+    }
+    // elle regarde Malice quand elle est tout près (et là où elle va sauter)
+    const T = this.target;
+    const lx = T && this.state === 'crouch' ? T.x : p.cx;
+    const ly = T && this.state === 'crouch' ? T.y - 120 : p.cy;
+    const dx = lx - this.cx;
+    const dy = ly - this.cy;
+    const d = Math.hypot(dx, dy) || 1;
+    const sees = !p.dead && d < 6 * TILE;
+    this.look.x += ((sees ? dx / d : this.dir) - this.look.x) * Math.min(1, dt * 6);
+    this.look.y += ((sees ? dy / d : 0) - this.look.y) * Math.min(1, dt * 6);
+    if (this.state === 'sit' && sees && Math.abs(dx) > 8) this.dir = Math.sign(dx);
+  }
+
+  // Où sauter : sur Malice, ou un petit bond sur son coin d'herbe.
+  plan() {
+    const w = this.world;
+    const p = w.player;
+    const R = this.range;
+    let tx;
+    const big = this.aims(p);
+    if (big) {
+      tx = clamp(p.cx, R.x0, R.x1);
+    } else {
+      let d = (Math.random() < 0.5 ? -1 : 1) * rand(1, FROG.far) * TILE;
+      if (this.cx + d < R.x0 || this.cx + d > R.x1) d = -d;
+      tx = clamp(this.cx + d, R.x0, R.x1);
+      // (jamais tout près de Malice)
+      const near = !p.dead && Math.abs(p.groundY - R.y) < 0.6 * TILE && Math.abs(tx - p.cx) < FROG.shy * TILE;
+      if (Math.abs(tx - this.cx) < TILE / 2 || near) {
+        // pas de place : elle reste assise, et coasse
+        this.timer = rand(0.8, 1.4);
+        this.croak();
+        return;
+      }
+    }
+    this.target = { x: tx, y: R.y, big };
+    if (Math.abs(tx - this.cx) > 4) this.dir = Math.sign(tx - this.cx);
+    this.state = 'crouch';
+    this.warn = big ? w.diff.frogWarn : w.diff.frogWarn * 0.6;
+    this.timer = this.warn;
+    if (big) w.popText(this.cx, this.y - 16, '!', '#4ad04a', 28);
+    if (w.onScreen(this)) Sound.sfx.frogCrouch();
+  }
+
+  // Hop ! (un saut en cloche, qui retombe juste sur son ombre)
+  leap() {
+    const w = this.world;
+    const T = this.target;
+    const H = (T.big ? FROG.high : FROG.hop) * TILE;
+    const air = T.big ? w.diff.frogAir : FROG.hopAir;
+    this.g = (8 * H) / (air * air);
+    this.vy = -(4 * H) / air;
+    this.vx = (T.x - this.cx) / air;
+    this.air = air;
+    this.airT = 0;
+    this.onGround = false;
+    this.state = 'air';
+    if (w.onScreen(this)) Sound.sfx.frogJump(T.big);
+    for (let i = 0; i < 5; i++) {
+      w.spawn({ type: 'dot', x: this.cx + rand(-14, 14), y: this.y + this.h - 2, vx: rand(-80, 80), vy: rand(-160, -60), g: 900, life: 0.4, size: rand(1.8, 3), color: '#bfe6ff' });
+    }
+  }
+
+  touchDown() {
+    const w = this.world;
+    this.state = 'land';
+    this.timer = FROG.land;
+    this.vx = 0;
+    this.target = null;
+    if (!w.onScreen(this)) return;
+    // plouf dans une flaque, sinon des éclaboussures de pluie
+    if (w.inPuddle(this)) {
+      w.splash(this.cx, this.y + this.h - 6);
+    } else {
+      Sound.sfx.frogLand();
+      for (let i = 0; i < 6; i++) {
+        w.spawn({ type: 'dot', x: this.cx + rand(-18, 18), y: this.y + this.h - 2, vx: rand(-140, 140), vy: rand(-220, -80), g: 1100, life: 0.45, size: rand(1.8, 3.2), color: i % 2 ? '#bfe6ff' : '#ffffff' });
+      }
+    }
+  }
+
+  // Elle vient de retomber sur Malice : elle rebondit, et file un peu plus loin sur son coin d'herbe (sinon, Malice
+  // projetée en l'air lui retomberait dessus tout de suite).
+  tossed(p) {
+    // (gavée de chips, elle est bien trop lourde pour sauter)
+    if (this.fat) return;
+    const R = this.range;
+    const away = Math.sign(this.cx - p.cx) || this.dir;
+    let tx = clamp(this.cx + away * 2.2 * TILE, R.x0, R.x1);
+    if (Math.abs(tx - this.cx) < TILE) tx = clamp(this.cx - away * 2.2 * TILE, R.x0, R.x1);
+    this.target = { x: tx, y: R.y, big: false };
+    this.calm = Math.max(this.calm, 1.5);
+    this.leap();
+    this.target = null;
+  }
+
+  croak() {
+    this.sacT = 0.55;
+    if (this.world.onScreen(this, -40)) Sound.sfx.frogCroak();
+  }
+
+  onStuck() {
+    this.state = 'sit';
+    this.target = null;
+  }
+
+  onFat() { this.onStuck(); }
+
+  onUnstuck() {
+    this.state = 'sit';
+    this.timer = 1;
+    this.calm = 0.8;
+  }
+
+  // on lui saute dessus : « Croâ ! » Elle voit des étoiles, puis redevient toute gentille (des petits cœurs).
+  stomp() {
+    const w = this.world;
+    this.kill('stomp');
+    w.popText(this.cx, this.y - 24, 'Croâ !', '#b6ff9a', 20);
+    for (let i = 0; i < 3; i++) {
+      w.spawn({ type: 'heart', x: this.cx + rand(-12, 12), y: this.y, vx: rand(-40, 40), vy: rand(-140, -80), life: 0.9, size: 1 });
+    }
+  }
+
+  // L'ombre là où elle va retomber, dessinée par-dessus Malice pour qu'on la voie bien (comme celle des éclairs) :
+  // elle grandit et fonce pendant que la grenouille se ramasse, puis pendant qu'elle retombe.
+  drawWarning(ctx) {
+    const T = this.target;
+    if (!T || this.dying || this.stuck > 0 || this.fat || (this.state !== 'crouch' && this.state !== 'air')) return;
+    const k = this.state === 'crouch' ? 0.35 * clamp(1 - this.timer / this.warn, 0, 1) : 0.35 + 0.65 * clamp(this.airT / this.air, 0, 1);
+    const big = T.big ? 1 : 0.7;
+    ctx.fillStyle = `rgba(20,60,25,${(0.24 + 0.4 * k) * (T.big ? 1 : 0.75)})`;
+    ellipsePath(ctx, T.x, T.y - 1, (18 + 16 * k) * big, (5 + 4 * k) * big);
+    ctx.fill();
+    if (T.big) {
+      // un cercle vert qui se resserre : elle arrive !
+      ctx.strokeStyle = `rgba(70,210,70,${0.45 + 0.5 * k})`;
+      ctx.lineWidth = 3;
+      ellipsePath(ctx, T.x, T.y - 1, 22 + 22 * (1 - k), 7 + 6 * (1 - k));
+      ctx.stroke();
+    }
+  }
+
+  drawBody(ctx, x, y) {
+    const live = this.stuck <= 0 && !this.fat;
+    let crouch = 0;
+    if (live && this.state === 'crouch') crouch = clamp(1 - this.timer / this.warn, 0, 1) * 0.6 + 0.4;
+    Art.frog(ctx, x, y, {
+      dir: this.dir, t: this.t, look: this.look, crouch,
+      air: live && this.state === 'air' ? (this.vy < 0 ? -1 : 1) : 0,
+      land: live && this.state === 'land' ? this.timer / FROG.land : 0,
+      sac: this.sacT > 0 ? Math.sin((1 - this.sacT / 0.55) * Math.PI) : 0,
+      tongue: live && this.state === 'sit' ? this.tongue : 0,
+      phase: this.legPhase, moving: Math.abs(this.vx) > 1,
+      fat: this.fat, rest: this.fatRest && this.stuck <= 0,
+    });
+  }
+
+  mouth() { return { x: this.dir * (this.fat ? 18 : 15), y: -12 }; }
+}
+
+// Le moulin à vent (le Moulin à Vent ; lettre x : l'axe de ses ailes). Ses quatre ailes tournent dans le sens des
+// aiguilles d'une montre, et au bout de chaque aile pend une planche qui reste toujours à plat, comme les nacelles
+// d'une grande roue : on monte dessus, et elle nous emporte (elle monte à gauche, passe tout en haut vers la droite, et
+// redescend à droite). La tour est dans le décor : on passe devant.
+// MILL : r (de l'axe au bout des ailes, en pixels), hang (la planche pend sous le bout de l'aile), plankW, plankH.
+// Le temps d'un tour est dans DIFFS (millTurn). Pour que les planches ne poussent jamais Malice dans un mur ou sous
+// un plafond, la carte ne met rien de solide sur leur chemin (et au-dessus, la place de Malice) ; et la plateforme
+// ne l'emporte jamais dans un mur (voir Player.update).
+const MILL = { r: 160, hang: 10, plankW: 96, plankH: 16, sails: 4 };
+
+class Windmill {
+  constructor(world, cx, cy) {
+    this.world = world;
+    this.x = cx;
+    this.y = cy;
+    // le pied de la tour : le sol sous l'axe. Au-dessus d'un trou sans fond, elle est posée au niveau de ses bords,
+    // sur un grand rocher qui s'enfonce dans le vide (rock : sa hauteur ; sans porte, elle ne donne sur rien).
+    this.ground = world.surfaceBelow(cx, cy + MILL.r + 30);
+    this.rock = 0;
+    if (this.ground > world.height) {
+      let edge = cy + MILL.r;
+      for (const s of [-1, 1]) {
+        for (let x = cx; x > 0 && x < world.width; x += s * TILE) {
+          const g = world.surfaceBelow(x, cy);
+          if (g <= world.height) {
+            edge = Math.max(edge, g);
+            break;
+          }
+        }
+      }
+      this.ground = edge;
+      this.rock = world.height - edge + 40;
+    }
+    this.planks = [];
+    for (let i = 0; i < MILL.sails; i++) {
+      const pl = new MillPlank(this, i);
+      this.planks.push(pl);
+      world.platforms.push(pl);
+    }
+  }
+
+  // De combien les ailes ont tourné (radians, dans le sens des aiguilles d'une montre).
+  angle() {
+    return Math.PI / 4 + (this.world.t * Math.PI * 2) / this.world.diff.millTurn;
+  }
+
+  seen(camX) {
+    return this.x + MILL.r + 160 > camX && this.x - MILL.r - 160 < camX + VIEW_W;
+  }
+
+  draw(ctx) {
+    Scenery.windmill(ctx, this.x, this.y, this.ground, this.angle(), MILL.r, this.rock);
+  }
+}
+
+class MillPlank {
+  constructor(mill, i) {
+    this.mill = mill;
+    this.world = mill.world;
+    this.i = i;
+    this.w = MILL.plankW;
+    this.h = MILL.plankH;
+    this.dx = 0;
+    this.dy = 0;
+    this.place();
+  }
+
+  // le bout de son aile
+  tip() {
+    const a = this.mill.angle() + (this.i * Math.PI * 2) / MILL.sails;
+    return { x: this.mill.x + Math.cos(a) * MILL.r, y: this.mill.y + Math.sin(a) * MILL.r };
+  }
+
+  place() {
+    const p = this.tip();
+    this.tx = p.x;
+    this.ty = p.y;
+    this.x = p.x - this.w / 2;
+    this.y = p.y + MILL.hang;
+  }
+
+  // Là où le Lutin ne peut pas poser de bloc magique : toute la roue (et la place de celui qui est dessus).
+  blockZone() {
+    const m = this.mill;
+    const R = MILL.r + MILL.hang;
+    return { x: m.x - R - this.w / 2 - 30, y: m.y - R - 70, w: 2 * R + this.w + 60, h: 2 * R + 90 };
+  }
+
+  update() {
+    const ox = this.x;
+    const oy = this.y;
+    this.place();
+    this.dx = this.x - ox;
+    this.dy = this.y - oy;
+  }
+
+  draw(ctx) {
+    if (!this.mill.seen(this.world.cam.x)) return;
+    Scenery.millPlank(ctx, this.x, this.y, this.w, this.h, this.tx, this.ty);
   }
 }
 
