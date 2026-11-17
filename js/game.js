@@ -180,6 +180,7 @@ const Game = {
     this.diffKey = DIFFS[this.save.difficulty] ? this.save.difficulty : 'gentil';
     this.diff = DIFFS[this.diffKey];
     Sound.setMuted(this.save.muted);
+    Sound.setMusicOff(this.save.musicOff);
     this.isTouch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     document.body.classList.toggle('touch', this.isTouch);
     $('#version').textContent = 'version ' + (typeof GAME_VERSION === 'string' ? GAME_VERSION : 'dev');
@@ -331,12 +332,21 @@ const Game = {
       Save.save(this.save);
       this.updateSoundBtn();
     });
+    $('#btn-music').addEventListener('click', () => {
+      Sound.unlock();
+      this.save.musicOff = !Sound.isMusicOff();
+      Sound.setMusicOff(this.save.musicOff);
+      Save.save(this.save);
+      this.updateMusicBtn();
+    });
     $('#btn-fs').addEventListener('click', () => this.toggleFullscreen());
     window.addEventListener('keydown', (e) => {
       if (e.key === 'm' || e.key === 'M') $('#btn-sound').click();
+      if ((e.key === 'n' || e.key === 'N') && !e.repeat) $('#btn-music').click();
       if ((e.key === 'f' || e.key === 'F') && !e.repeat && $('#btn-fs').style.display !== 'none') this.toggleFullscreen();
     });
     this.updateSoundBtn();
+    this.updateMusicBtn();
     const fsOk = document.fullscreenEnabled || document.webkitFullscreenEnabled;
     if (!fsOk) $('#btn-fs').style.display = 'none';
   },
@@ -346,6 +356,15 @@ const Game = {
       ? '<path d="M16 9l5 6M21 9l-5 6" fill="none" stroke-width="2.4" stroke-linecap="round"/>'
       : '<path d="M16 8.5c1.6 1.8 1.6 5.2 0 7M18.8 6c3 3.2 3 8.8 0 12" fill="none" stroke-width="2.2" stroke-linecap="round"/>';
     $('#btn-sound').innerHTML = `<svg viewBox="0 0 24 24"><path d="M3 9.5h4l5-4.5v14l-5-4.5H3z"/>${wave}</svg>`;
+  },
+
+  // la note de musique, barrée quand la musique est coupée (les bruitages restent)
+  updateMusicBtn() {
+    const off = Sound.isMusicOff();
+    const bar = off ? '<path d="M3.5 3.5l17 17" fill="none" stroke-width="2.6" stroke-linecap="round"/>' : '';
+    $('#btn-music').innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 17.5V6l10-2.5V15" fill="none" stroke-width="2.2" stroke-linejoin="round"/>'
+      + `<ellipse cx="6.5" cy="17.5" rx="3" ry="2.4"/><ellipse cx="16.5" cy="15" rx="3" ry="2.4"/>${bar}</svg>`;
+    $('#btn-music').setAttribute('aria-label', off ? 'Remettre la musique' : 'Couper la musique');
   },
 
   toggleFullscreen() {

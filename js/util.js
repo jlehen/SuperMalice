@@ -60,7 +60,7 @@ const Save = {
   badgeKey: 'superMalice.badges',
   load() {
     try {
-      const data = Object.assign({ unlocked: 1, difficulty: 'gentil', muted: false },
+      const data = Object.assign({ unlocked: 1, difficulty: 'gentil', muted: false, musicOff: false },
         JSON.parse(localStorage.getItem(this.key) || '{}'));
       if (!Array.isArray(data.badges)) {
         const b = JSON.parse(localStorage.getItem(this.badgeKey) || 'null');
@@ -68,7 +68,7 @@ const Save = {
       }
       return data;
     } catch (e) {
-      return { unlocked: 1, difficulty: 'gentil', muted: false };
+      return { unlocked: 1, difficulty: 'gentil', muted: false, musicOff: false };
     }
   },
   save(data) {

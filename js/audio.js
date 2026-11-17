@@ -9,6 +9,8 @@ const Sound = (() => {
   let sfxBus = null;
   let noiseBuf = null;
   let muted = false;
+  let musicOff = false; // la musique seule est coupée (les bruitages restent)
+  let musicVol = 1;
 
   function ensure() {
     if (ac) return true;
@@ -23,7 +25,7 @@ const Sound = (() => {
     master.connect(ac.destination);
     // musique : les instruments passent par un filtre qui adoucit, les percussions non
     musicBus = ac.createGain();
-    musicBus.gain.value = 0.55;
+    musicBus.gain.value = musicOff ? 0 : 0.55 * musicVol;
     musicBus.connect(comp);
     const soften = ac.createBiquadFilter();
     soften.type = 'lowpass';
@@ -964,7 +966,7 @@ const Sound = (() => {
         t = now + 0.05;
       }
       if (t > now + 0.15) break;
-      if (!muted) {
+      if (!muted && !musicOff) {
         if (ev.k) playDrum(ev.k, t, ev.v);
         else if (ev.f) playInst(ev.inst, ev.f, t, ev.d * beat, ev.v);
       }
@@ -1002,7 +1004,13 @@ const Sound = (() => {
   }
 
   function setMusicVolume(v) {
-    if (musicBus) musicBus.gain.setTargetAtTime(0.55 * v, ac.currentTime, 0.05);
+    musicVol = v;
+    if (musicBus) musicBus.gain.setTargetAtTime(musicOff ? 0 : 0.55 * v, ac.currentTime, 0.05);
+  }
+
+  function setMusicOff(off) {
+    musicOff = !!off;
+    setMusicVolume(musicVol);
   }
 
   function setMuted(m) {
@@ -1019,6 +1027,8 @@ const Sound = (() => {
     setMusicVolume,
     setMuted,
     isMuted: () => muted,
+    setMusicOff,
+    isMusicOff: () => musicOff,
     currentSong: () => (music ? music.name : null),
   };
 })();
