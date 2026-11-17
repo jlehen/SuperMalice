@@ -603,6 +603,24 @@ const Sound = (() => {
       tone({ type: 'sine', f: 520, f2: 320, d: 0.05, v: 0.035 });
     },
 
+    // ---- Le Phare sur la Falaise ----
+    // un paratonnerre va grésiller : bzz… (u : de 0 à 1, de plus en plus aigu et fort)
+    rodHum(u) {
+      tone({ type: 'sawtooth', f: 110 + 230 * u, f2: 130 + 260 * u, d: 0.09, v: 0.025 + 0.03 * u, vib: 60, vibDepth: 25 });
+      tone({ type: 'square', f: 220 + 460 * u, d: 0.06, v: 0.012 + 0.012 * u });
+    },
+    // la foudre tombe sur sa pointe : crac ! et un grondement
+    rodStrike() {
+      noise({ filter: 'highpass', f: 2500, d: 0.25, v: 0.3 });
+      noise({ filter: 'lowpass', f: 600, f2: 90, d: 0.9, v: 0.35 });
+      tone({ type: 'sawtooth', f: 1600, f2: 120, d: 0.3, v: 0.06, vib: 50, vibDepth: 400 });
+    },
+    // la plaque grésille : krrzz
+    rodCrackle() {
+      noise({ filter: 'bandpass', f: rand(2500, 5000), d: 0.07, v: 0.09, q: 2 });
+      tone({ type: 'sawtooth', f: rand(90, 140), d: 0.08, v: 0.03, vib: 70, vibDepth: 40 });
+    },
+
     // les lucioles se mettent à suivre Malice : des petites clochettes qui scintillent
     fireflies() {
       arp([1568, 2093, 2349, 3136], { type: 'sine', d: 0.22, v: 0.045, gap: 0.08 });

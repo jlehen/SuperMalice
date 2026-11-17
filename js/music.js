@@ -527,6 +527,38 @@ const Music = (() => {
     return S.out({ drumV: 0.6 });
   }
 
+  // 3-4. Le Phare sur la Falaise : la Vallée (do mineur), un peu moins vite ; la mélodie aux cuivres, comme une corne
+  // de brume, et une cloche de bouée qui lui répond en écho (le glockenspiel, tout en haut) ; les arpèges électriques
+  // de l'orage, la basse en pédale, et des cordes en tenue qui roulent comme la mer. Au milieu, la mélodie passe à la
+  // basse, comme dans la Vallée.
+  function stormLighthouse() {
+    const S = new Song({ bpm: 172, mode: MINOR });
+    const ARP = [rep(16, (k) => [k * 0.25, 0.22, 'a' + [0, 1, 2, 3, 2, 1, 2, 3][k % 8]])];
+    const PEDAL = [rep(8, (k) => [k * 0.5, 0.45, k % 2 ? 'O' : 'R'])];
+    const PAD = [[[0, 3.9, 'C']]];
+    const hats = rep(8, (i) => [i * 0.5, 'h', i % 2 ? 0.45 : 0.7]);
+    const D = [[[0, 'k'], [1, 's'], [2, 'k'], [2.5, 'k', 0.6], [3, 's'], ...hats]];
+    const FILL = [[0, 'k'], [1, 's'], [2, 's', 0.7], [2.25, 's', 0.6], [2.5, 't'], [2.75, 't', 0.8], [3, 's'], [3.25, 's', 0.8], [3.5, 's', 0.9], [3.75, 's']];
+    const base = (p) => {
+      p.pattern('arp', 'pluck', 0.05, ARP, { low: 60 });
+      p.pattern('bass', 'synbass', 0.12, PEDAL);
+      p.pattern('pad', 'strings', 0.03, PAD, { low: 55 });
+    };
+    const bell = (p) => p.melody('bell', 'glock', 0.05, { delay: 0.5, oct: 1, top: true });
+    S.part(SECT.I, (p) => { p.melody('lead', 'brass', 0.14); p.pattern('bass', 'synbass', 0.12, PEDAL); p.drums(D, { fill: FILL, crash: true }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.14); bell(p); base(p); p.drums(D, { crash: true }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.14); bell(p); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.B, (p) => { p.melody('lead', 'saw', 0.17); bell(p); base(p); p.drums(D, { crash: true }); });
+    S.part(SECT.B, (p) => {
+      p.melody('bassmel', 'synbass', 0.16, { oct: -2, top: true });
+      p.pattern('arp', 'pluck', 0.05, ARP, { low: 67 });
+      p.pattern('pad', 'strings', 0.04, PAD, { low: 60 });
+      p.drums(D, { fill: FILL, crash: true });
+    });
+    S.part(SECT.C, (p) => { p.melody('lead', 'brass', 0.14); bell(p); base(p); p.drums(D, { fill: FILL, crash: true }); });
+    return S.out({ drumV: 0.55 });
+  }
+
   // 4. Les Pentes du Volcan : valse à 3/4 en mode lydien (fa♯), accordéon, tuba « oum-pa-pa » et glockenspiel.
   function mountain() {
     const S = new Song({ bpm: 172, meter: 3, warp: waltz, mode: LYD, modeChords: false, chordMap: { F: 'D', G7: 'Gmaj7', Bb: 'Bb', Db: 'Db' } });
@@ -765,6 +797,7 @@ const Music = (() => {
     'boss-foret': bossForest(),
     'badge-saut': bossa(),
     storm: storm(),
+    'storm-phare': stormLighthouse(),
     mountain: mountain(),
     'badge-grappin': swingJazz(),
     volcano: volcano(),

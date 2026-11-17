@@ -29,6 +29,9 @@
 // avoir plu [au moins, au plus]. soakTime : combien de temps Malice reste trempée (elle avance moins vite ; depuis la
 // pluie, le temps qu'elle s'ébroue compris : OUCH.shake dure 1,6 s) ;
 // soakSlow : sa vitesse quand elle est trempée (une part de sa vitesse).
+// rodRest : combien de temps un paratonnerre reste tranquille (le Phare sur la Falaise) ; rodWarn : combien de temps ça
+// s'annonce avant qu'il grésille (le petit nuage, les étincelles, le bourdonnement : on a le temps d'en descendre) ;
+// rodZap : combien de temps il grésille (secondes). Toujours au même rythme : on peut le guetter.
 // vineReach : à combien de pixels du milieu de Malice on attrape une liane (le Vieux Chêne).
 // bossK : la vitesse des boss (et de leurs attaques) ; plus petit, ils sont plus lents et attendent plus longtemps.
 // acornHits : combien de gros glands il faut renvoyer sur le nez de Pépé Chêne pour le battre (la dernière manche).
@@ -43,6 +46,7 @@ const DIFFS = {
     frogSee: 4, frogWarn: 1.3, frogAir: 1.6, frogRest: [2.6, 3.4], millTurn: 12,
     floodSpeed: 12, floodWarn: 2.5, floodBack: 4.5, floodPause: 3,
     cloudSpeed: 60, cloudWarn: 1.4, cloudRest: [3.5, 4.5], soakTime: 2.6, soakSlow: 0.75,
+    rodRest: 5, rodWarn: 3, rodZap: 1,
     vineReach: 46,
   },
   gentil: {
@@ -55,6 +59,7 @@ const DIFFS = {
     frogSee: 4.5, frogWarn: 1.05, frogAir: 1.4, frogRest: [2.1, 2.9], millTurn: 11,
     floodSpeed: 18, floodWarn: 2, floodBack: 4, floodPause: 2.5,
     cloudSpeed: 80, cloudWarn: 1.15, cloudRest: [2.8, 3.6], soakTime: 3, soakSlow: 0.7,
+    rodRest: 4.2, rodWarn: 2.5, rodZap: 1.1,
     vineReach: 40,
   },
   classique: {
@@ -67,6 +72,7 @@ const DIFFS = {
     frogSee: 5, frogWarn: 0.85, frogAir: 1.25, frogRest: [1.7, 2.5], millTurn: 10,
     floodSpeed: 24, floodWarn: 1.6, floodBack: 3.5, floodPause: 2,
     cloudSpeed: 100, cloudWarn: 0.95, cloudRest: [2.2, 3], soakTime: 3.4, soakSlow: 0.65,
+    rodRest: 3.5, rodWarn: 2.1, rodZap: 1.2,
     vineReach: 36,
   },
   difficile: {
@@ -79,6 +85,7 @@ const DIFFS = {
     frogSee: 5.5, frogWarn: 0.7, frogAir: 1.1, frogRest: [1.3, 2.1], millTurn: 9,
     floodSpeed: 30, floodWarn: 1.2, floodBack: 3, floodPause: 1.5,
     cloudSpeed: 120, cloudWarn: 0.8, cloudRest: [1.6, 2.4], soakTime: 3.8, soakSlow: 0.6,
+    rodRest: 2.9, rodWarn: 1.7, rodZap: 1.3,
     vineReach: 34,
   },
 };

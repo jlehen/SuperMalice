@@ -39,6 +39,10 @@
 //      rien de solide. La tour descend jusqu'au sol (ou jusqu'en bas, dans un trou)
 //   a  petit nuage grognon (il flotte au-dessus du sol de son étage, sans jamais le quitter : quand Malice y passe,
 //      il la suit, devient tout noir au-dessus d'elle et lui pleut dessus. On saute dedans : pouf, il redevient gentil)
+//   z  paratonnerre : une plaque de métal (une plateforme qu'on traverse par dessous), avec sa pointe au milieu (les z
+//      côte à côte font un seul paratonnerre). De temps en temps, l'orage l'électrise : ça s'annonce (un petit nuage
+//      au-dessus de la pointe, des étincelles, bzz bzz…), puis la plaque grésille : il faut en être descendue avant.
+//      Toujours au même rythme ; numérotés de bas en haut, un sur deux est à contretemps (voir LightningRod)
 //   J  liane : elle pend du haut de la première case J, aussi longue que les J les uns sous les autres (mettre du
 //      bois ou un champignon juste au-dessus). On l'attrape en sautant dessus, on se balance avec ← →, et on saute
 //      pour se lancer (tous les personnages)
@@ -108,6 +112,11 @@
 //             (juste sous l'étage du dessus), où elle s'arrête. vitesse : 1 = la vitesse de la difficulté (floodSpeed).
 //             Les drapeaux sont sur les étages calmes, plus haut que l'arrêt de l'eau d'avant : on y repart avec l'eau
 //             arrêtée en dessous. Si Malice tombe dans l'eau, elle redescend (voir floodBack, floodPause dans DIFFS).
+//  "phare" : { tour, galerie, rocher } (avec "grimpe") : on grimpe autour d'un phare. tour : [première colonne, dernière
+//             colonne] de sa tour, dans le décor (rayée blanc et rouge, du sol jusqu'à sa galerie) ; galerie : la rangée de
+//             sa galerie, tout en haut (la lanterne et sa grande lumière qui tourne sont au-dessus) ; rocher : [première
+//             colonne, dernière colonne] du rocher à côté du phare : passé le rocher, l'écran reste à sa droite.
+//             Sur le sol du départ (P), les drapeaux s'allument comme dans un niveau ordinaire (quand on est passé).
 //  "music" : la musique du niveau, si ce n'est pas celle de son monde (voir SONGS dans music.js).
 //  "sansBadges" : pour les personnages qui n'ont pas les badges (tous sauf Malice) :
 //             "add" : des cases en plus [ligne, colonne, "lettres"] (les anneaux dorés disparaissent),
@@ -707,6 +716,96 @@ const LEVELS = [
       '#############...####################################',
       '#############...####################################',
       '#############...####################################',
+    ],
+  },
+  {
+    world: 3,
+    name: "Le Phare sur la Falaise",
+    theme: "storm",
+    music: "storm-phare",
+    intro: "Grimpe tout en haut du vieux phare !",
+    // il pleut ; on longe la falaise, puis on grimpe autour du vieux phare (voir "grimpe" et "phare"), avec des
+    // paratonnerres (z) qui s'électrisent de temps en temps
+    pluie: true,
+    grimpe: true,
+    // le phare, dans le décor : sa tour (colonnes 60 à 73) et sa galerie (rangée 9 : la lanterne est au-dessus) ;
+    // le rocher (colonnes 50 à 52) : on passe dessous, et passé le rocher, l'écran reste à sa droite
+    phare: { tour: [60, 73], galerie: 9, rocher: [50, 52] },
+    // (le tunnel sous le rocher est une galerie de terre)
+    galeries: true,
+    storms: [[12, 24, 60], [62, 66, 22]],
+    talk: [
+      "Au bout de la falaise, il y a un vieux phare. Il faut grimper tout en haut, jusqu'à sa grande lumière qui tourne\u00a0!",
+      "Voici un paratonnerre\u00a0! De temps en temps, l'orage l'électrise. Quand un petit nuage gronde au-dessus, que ça fait des étincelles et bzz bzz… descends vite, avant que ça grésille\u00a0! Le reste du temps, saute dessus sans crainte.",
+      "Le vieux phare\u00a0! Grimpe de palier en palier. Si un paratonnerre grésille, attends sur une planche\u00a0: il se calme toujours, et toujours au même rythme. Et deux paratonnerres l'un au-dessus de l'autre ne grésillent jamais en même temps\u00a0!",
+      "Ouf, ici c'est calme. Au palier du dessus, un Rubik's cube sous l'orage, un petit nuage grognon, puis le dernier escalier\u00a0! Un secret\u00a0: le bloc magique du Lutin, posé sur un paratonnerre, ne laisse pas passer l'électricité.",
+      "Bravo, tu es tout en haut du vieux phare\u00a0! Regarde sa grande lumière qui tourne… Tu entends\u00a0? Là-haut, dans l'orage, quelqu'un éternue\u00a0!",
+    ],
+    map: [
+      '.............................................................................',
+      '.............................................................................',
+      '.............................................................................',
+      '.............................................................................',
+      '.............................................................................',
+      '.............................................................................',
+      '.............................................................................',
+      '..................................................#..........................',
+      '..................................................#T......!..o.o.o....o.o.G..',
+      '..................................................###-----###################',
+      '..................................................###....o...................',
+      '..................................................###........................',
+      '..................................................###zzz.....................',
+      '..................................................###........................',
+      '..................................................###....o...................',
+      '..................................................###...o--..................',
+      '..................................................###........................',
+      '..................................................###..zzz...................',
+      '..................................................###..a...o.................',
+      '..................................................###......--................',
+      '..................................................###........o.o.o.o.........',
+      '..................................................###........#..R..#..!......',
+      '..................................................#####################-----#',
+      '..................................................###.......................y',
+      '..................................................###........................',
+      '..................................................###....................zzz.',
+      '..................................................###........................',
+      '..................................................###..................o.....',
+      '..................................................###................o.--....',
+      '..................................................###........................',
+      '..................................................###...............zzz......',
+      '..................................................###........BKB.o...........',
+      '..................................................###............--..........',
+      '..................................................###........................',
+      '..................................................###.....!.T..o.o.o.........',
+      '..................................................###-----###################',
+      '..................................................###y.......................',
+      '..................................................###........................',
+      '..................................................###.zzz....................',
+      '..................................................###.....o..................',
+      '..................................................###........................',
+      '.................................................####..zzz...................',
+      '.................................................####...a.....BFB............',
+      '.................................................####......o.................',
+      '.................................................####......--................',
+      '.................................................####.......oo.o..o..........',
+      '.................................................####....oo.#..R..#..!.......',
+      '.................................................#####################-----##',
+      '.................................................####......................y.',
+      '.................................................####........................',
+      '.................................................####...................zzz..',
+      '......................................BCB......######........................',
+      '...............................................######.................o......',
+      '...............................................######..............o..--.....',
+      '...................................oyo...o.....######........................',
+      '..................................#########....######.............zzz........',
+      '.........BLB......................#########....######.........o..............',
+      '................o.o...............#########....######.........--.............',
+      '.............o.......o..........zz#########..................................',
+      '..P..T.ooo...#....R..#....!.T.....#########.of...o.o...!.T.ooo...............',
+      '#############################################################################',
+      '#############################################################################',
+      '#############################################################################',
+      '#############################################################################',
     ],
   },
   {

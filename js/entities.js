@@ -687,8 +687,9 @@ class Player {
     const c = Math.floor(this.cx / TILE);
     const r = Math.floor((this.y + this.h + 2) / TILE);
     const ch = w.tileAt(c, r);
-    // (pas sur un bloc magique du Lutin ni sur un bloc lutin : ils disparaissent, ou sont perchés au-dessus de l'eau)
-    if ((isSolidCh(ch) || isLedgeCh(ch)) && ch !== 'u' && !LUTIN_BLOCKS.includes(ch)) this.safe = { x: (c + 0.5) * TILE, y: r * TILE, pad: null };
+    // (pas sur un bloc magique du Lutin ni sur un bloc lutin : ils disparaissent, ou sont perchés au-dessus de l'eau ;
+    // ni sur un paratonnerre, qui grésille de temps en temps)
+    if ((isSolidCh(ch) || isLedgeCh(ch)) && ch !== 'u' && ch !== 'z' && !LUTIN_BLOCKS.includes(ch)) this.safe = { x: (c + 0.5) * TILE, y: r * TILE, pad: null };
   }
 
   safeSpot() {
@@ -4265,9 +4266,10 @@ class GrumpyCloud extends Enemy {
     const c0 = Math.floor(this.home / TILE);
     const r0 = Math.floor(this.hover / TILE);
     const r1 = Math.floor((this.hover + this.h) / TILE);
+    // (un paratonnerre là où il flotte l'arrête aussi : il ne passe pas à travers sa plaque)
     const ok = (c) => {
       if (!isSolidCh(w.tileAt(c, r)) || isSolidCh(w.tileAt(c, r - 1))) return false;
-      for (let k = r0; k <= r1; k++) if (isSolidCh(w.tileAt(c, k))) return false;
+      for (let k = r0; k <= r1; k++) if (isSolidCh(w.tileAt(c, k)) || w.tileAt(c, k) === 'z') return false;
       return true;
     };
     let a = c0;
@@ -4522,6 +4524,233 @@ class GrumpyCloud extends Enemy {
     if (this.state === 'brew' || this.state === 'rain') {
       Art.cloudRain(ctx, this.cx, this.y + this.h - 8, bottom, this.t, CLOUD.rainW, this.state === 'rain' ? 1 : 0.2 * k);
     }
+  }
+}
+
+// Paratonnerre (le Phare sur la Falaise) : une plaque de métal (z : une plateforme qu'on traverse par dessous, comme
+// une planche), avec sa pointe au milieu. De temps en temps, l'orage l'électrise. D'abord, ça s'annonce (rodWarn
+// secondes) : un petit nuage en chocolat se forme au-dessus de la pointe et grossit en grondant, des étincelles
+// sautent sur la pointe, puis sur la plaque, qui devient de plus en plus jaune, et un bourdonnement monte, de plus en
+// plus vite (bzz… bzz… bzzbzzbzz), avec un « ! » qui clignote. Puis la foudre tombe sur la pointe, et la plaque
+// grésille (rodZap secondes) : tout ce qui est dessus est électrocuté (Malice : OUCH.zap, comme avec les éclairs au
+// chocolat ; les ennemis s'envolent). Il faut en descendre avant ! Le reste du temps (rodRest), on y est tranquille.
+// Le bloc magique du Lutin, posé dessus, ne laisse pas passer l'électricité : debout sur le bloc, on est à l'abri.
+// Chacun suit toujours le même rythme (on peut le guetter) ; numérotés de bas en haut, un sur deux est à contretemps :
+// deux paratonnerres qui se suivent dans un escalier ne grésillent jamais en même temps.
+// (w.diff : rodRest, rodWarn, rodZap, voir DIFFS dans game.js)
+// ROD : tip (la hauteur de la pointe au-dessus de la plaque), cloud (celle du petit nuage), top / deep (la zone qui
+// grésille, au-dessus et en dessous du dessus de la plaque : il suffit de sauter pour ne plus la toucher), hear (à
+// combien de cases de Malice on l'entend bourdonner), fly (électrocutée, elle est projetée vers le haut à cette
+// vitesse, et de côté assez fort pour retomber à côté de la plaque : voir eject), rise (en montant plus vite que ça,
+// on ne touche pas la plaque : voir touches).
+const ROD = { tip: 66, cloud: 142, top: 14, deep: 9, hear: 6, fly: 520, rise: -60 };
+
+class LightningRod {
+  // la plaque : les colonnes c0 à c1 de la rangée r ; k : son numéro, de bas en haut
+  constructor(world, c0, c1, r, k) {
+    this.world = world;
+    this.c0 = c0;
+    this.c1 = c1;
+    this.x = c0 * TILE;
+    this.w = (c1 - c0 + 1) * TILE;
+    this.y = r * TILE;
+    this.h = 16;
+    this.mx = this.x + this.w / 2;
+    this.k = k;
+    // électrocutée, Malice est projetée loin d'un mur collé à la plaque (sinon, elle retomberait dessus) ; sinon, du
+    // côté où elle retombe le plus haut (sur une planche, plutôt que tout en bas : voir landing) ; sinon, vers le bord
+    // le plus proche (exit = 0)
+    const wallR = isSolidCh(world.tileAt(c1 + 1, r - 1));
+    const wallL = isSolidCh(world.tileAt(c0 - 1, r - 1));
+    if (wallR || wallL) this.exit = wallR ? -1 : 1;
+    else {
+      const dl = this.landing(-1);
+      const dr = this.landing(1);
+      this.exit = dl < dr ? -1 : dr < dl ? 1 : 0;
+    }
+    this.state = 'rest';
+    this.u = 0;
+    this.humT = 0;
+    this.crackT = 0;
+    this.seed = hash(c0 * 7.7 + r * 3.1) * 100;
+    // sous un palier (ou une planche), le petit nuage et la foudre sont cachés au-dessus : on ne les dessine que
+    // sous lui (ceil : le bas de ce qui est au-dessus, à 4 rangées au plus) ; et si le petit nuage est plus haut que
+    // ce bas, on ne le dessine pas du tout (coupé, ce serait une tache brune collée dessous : on ne voit que la
+    // lueur et la foudre qui sortent de dessous)
+    this.ceil = null;
+    for (let k = r - 1; k >= r - 4 && this.ceil === null; k--) {
+      for (let c = c0; c <= c1; c++) {
+        const ch = world.tileAt(c, k);
+        if (isSolidCh(ch) || isLedgeCh(ch)) this.ceil = (k + 1) * TILE;
+      }
+    }
+    this.cloud = this.ceil === null || this.y - this.ceil >= ROD.cloud;
+    this.update(0);
+  }
+
+  // où il en est : 'rest' (tranquille), 'warn' (ça s'annonce), 'zap' (ça grésille) ; u : de 0 à 1 dans cet état
+  phase() {
+    const D = this.world.diff;
+    const period = D.rodRest + D.rodWarn + D.rodZap;
+    const ph = (this.world.t + (this.k % 2) * period / 2) % period;
+    if (ph < D.rodRest) return ['rest', ph / D.rodRest];
+    if (ph < D.rodRest + D.rodWarn) return ['warn', (ph - D.rodRest) / D.rodWarn];
+    return ['zap', (ph - D.rodRest - D.rodWarn) / D.rodZap];
+  }
+
+  // la zone qui grésille (seulement quand ça grésille) : juste au-dessus de la plaque
+  box() {
+    if (this.state !== 'zap') return null;
+    return { x: this.x + 4, y: this.y - ROD.top, w: this.w - 8, h: ROD.top + ROD.deep };
+  }
+
+  // Malice a les pieds dessus pendant que ça grésille ? (pas en sautant : en montant, elle traverse la plaque par
+  // dessous sans la toucher, comme une planche, et un saut suffit pour en descendre ; seulement debout dessus, ou
+  // en retombant dessus)
+  touches(p, pb) {
+    const b = this.box();
+    if (!b || p.vy < ROD.rise) return false;
+    const feet = p.y + p.h;
+    return pb.x < b.x + b.w && pb.x + pb.w > b.x && feet >= b.y && feet <= b.y + b.h;
+  }
+
+  // électrocutée, de quel côté elle est projetée (-1 : à gauche ; 1 : à droite ; voir exit)
+  side(p) {
+    return this.exit || Math.sign(p.cx - this.mx) || 1;
+  }
+
+  // où elle retomberait, projetée du côté d (le haut de ce qui est sous la case juste à côté de la plaque)
+  landing(d) {
+    return this.world.surfaceBelow(d > 0 ? this.x + this.w + TILE / 2 : this.x - TILE / 2, this.y);
+  }
+
+  // électrocutée : d'où vient le coup (elle est projetée de l'autre côté, voir side)
+  pushFrom(p) {
+    return { x: p.cx - this.side(p) * 10, w: 0 };
+  }
+
+  // Électrocutée (après son petit moment figée) : elle est projetée assez fort pour retomber à côté de la plaque,
+  // pas dessus (ROD.fly : la vitesse vers le haut ; la vitesse de côté dépend d'où elle est sur la plaque).
+  eject(p) {
+    const d = this.side(p);
+    const edge = d > 0 ? this.x + this.w : this.x;
+    const dist = Math.max(0, (edge - p.cx) * d + p.w / 2 + 12);
+    const vx = d * Math.max(OUCH.zap.vx, (dist + 90) / 0.45);
+    if (p.stunT > 0) {
+      p.stunVx = vx;
+      p.stunVy = -ROD.fly;
+    } else {
+      p.vx = vx;
+      p.vy = -ROD.fly;
+    }
+  }
+
+  // Malice l'entend (il est à l'écran, et pas trop loin d'elle) ?
+  heard() {
+    const w = this.world;
+    const p = w.player;
+    return w.onScreen(this, 0) && Math.abs(p.cx - this.mx) < ROD.hear * TILE && Math.abs(p.y + p.h - this.y) < ROD.hear * TILE;
+  }
+
+  update(dt) {
+    const w = this.world;
+    const prev = this.state;
+    [this.state, this.u] = this.phase();
+    if (!dt) return;
+    const seen = w.onScreen({ x: this.x, y: this.y - ROD.cloud - 40, w: this.w, h: ROD.cloud + 60 }, 40);
+    if (this.state === 'warn') {
+      // bzz… bzz… bzzbzzbzz : de plus en plus vite, de plus en plus aigu
+      this.humT -= dt;
+      if (this.humT <= 0) {
+        this.humT = lerp(0.45, 0.11, this.u);
+        if (this.heard()) Sound.sfx.rodHum(this.u);
+      }
+      if (seen) {
+        // des étincelles sur la pointe (de plus en plus), puis sur la plaque
+        if (Math.random() < dt * (4 + 22 * this.u)) {
+          w.spawn({ type: 'spark', x: this.mx + rand(-4, 4), y: this.y - ROD.tip, vx: rand(-110, 110), vy: rand(-120, 40), life: 0.3, size: rand(2.5, 4.5), color: choose(['#fff59a', '#bff0ff']) });
+        }
+        if (this.u > 0.45 && Math.random() < dt * 16 * this.u) {
+          w.spawn({ type: 'spark', x: rand(this.x + 6, this.x + this.w - 6), y: this.y, vx: rand(-60, 60), vy: rand(-140, -40), life: 0.25, size: rand(2, 3.5), color: choose(['#fff59a', '#bff0ff']) });
+        }
+      }
+    } else {
+      this.humT = 0;
+    }
+    if (this.state === 'zap') {
+      if (prev !== 'zap') this.strike(seen);
+      // ça grésille : tout ce qui est posé dessus s'envole (les ennemis aussi)
+      const b = this.box();
+      for (const e of w.enemies) {
+        if (!e.dying && !e.dead && !e.boss && !(e instanceof Boss) && e.onGround && boxOverlap(e, b.x, b.y, b.w, b.h)) e.kill('zap');
+      }
+      this.crackT -= dt;
+      if (this.crackT <= 0) {
+        this.crackT = 0.16;
+        if (this.heard()) Sound.sfx.rodCrackle();
+      }
+      if (seen && Math.random() < dt * 30) {
+        w.spawn({ type: 'spark', x: rand(this.x + 4, this.x + this.w - 4), y: this.y - 2, vx: rand(-120, 120), vy: rand(-220, -60), g: 500, life: 0.35, size: rand(3, 5), color: choose(['#fff59a', '#ffffff', '#9fe6ff']) });
+      }
+    }
+  }
+
+  // la foudre tombe sur la pointe
+  strike(seen) {
+    const w = this.world;
+    this.crackT = 0.16;
+    if (!seen) return;
+    if (this.heard()) {
+      Sound.sfx.rodStrike();
+      w.shake(3);
+    }
+    for (let i = 0; i < 12; i++) {
+      w.spawn({ type: 'spark', x: this.mx, y: this.y - ROD.tip, vx: rand(-240, 240), vy: rand(-240, 80), g: 500, life: 0.45, size: rand(3, 6), color: choose(['#fff59a', '#ffffff', '#9fe6ff']) });
+    }
+  }
+
+  draw(ctx) {
+    const w = this.world;
+    if (!w.onScreen({ x: this.x, y: this.y - ROD.cloud - 40, w: this.w, h: ROD.cloud + 70 }, 40)) return;
+    Scenery.lightningRod(ctx, this.x, this.y, this.w, this.state, this.u, w.t, this.seed, w.diff.rodZap);
+  }
+
+  // le petit nuage et la foudre (derrière les cases : sous un palier, on ne voit que le bas de la foudre)
+  drawSky(ctx) {
+    if (this.state === 'rest') return;
+    const w = this.world;
+    if (!w.onScreen({ x: this.x, y: this.y - ROD.cloud - 40, w: this.w, h: ROD.cloud + 70 }, 40)) return;
+    if (this.ceil !== null) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(this.x - 120, this.ceil, this.w + 240, this.y - this.ceil);
+      ctx.clip();
+    }
+    Scenery.lightningRodSky(ctx, this.x, this.y, this.w, this.state, this.u, w.t, this.seed, this.cloud);
+    if (this.ceil !== null) ctx.restore();
+  }
+
+  // le « ! » qui clignote pendant que ça s'annonce (par-dessus Malice, pour qu'on le voie bien ; juste au-dessus de la
+  // pointe : sous un palier, il reste sous le palier)
+  drawWarning(ctx) {
+    if (this.state !== 'warn' || Math.floor(this.world.t * (4 + 6 * this.u)) % 2) return;
+    const x = this.mx;
+    const y = this.y - 82;
+    ctx.fillStyle = '#ffe94a';
+    ctx.strokeStyle = '#7a2a00';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 16);
+    ctx.lineTo(x + 15, y + 11);
+    ctx.lineTo(x - 15, y + 11);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fill();
+    ctx.fillStyle = '#7a2a00';
+    ctx.font = '700 17px Fredoka, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('!', x, y + 3);
   }
 }
 
@@ -5293,10 +5522,12 @@ class Checkpoint {
 
   // Malice est passée par là : plus à droite que lui, à peu près à sa hauteur ; dans un niveau où l'on grimpe
   // ("grimpe"), dès qu'elle est debout sur son étage (n'importe où : on arrive souvent par l'autre bout), en le
-  // touchant, ou si elle est déjà plus haut que son étage (elle est passée à côté).
+  // touchant, ou si elle est déjà plus haut que son étage (elle est passée à côté). Mais sur le sol du départ (la
+  // falaise du Phare), on marche comme dans un niveau ordinaire : seulement quand elle est passée.
   reached(p) {
     const feet = p.y + p.h;
-    if (this.world.def.grimpe) {
+    const w = this.world;
+    if (w.def.grimpe && Math.abs(this.y - w.startFloor) > TILE / 2) {
       return (p.onGround && Math.abs(feet - this.y) < 50) ||
         (Math.abs(p.cx - this.x) < 70 && Math.abs(feet - this.y) < 90) || feet < this.y - 300;
     }

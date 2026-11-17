@@ -234,6 +234,27 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      Rubik's cubes et les grenouilles sauteuses. En Bébé, l'eau monte moins vite, bouillonne plus longtemps avant de
      monter, redescend plus bas après un plouf, et les petits nuages sont plus lents, se fâchent plus longtemps et
      mouillent moins longtemps ; en Difficile, c'est le contraire.
+   - 3-4 **Le Phare sur la Falaise** : sous la tempête, on longe la falaise au bord de la mer (un orage, un Rubik's
+     cube, une grenouille, un grand rocher ; tout au bout, on voit le phare au loin, avec sa lumière qui tourne), on
+     passe par un tunnel sous le rocher… et on arrive au pied du **vieux
+     phare**, rayé blanc et rouge. On grimpe autour de lui, de palier en palier (trois paliers de pierre, puis la
+     galerie tout en haut), par des escaliers de vieilles planches et de **paratonnerres** (l'idée d'Alice) : des
+     plaques de métal avec leur pointe, que l'orage **électrise de temps en temps**. Ça s'annonce longtemps : un petit
+     nuage en chocolat se forme au-dessus de la pointe et gronde en grossissant, des étincelles sautent sur la pointe
+     puis sur la plaque, qui devient de plus en plus jaune en clignotant, un « ! » clignote, et un bourdonnement monte
+     (bzz… bzz… bzzbzzbzz) ; puis la foudre tombe sur la pointe, et la plaque **grésille** : il faut en être descendue
+     avant (sauter suffit : ça ne grésille que tout contre la plaque). Électrocutée, Malice est figée (on voit son
+     squelette, comme avec les éclairs au chocolat), puis projetée à côté de la plaque. Chaque paratonnerre garde
+     toujours le même rythme (on peut le guetter depuis la planche d'en dessous), et deux paratonnerres qui se
+     suivent dans un escalier ne grésillent jamais en même temps. Les ennemis posés dessus s'envolent aussi. Debout
+     sur le **bloc magique du Lutin** posé sur un paratonnerre, on est à l'abri : il ne laisse pas passer
+     l'électricité. Sur les paliers : un petit nuage grognon et un Rubik's cube, puis, tout en haut, un Rubik's cube
+     sous l'orage et un dernier petit nuage avant le dernier escalier. Tout en haut,
+     sous la lanterne, la **grande lumière du phare tourne** : ses deux faisceaux balaient le ciel, et quand l'un
+     d'eux passe vers nous, il éclaire tout le fond (seulement le fond : ce qui est devant, et surtout les dangers, se
+     voit toujours aussi bien). La galerie, sous la lanterne, est l'arène de Bourrasque (le boss du monde, bientôt).
+     En Bébé, les paratonnerres s'annoncent bien plus longtemps (3 s), grésillent moins longtemps et restent
+     tranquilles plus longtemps ; en Difficile, c'est le contraire.
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    (aucune coccinelle ne tire quand Malice est au-dessus de la lave, même debout sur une planche : elles attendent qu'elle soit
    retombée sur le sol)
@@ -355,7 +376,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 |---|---|
 | Ronces au sol | ça pique les fesses ! Elle s'envole en se tenant les fesses toutes rouges |
 | Ronces qui pendent | une grosse bosse soulève sa casquette (avec les épines plantées dedans) |
-| Éclairs au chocolat | électrocutée : figée, on voit son squelette, puis les cheveux en pétard qui fument |
+| Éclairs au chocolat, paratonnerre qui grésille | électrocutée : figée, on voit son squelette, puis les cheveux en pétard qui fument (le paratonnerre la projette à côté de sa plaque) |
 | Boulets des coccinelles | K.O. une demi-seconde : la langue qui pend, les yeux mi-clos, des étoiles autour de la tête |
 | Gros œil | hypnotisée : yeux en spirale, elle avance les bras tendus comme une somnambule |
 | Rubik's cube | toutes ses couleurs sont mélangées, puis reviennent une par une (clic, clic…) |
@@ -432,13 +453,15 @@ Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) 
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
 `O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `f` = grenouille sauteuse,
-`x` = l'axe des ailes d'un moulin à vent (tout autour, rien de solide), `a` = petit nuage grognon, `i` = lucioles, `j` = fleur-lanterne,
+`x` = l'axe des ailes d'un moulin à vent (tout autour, rien de solide), `a` = petit nuage grognon,
+`z` = paratonnerre (une plaque de métal qu'on traverse par dessous, et qui grésille de temps en temps), `i` = lucioles, `j` = fleur-lanterne,
 `J` = liane, `q` = écureuil, `k` = nid, `p` = le nid secret de l'oisillon qui donne une vie…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
 par la lune : `clairDeLune`), monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne),
 se passer sous la pluie (`pluie`, comme le Moulin à Vent), avoir une rivière qui déborde et dont l'eau monte pendant
 qu'on grimpe (`crue`, avec `grimpe` : voir la Crue ; ses orages peuvent n'être que sur un étage, `storms: [[début,
-fin, rangée]]`), ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
+fin, rangée]]`), grimper autour d'un phare (`phare`, avec `grimpe` : voir le Phare sur la Falaise ; la tour et sa
+lanterne sont dans le décor), ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
 Défi du Super Saut, dont le décor `sousbois` a des branches `=` sur les troncs `|`, et des feuillages de décor d'où
 pendent les lianes : `feuillage`).
 Il suffit de modifier les lettres et de recharger la page.
@@ -506,6 +529,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Le combat contre Pépé Chêne et Ronchon | une marche grognonne sur la pointe des pieds, comme celle du vieux roi de la montagne : do mineur en 4/4 bien carré, la mélodie au basson tout en staccato doublée aux pizzicati, le tuba et les timbales qui marquent le pas, des wood-blocks comme des glands qui tombent ; au refrain, les cordes et les cuivres s'emportent |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
   | La Vallée des Orages (la Vallée des Orages, le Moulin à Vent, la Crue) | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
+  | Le Phare sur la Falaise | la même, un peu moins vite : la mélodie aux cuivres comme une corne de brume, une cloche de bouée qui répond en écho (glockenspiel), des cordes en tenue qui roulent comme la mer |
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |

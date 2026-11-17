@@ -97,6 +97,15 @@ const Scenery = (() => {
       plat: '#f4ecff', platDark: '#b9a8e0', platLight: '#ffffff', cloud: true,
       bramble: '#5a2a7a', brambleDark: '#22102e', thorn: '#ffffff',
     },
+    // autour du Phare sur la Falaise : les paliers et la galerie sont de grosses pierres taillées (masonry : voir
+    // drawMasonry), et les plateformes (-) de vieilles planches de bois
+    phare: {
+      dirt: '#aaa3c6', dirtDark: '#77708f', dirtLight: '#cfc9e4', stripe: 'rgba(50,30,80,0.18)',
+      top: '#ddd8ee', topDark: '#a59cc4', topLight: '#f6f3ff', blades: false, masonry: true,
+      brick: '#9d93c6', brickDark: '#655b92', brickLight: '#cfc7f0',
+      plat: '#b58552', platDark: '#6e4a2a', platLight: '#e0b27c',
+      bramble: '#5a2a7a', brambleDark: '#22102e', thorn: '#ffffff',
+    },
     mountain: {
       dirt: '#8a7470', dirtDark: '#5f4c49', dirtLight: '#a8918c', stripe: 'rgba(50,30,30,0.2)',
       top: '#b8c255', topDark: '#83902f', topLight: '#e2ea8f', blades: true,
@@ -204,9 +213,10 @@ const Scenery = (() => {
       g.fillRect(0, 0, T, T);
     }
     if (th.bark) drawBark(g, false);
+    if (th.masonry) drawMasonry(g, th, m, v);
     // strates
     g.fillStyle = th.stripe;
-    for (const sy of th.fluffy || th.bark ? [] : [12, 36]) {
+    for (const sy of th.fluffy || th.bark || th.masonry ? [] : [12, 36]) {
       g.beginPath();
       g.moveTo(0, sy);
       for (let x = 0; x <= T; x += 8) g.lineTo(x, sy + Math.sin((x / T) * TAU) * 2.5);
@@ -242,7 +252,7 @@ const Scenery = (() => {
       }
     }
     // cailloux
-    for (let i = 0; i < (th.fluffy || th.biscuit || th.bark ? 0 : 3); i++) {
+    for (let i = 0; i < (th.fluffy || th.biscuit || th.bark || th.masonry ? 0 : 3); i++) {
       const px = 7 + hash(v * 5.3 + i) * 34;
       const py = (m.t ? 20 : 6) + hash(v * 9.7 + i * 2) * (m.t ? 22 : 36);
       const r = 2.5 + hash(v * 3.1 + i * 5) * 3;
@@ -279,10 +289,48 @@ const Scenery = (() => {
     g.restore();
   }
 
+  // De grosses pierres taillées (le Phare sur la Falaise) : deux rangées par case, décalées d'une demi-case (les joints
+  // se raccordent d'une case à l'autre), chaque pierre un peu différente.
+  function drawMasonry(g, th, m, v) {
+    const T = TILE;
+    for (let row = 0; row < 2; row++) {
+      const y0 = row * 24;
+      for (let k = -1; k <= 1; k++) {
+        const x0 = (row ? T / 2 : 0) + k * T;
+        const xa = Math.max(0, x0 + 1);
+        const xb = Math.min(T, x0 + T - 1);
+        if (xb - xa < 2) continue;
+        const n = hash(v * 3.7 + row * 5.1 + k * 1.3);
+        g.fillStyle = n < 0.33 ? th.dirtLight : n < 0.66 ? th.dirt : Art.mixColor(th.dirt, th.dirtDark, 0.35);
+        g.fillRect(xa, y0 + 1, xb - xa, 22);
+        g.fillStyle = 'rgba(255,255,255,0.28)';
+        if (x0 + 1 >= 0) g.fillRect(xa, y0 + 1, 3, 22);
+        g.fillRect(xa, y0 + 1, xb - xa, 3);
+        g.fillStyle = 'rgba(40,20,70,0.22)';
+        g.fillRect(xa, y0 + 20, xb - xa, 3);
+      }
+      g.fillStyle = th.dirtDark;
+      g.fillRect(0, y0 + 23, T, 2);
+      for (const jx of row ? [T / 2] : [0]) g.fillRect(jx - 1, y0, 2, 24);
+    }
+  }
+
   function drawTopCap(g, th, m, v) {
     const T = TILE;
     const lipL = m.l ? -3 : 0;
     const lipR = m.r ? T + 3 : T;
+    if (th.masonry) {
+      // une dalle de pierre bien plate, qui dépasse un peu
+      g.fillStyle = th.topDark;
+      cornerRect(g, lipL, -3, lipR - lipL, 13, m.l ? 4 : 0, m.r ? 4 : 0, m.r ? 3 : 0, m.l ? 3 : 0);
+      g.fill();
+      g.fillStyle = th.top;
+      cornerRect(g, lipL, -3, lipR - lipL, 9, m.l ? 4 : 0, m.r ? 4 : 0, 0, 0);
+      g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.55)';
+      g.fillRect(lipL + 3, -2, lipR - lipL - 6, 2);
+      return;
+    }
     if (th.crust) {
       g.fillStyle = th.topDark;
       cornerRect(g, lipL, -2, lipR - lipL, 13, m.l ? 7 : 0, m.r ? 7 : 0, m.r ? 5 : 0, m.l ? 5 : 0);
@@ -2345,6 +2393,555 @@ const Scenery = (() => {
     ctx.restore();
   }
 
+  // ---------- Le Phare sur la Falaise ----------
+  // Un paratonnerre : sa plaque de métal (x, y : le haut de la plaque ; w : sa largeur), sa pointe au milieu, et
+  // l'orage qui l'électrise. state : 'rest' (tranquille), 'warn' (ça s'annonce : le petit nuage grossit au-dessus,
+  // la plaque jaunit en clignotant de plus en plus vite), 'zap' (la foudre tombe sur la pointe, et la plaque grésille) ;
+  // u : de 0 à 1 dans cet état.
+  // Le ciel au-dessus d'un paratonnerre (dessiné derrière les cases : sous un palier, le palier le cache) : le petit
+  // nuage en chocolat qui se forme et gronde quand ça s'annonce, et la foudre qui tombe sur la pointe (cloud : false
+  // pour ne pas dessiner le petit nuage, caché par ce qui est au-dessus).
+  function lightningRodSky(ctx, x, y, w, state, u, t, seed, cloud) {
+    if (state === 'rest') return;
+    const mx = x + w / 2;
+    const tipY = y - 66;
+    const k = state === 'warn' ? u : 1;
+    const cy = y - 142;
+    ctx.save();
+    ctx.globalAlpha = state === 'zap' ? Math.min(1, (1 - u) * 3) : Math.min(1, u * 5);
+    const glow = ctx.createRadialGradient(mx, cy, 4, mx, cy, 44 + 44 * k);
+    glow.addColorStop(0, `rgba(255,240,120,${0.3 + 0.45 * k})`);
+    glow.addColorStop(1, 'rgba(255,240,120,0)');
+    ctx.fillStyle = glow;
+    circlePath(ctx, mx, cy, 44 + 44 * k);
+    ctx.fill();
+    const sh = state === 'warn' ? Math.sin(t * 40) * 2.5 * k : 0;
+    if (cloud) fluffyCloud(ctx, mx + sh, cy, 0.36 + 0.34 * k, '#8a5638', '#4a2818');
+    ctx.restore();
+    if (state === 'zap' && u < 0.35) bolt(ctx, mx, cy + 16, tipY - 4, seed + Math.floor(t * 30), 1 - u / 0.35);
+  }
+
+  function lightningRod(ctx, x, y, w, state, u, t, seed) {
+    const mx = x + w / 2;
+    const tipY = y - 66;
+    const hot = state === 'zap' ? 1 : state === 'warn' ? u * (0.6 + 0.4 * Math.sin(t * (7 + 24 * u))) : 0;
+    // quand ça s'annonce, toute la plaque luit de plus en plus (en clignotant)
+    if (hot > 0.05) {
+      const pg = ctx.createLinearGradient(0, y - 26, 0, y + 30);
+      pg.addColorStop(0, 'rgba(255,240,120,0)');
+      pg.addColorStop(0.55, `rgba(255,240,120,${0.5 * hot})`);
+      pg.addColorStop(1, 'rgba(255,240,120,0)');
+      ctx.fillStyle = pg;
+      ctx.fillRect(x - 10, y - 26, w + 20, 56);
+    }
+    // la pointe : une tige en cuivre, deux bagues en verre, une boule et une pointe
+    const metal = Art.mixColor('#c98a3a', '#fff6a0', hot);
+    if (hot > 0.05) {
+      const gl = ctx.createRadialGradient(mx, tipY, 2, mx, tipY, 14 + 22 * hot);
+      gl.addColorStop(0, `rgba(255,250,190,${0.8 * hot})`);
+      gl.addColorStop(1, 'rgba(255,250,190,0)');
+      ctx.fillStyle = gl;
+      circlePath(ctx, mx, tipY, 14 + 22 * hot);
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#6a4220';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(mx, y);
+    ctx.lineTo(mx, tipY + 10);
+    ctx.stroke();
+    ctx.strokeStyle = metal;
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+    for (const by of [y - 16, y - 30]) {
+      ctx.fillStyle = '#5fb8a8';
+      ellipsePath(ctx, mx, by, 7, 3.2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(220,255,250,0.8)';
+      ellipsePath(ctx, mx - 2, by - 1, 3, 1.2);
+      ctx.fill();
+    }
+    ctx.fillStyle = metal;
+    ctx.strokeStyle = '#6a4220';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(mx - 3, tipY + 6);
+    ctx.lineTo(mx, tipY - 6);
+    ctx.lineTo(mx + 3, tipY + 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    circlePath(ctx, mx, tipY + 9, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    circlePath(ctx, mx - 1.5, tipY + 7.5, 1.6);
+    ctx.fill();
+    // la plaque : du métal riveté, avec deux petits boulons dessous
+    const steel = Art.mixColor('#8d97b8', '#ffe45a', hot);
+    const steelD = Art.mixColor('#4f5878', '#d08a1a', hot);
+    const steelL = Art.mixColor('#d4dbf0', '#fffbd0', hot);
+    ctx.fillStyle = steelD;
+    for (const bx of [x + 14, x + w - 14]) {
+      roundRectPath(ctx, bx - 5, y + 12, 10, 10, 3);
+      ctx.fill();
+    }
+    const gr = ctx.createLinearGradient(0, y, 0, y + 16);
+    gr.addColorStop(0, steelL);
+    gr.addColorStop(0.35, steel);
+    gr.addColorStop(1, steelD);
+    ctx.fillStyle = gr;
+    roundRectPath(ctx, x + 1, y, w - 2, 16, 5);
+    ctx.fill();
+    ctx.save();
+    roundRectPath(ctx, x + 1, y, w - 2, 16, 5);
+    ctx.clip();
+    ctx.strokeStyle = `rgba(40,40,70,${0.25 - 0.1 * hot})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let sx = x - 10; sx < x + w + 10; sx += 10) {
+      ctx.moveTo(sx, y + 16);
+      ctx.lineTo(sx + 10, y + 4);
+    }
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = steelD;
+    for (let rx = x + 10; rx < x + w - 4; rx += 24) {
+      circlePath(ctx, rx, y + 8, 2.2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    roundRectPath(ctx, x + 6, y + 1.5, w - 12, 2.5, 1.2);
+    ctx.fill();
+    if (state === 'warn' && u > 0.55) {
+      // les premiers petits arcs qui courent sur la plaque
+      rodArcs(ctx, x, w, y, seed + Math.floor(t * 16), (u - 0.55) / 0.45 * 0.6, 7);
+    }
+    if (state === 'zap') {
+      // la plaque grésille (la foudre, elle, est dessinée avec le ciel : voir lightningRodSky)
+      const a = Math.min(1, (1 - u) * 6);
+      const gl = ctx.createLinearGradient(0, y - 30, 0, y + 16);
+      gl.addColorStop(0, 'rgba(255,250,170,0)');
+      gl.addColorStop(1, `rgba(255,250,170,${0.55 * a})`);
+      ctx.fillStyle = gl;
+      ctx.fillRect(x, y - 30, w, 46);
+      rodArcs(ctx, x, w, y, seed + Math.floor(t * 24), a, 15);
+      Art.sparks(ctx, mx, tipY + 4, 26, seed + Math.floor(t * 20), a);
+    }
+  }
+
+  // De petits arcs électriques qui courent sur la plaque (k : leur force, h : jusqu'où ils sautent au-dessus).
+  function rodArcs(ctx, x, w, y, seed, k, h) {
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    const n = Math.max(2, Math.round(w / 40));
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.strokeStyle = pass === 0 ? `rgba(120,210,255,${0.55 * k})` : `rgba(255,255,240,${k})`;
+      ctx.lineWidth = pass === 0 ? 5 : 1.8;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const xa = x + 6 + hash(seed + i * 3.3) * (w - 30);
+        const len = 18 + hash(seed * 1.7 + i) * 26;
+        ctx.moveTo(xa, y + 1);
+        for (let j = 1; j <= 5; j++) {
+          ctx.lineTo(Math.min(x + w - 4, xa + len * j / 5), y + 1 - hash(seed * 2.3 + i * 5 + j) * h * (j < 5 ? 1 : 0.2));
+        }
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Un éclair en zigzag, de (x, y0) jusqu'à (x, y1) (k : sa force, de 0 à 1).
+  function bolt(ctx, x, y0, y1, seed, k) {
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    const pts = [];
+    const n = 7;
+    for (let i = 0; i <= n; i++) {
+      const j = i === 0 || i === n ? 0 : (hash(seed + i * 4.1) - 0.5) * 26;
+      pts.push([x + j, y0 + (y1 - y0) * i / n]);
+    }
+    for (const [col, lw] of [[`rgba(255,230,90,${0.5 * k})`, 12], [`rgba(255,250,200,${0.9 * k})`, 5], [`rgba(255,255,255,${k})`, 2]]) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // La tour du phare (rayée blanc et rouge, en grosses pierres) : un morceau de LH_BAND de haut, dessiné une fois,
+  // qu'on répète du haut en bas. Elle est ronde : les rayures et les joints s'arrondissent vers le bas sur les bords
+  // (bow), les pierres rétrécissent sur les côtés, et la lumière vient de la gauche.
+  const LH_BAND = 288;
+  function lighthouseBand(w) {
+    return sprite(`lh:${w}`, w, LH_BAND, (g) => {
+      const H = LH_BAND / 2;
+      const bow = (x) => 12 * Math.pow((x - w / 2) / (w / 2), 2);
+      const curve = (y, back) => {
+        for (let x = back ? w : 0; back ? x >= 0 : x <= w; x += back ? -12 : 12) g.lineTo(x, y + bow(x));
+      };
+      g.fillStyle = '#f4eef8';
+      g.fillRect(0, 0, w, LH_BAND);
+      // la rayure rouge (et le bas de celle d'au-dessus, qui déborde en haut)
+      g.fillStyle = '#e0525e';
+      g.beginPath();
+      g.moveTo(0, H);
+      curve(H, false);
+      curve(LH_BAND, true);
+      g.closePath();
+      g.fill();
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.lineTo(w, 0);
+      curve(0, true);
+      g.closePath();
+      g.fill();
+      // les pierres : des joints arrondis tous les 36 pixels, et des pierres plus étroites sur les côtés
+      for (let ry = 0; ry < LH_BAND; ry += 36) {
+        g.strokeStyle = ry >= H ? 'rgba(120,20,40,0.35)' : 'rgba(120,100,160,0.3)';
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(0, ry);
+        curve(ry, false);
+        const off = (ry / 36) % 2 ? 0.14 : 0;
+        for (let a = -1.5 + off; a < 1.5; a += 0.28) {
+          const x = w / 2 + Math.sin(a) * w / 2;
+          g.moveTo(x, ry + bow(x));
+          g.lineTo(x, ry + 36 + bow(x));
+        }
+        g.stroke();
+      }
+      // ronde : claire à gauche, dans l'ombre à droite, et un trait sombre sur les deux bords
+      const gr = g.createLinearGradient(0, 0, w, 0);
+      gr.addColorStop(0, 'rgba(60,40,110,0.45)');
+      gr.addColorStop(0.1, 'rgba(255,255,255,0.12)');
+      gr.addColorStop(0.25, 'rgba(255,255,255,0.22)');
+      gr.addColorStop(0.45, 'rgba(255,255,255,0)');
+      gr.addColorStop(0.75, 'rgba(40,20,80,0.14)');
+      gr.addColorStop(1, 'rgba(40,20,80,0.55)');
+      g.fillStyle = gr;
+      g.fillRect(0, 0, w, LH_BAND);
+      g.fillStyle = '#4a3c6e';
+      g.fillRect(0, 0, 3, LH_BAND);
+      g.fillRect(w - 3, 0, 3, LH_BAND);
+    });
+  }
+
+  // Le phare : sa tour (de x0 à x1, du haut de sa galerie, top, jusqu'à son pied, foot), ses petites fenêtres, et tout
+  // en haut, au-dessus de la galerie, sa lanterne et sa grande lumière qui tourne (ang : voir World.beamAngle).
+  function lighthouse(ctx, x0, x1, top, foot, camY, t, ang) {
+    const w = x1 - x0;
+    const cx = (x0 + x1) / 2;
+    const ya = Math.max(top, camY - 20);
+    const yb = Math.min(foot, camY + VIEW_H + 20);
+    if (yb > ya) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, ya, w, yb - ya);
+      ctx.clip();
+      const band = lighthouseBand(w);
+      for (let y = top + Math.floor((ya - top) / LH_BAND) * LH_BAND; y < yb; y += LH_BAND) ctx.drawImage(band, x0, y, w, LH_BAND);
+      ctx.restore();
+      // les petites fenêtres (une lumière chaude derrière)
+      for (let k = 0, y = top + 230; y < foot - 160; k++, y += 430) {
+        if (y + 60 < ya || y - 60 > yb) continue;
+        const wx = cx + (k % 2 ? 150 : -170);
+        roundRectPath(ctx, wx - 21, y - 34, 42, 66, 21);
+        ctx.fillStyle = '#5a4a7a';
+        ctx.fill();
+        roundRectPath(ctx, wx - 15, y - 28, 30, 56, 15);
+        const wl = ctx.createLinearGradient(0, y - 28, 0, y + 28);
+        wl.addColorStop(0, '#ffe7a0');
+        wl.addColorStop(1, '#f2a35a');
+        ctx.fillStyle = wl;
+        ctx.fill();
+        ctx.fillStyle = '#5a4a7a';
+        ctx.fillRect(wx - 1.5, y - 28, 3, 56);
+        ctx.fillRect(wx - 15, y - 2, 30, 3);
+      }
+      // le socle de pierre, en bas
+      if (foot + 10 > ya && foot - 90 < yb) {
+        ctx.fillStyle = '#8a82a8';
+        roundRectPath(ctx, x0 - 20, foot - 58, w + 40, 62, 8);
+        ctx.fill();
+        ctx.fillStyle = '#6a6290';
+        for (let k = 0; k < 2; k++) {
+          const y = foot - 46 + k * 24;
+          ctx.fillRect(x0 - 20, y + 20, w + 40, 2);
+          for (let jx = x0 - 20 + (k ? 30 : 60); jx < x1 + 16; jx += 60) ctx.fillRect(jx, y - 2, 2, 24);
+        }
+        ctx.fillStyle = '#c8c1e0';
+        roundRectPath(ctx, x0 - 26, foot - 62, w + 52, 14, 6);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillRect(x0 - 22, foot - 60, w + 44, 3);
+      }
+    }
+    // tout en haut : les consoles sous la galerie, la lanterne et la lumière (plus bas, on ne voit que les faisceaux)
+    if (camY > top + 120 || camY + VIEW_H < top - 420) {
+      if (camY + VIEW_H > top - 1400 && camY < top + 900) beams(ctx, cx, top - 104, ang, null);
+      return;
+    }
+    // (des consoles de pierre toutes rondes, sous la galerie)
+    for (let bx = x0 + 22; bx < x1 - 10; bx += 56) {
+      ctx.fillStyle = '#8a82a8';
+      ctx.beginPath();
+      ctx.moveTo(bx - 14, top + 46);
+      ctx.lineTo(bx + 14, top + 46);
+      ctx.lineTo(bx + 14, top + 58);
+      ctx.quadraticCurveTo(bx + 14, top + 78, bx, top + 78);
+      ctx.quadraticCurveTo(bx - 14, top + 78, bx - 14, top + 58);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(bx - 12, top + 48, 4, 18);
+    }
+    lantern(ctx, cx, top, t, ang);
+  }
+
+  // Les deux faisceaux de la grande lumière (back : seulement ceux qui partent derrière la lanterne, true, ou devant,
+  // false ; null : tous).
+  function beams(ctx, x, y, ang, back) {
+    for (const a of [ang, ang + Math.PI]) {
+      const c = Math.cos(a);
+      const s = Math.sin(a);
+      if (back !== null && (s < 0) !== back) continue;
+      const len = 120 + 1500 * Math.abs(c);
+      const dir = Math.sign(c) || 1;
+      const tx = x + dir * len;
+      const ty = y + 60 * s;
+      const half = 18 + 0.16 * len;
+      const al = 0.16 + 0.22 * Math.max(0, s);
+      const gr = ctx.createLinearGradient(x, y, tx, ty);
+      gr.addColorStop(0, `rgba(255,248,200,${al})`);
+      gr.addColorStop(1, 'rgba(255,248,200,0)');
+      ctx.fillStyle = gr;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 16);
+      ctx.lineTo(tx, ty - half);
+      ctx.lineTo(tx, ty + half);
+      ctx.lineTo(x, y + 16);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // La lanterne, sur la galerie (y : le haut de la galerie) : la salle de veille (rouge), la cage de verre avec la grande
+  // lampe, le dôme, et un paratonnerre tout en haut.
+  function lantern(ctx, cx, y, t, ang) {
+    const ly = y - 104;
+    const face = Math.pow(Math.abs(Math.sin(ang)), 8);
+    beams(ctx, cx, ly, ang, true);
+    // la salle de veille
+    ctx.fillStyle = '#b8344a';
+    roundRectPath(ctx, cx - 118, y - 46, 236, 48, 6);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(cx - 112, y - 44, 60, 44);
+    ctx.fillStyle = '#ffd98a';
+    for (const px of [-70, 0, 70]) {
+      circlePath(ctx, cx + px, y - 22, 8);
+      ctx.fill();
+    }
+    // la petite rambarde
+    ctx.strokeStyle = '#3e3456';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - 132, y - 62);
+    ctx.lineTo(cx + 132, y - 62);
+    for (let px = -132; px <= 132; px += 22) {
+      ctx.moveTo(cx + px, y - 62);
+      ctx.lineTo(cx + px, y - 46);
+    }
+    ctx.stroke();
+    // la cage de verre, et la grande lampe
+    ctx.fillStyle = '#2e2850';
+    roundRectPath(ctx, cx - 82, y - 172, 164, 128, 6);
+    ctx.fill();
+    const glow = ctx.createRadialGradient(cx, ly, 6, cx, ly, 70 + 40 * face);
+    glow.addColorStop(0, '#fffbe0');
+    glow.addColorStop(0.35, 'rgba(255,236,140,0.85)');
+    glow.addColorStop(1, 'rgba(255,200,90,0.15)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(cx - 76, y - 166, 152, 116);
+    // la lentille qui tourne (une bande claire qui passe)
+    const lx = cx + Math.cos(ang) * 50;
+    ctx.fillStyle = `rgba(255,255,255,${0.35 + 0.4 * Math.abs(Math.sin(ang))})`;
+    ctx.fillRect(lx - 10, y - 160, 20, 104);
+    ctx.fillStyle = '#fff9d8';
+    circlePath(ctx, cx, ly, 20);
+    ctx.fill();
+    ctx.strokeStyle = '#3e3456';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    for (const px of [-41, 0, 41]) {
+      ctx.moveTo(cx + px, y - 170);
+      ctx.lineTo(cx + px, y - 46);
+    }
+    ctx.moveTo(cx - 82, y - 108);
+    ctx.lineTo(cx + 82, y - 108);
+    ctx.stroke();
+    ctx.lineWidth = 6;
+    roundRectPath(ctx, cx - 82, y - 172, 164, 128, 6);
+    ctx.stroke();
+    // le dôme, la boule, et le paratonnerre tout en haut
+    ctx.fillStyle = '#c23a50';
+    ctx.beginPath();
+    ctx.moveTo(cx - 100, y - 168);
+    ctx.quadraticCurveTo(cx - 92, y - 240, cx, y - 246);
+    ctx.quadraticCurveTo(cx + 92, y - 240, cx + 100, y - 168);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.beginPath();
+    ctx.moveTo(cx - 80, y - 172);
+    ctx.quadraticCurveTo(cx - 70, y - 226, cx - 20, y - 238);
+    ctx.quadraticCurveTo(cx - 54, y - 214, cx - 58, y - 172);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#3e3456';
+    roundRectPath(ctx, cx - 108, y - 176, 216, 10, 5);
+    ctx.fill();
+    circlePath(ctx, cx, y - 252, 11);
+    ctx.fill();
+    ctx.strokeStyle = '#c98a3a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx, y - 260);
+    ctx.lineTo(cx, y - 300);
+    ctx.stroke();
+    // quand elle est tournée vers nous : un grand halo
+    if (face > 0.02) {
+      const h = ctx.createRadialGradient(cx, ly, 10, cx, ly, 260);
+      h.addColorStop(0, `rgba(255,252,220,${0.75 * face})`);
+      h.addColorStop(1, 'rgba(255,240,170,0)');
+      ctx.fillStyle = h;
+      circlePath(ctx, cx, ly, 260);
+      ctx.fill();
+    }
+    beams(ctx, cx, ly, ang, false);
+  }
+
+  // Le phare, tout petit, au loin (depuis la falaise : on voit où l'on va) : sur sa pointe de rocher au bord de la mer
+  // (x : le milieu de la tour ; hy : l'horizon), sa tour rayée, sa lanterne et sa lumière qui tourne (ang : voir
+  // World.beamAngle) ; a : de 1 (bien visible) à 0 (on ne le voit plus).
+  function farLighthouse(ctx, x, hy, ang, a) {
+    ctx.save();
+    ctx.globalAlpha = a;
+    // les deux faisceaux (derrière la tour quand ils partent vers le fond)
+    const ly = hy - 132;
+    const ray = (back) => {
+      for (const b of [ang, ang + Math.PI]) {
+        const c = Math.cos(b);
+        const sn = Math.sin(b);
+        if ((sn < 0) !== back) continue;
+        const len = 20 + 230 * Math.abs(c);
+        const tx = x + (Math.sign(c) || 1) * len;
+        const half = 3 + 0.16 * len;
+        const gr = ctx.createLinearGradient(x, ly, tx, ly);
+        gr.addColorStop(0, `rgba(255,248,200,${0.35 + 0.3 * Math.max(0, sn)})`);
+        gr.addColorStop(1, 'rgba(255,248,200,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.moveTo(x, ly - 3);
+        ctx.lineTo(tx, ly - half);
+        ctx.lineTo(tx, ly + half);
+        ctx.lineTo(x, ly + 3);
+        ctx.closePath();
+        ctx.fill();
+      }
+    };
+    ray(true);
+    // la pointe de rocher
+    ctx.fillStyle = '#3a2f6e';
+    ctx.beginPath();
+    ctx.moveTo(x - 120, hy + 2);
+    ctx.quadraticCurveTo(x - 70, hy - 14, x - 34, hy - 30);
+    ctx.lineTo(x + 30, hy - 34);
+    ctx.quadraticCurveTo(x + 52, hy - 18, x + 84, hy + 2);
+    ctx.closePath();
+    ctx.fill();
+    // la tour : un peu plus étroite en haut, rayée blanc et rouge (pâlis par la distance)
+    const yb = hy - 30;
+    const yt = hy - 116;
+    const half = (y) => 13 - 4 * (yb - y) / (yb - yt);
+    const band = (y0, y1) => {
+      ctx.beginPath();
+      ctx.moveTo(x - half(y0), y0);
+      ctx.lineTo(x + half(y0), y0);
+      ctx.lineTo(x + half(y1), y1);
+      ctx.lineTo(x - half(y1), y1);
+      ctx.closePath();
+      ctx.fill();
+    };
+    for (let k = 0; k < 6; k++) {
+      ctx.fillStyle = k % 2 ? '#c46a8e' : '#e8dcf2';
+      band(yb - (yb - yt) * k / 6, yb - (yb - yt) * (k + 1) / 6);
+    }
+    ctx.fillStyle = 'rgba(40,20,80,0.3)';
+    ctx.beginPath();
+    ctx.moveTo(x + 2, yb);
+    ctx.lineTo(x + half(yb), yb);
+    ctx.lineTo(x + half(yt), yt);
+    ctx.lineTo(x + 1, yt);
+    ctx.closePath();
+    ctx.fill();
+    // la galerie, la lanterne (sa lampe allumée) et le dôme
+    ctx.fillStyle = '#4a3c6e';
+    ctx.fillRect(x - 14, yt - 3, 28, 4);
+    ctx.fillRect(x - 7, yt - 22, 14, 19);
+    const glow = ctx.createRadialGradient(x, ly, 1, x, ly, 22);
+    glow.addColorStop(0, 'rgba(255,250,215,0.95)');
+    glow.addColorStop(1, 'rgba(255,230,140,0)');
+    ctx.fillStyle = glow;
+    circlePath(ctx, x, ly, 22);
+    ctx.fill();
+    ctx.fillStyle = '#fff6c8';
+    ctx.fillRect(x - 4, yt - 19, 8, 12);
+    ctx.fillStyle = '#b8344a';
+    ctx.beginPath();
+    ctx.moveTo(x - 9, yt - 21);
+    ctx.quadraticCurveTo(x, yt - 34, x + 9, yt - 21);
+    ctx.closePath();
+    ctx.fill();
+    ray(false);
+    ctx.restore();
+  }
+
+  // La mer, au loin (autour du Phare sur la Falaise) : l'horizon, et des vagues qui roulent.
+  function farSea(ctx, cx, hy, t) {
+    const g = ctx.createLinearGradient(0, hy, 0, VIEW_H);
+    g.addColorStop(0, '#6a5aa6');
+    g.addColorStop(0.25, '#4b3f88');
+    g.addColorStop(1, '#2c2560');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, hy, VIEW_W, VIEW_H - hy);
+    ctx.fillStyle = 'rgba(230,220,255,0.5)';
+    ctx.fillRect(0, hy, VIEW_W, 2);
+    for (let k = 0; k < 7; k++) {
+      const y = hy + 10 + k * k * 7;
+      if (y > VIEW_H) break;
+      const sp = 70 + k * 30;
+      const len = 10 + k * 5;
+      const off = (cx * (0.05 + k * 0.02) + t * (12 + k * 5) + k * 37) % sp;
+      ctx.strokeStyle = `rgba(235,230,255,${0.25 + k * 0.06})`;
+      ctx.lineWidth = 1.5 + k * 0.4;
+      ctx.beginPath();
+      for (let x = -off; x < VIEW_W + sp; x += sp) {
+        const xx = x + hash(k * 9.1 + Math.floor((x + off) / sp)) * sp * 0.4;
+        ctx.moveTo(xx, y);
+        ctx.quadraticCurveTo(xx + len / 2, y - 3 - k * 0.6, xx + len, y);
+      }
+      ctx.stroke();
+    }
+  }
+
   function sky(ctx, stops) {
     const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
     stops.forEach(([p, c]) => g.addColorStop(p, c));
@@ -3265,10 +3862,15 @@ const Scenery = (() => {
       }
     },
 
-    storm(ctx, cx, cy, t, flash) {
+    storm(ctx, cx, cy, t, flash, o) {
       sky(ctx, [[0, '#3d2a6b'], [0.55, '#8e6bb8'], [1, '#e6b3d6']]);
       const off1 = cx * 0.08;
-      forEachItem(off1, 300, 21, (x, i, h) => {
+      // (autour du Phare sur la Falaise : la mer au loin, au lieu des montagnes)
+      if (o && o.sea) {
+        farSea(ctx, cx, 330 - cy * 0.08, t);
+        // (et tout au bout, le phare, tant qu'on ne voit pas le vrai : voir World.render)
+        if (o.far > 0) farLighthouse(ctx, 800 - cx * 0.08, 330 - cy * 0.08, o.ang, o.far);
+      } else forEachItem(off1, 300, 21, (x, i, h) => {
         const by = 400 - cy * 0.08;
         const mh = 120 + h * 120;
         ctx.fillStyle = '#6a5596';
@@ -3282,12 +3884,14 @@ const Scenery = (() => {
         ctx.fillStyle = '#8a74b8';
         ctx.fillRect(x - 90, by - mh, 180, 10);
       });
-      // collines en chocolat avec de la crème
+      // collines en chocolat avec de la crème (au bord de la mer, elles descendent bien plus vite quand on monte : on
+      // ne les prend pas pour le sol, et en haut du phare, on ne voit plus que la mer)
+      const hc = o && o.sea ? 84 + (cy - 84) * 5 : cy;
       const off2 = cx * 0.3;
-      hillPath(ctx, off2, 420 - cy * 0.2, 55, 0.007, 2.1);
+      hillPath(ctx, off2, 420 - hc * 0.2, 55, 0.007, 2.1);
       stripedFill(ctx, '#7a4428', 'rgba(255,255,255,0.07)', off2, 30);
       ctx.save();
-      hillPath(ctx, off2, 420 - cy * 0.2, 55, 0.007, 2.1);
+      hillPath(ctx, off2, 420 - hc * 0.2, 55, 0.007, 2.1);
       ctx.clip();
       ctx.strokeStyle = '#fff2f8';
       ctx.lineWidth = 9;
@@ -3295,14 +3899,14 @@ const Scenery = (() => {
       ctx.beginPath();
       for (let sx = -10; sx <= VIEW_W + 20; sx += 20) {
         const wx = sx + off2;
-        const y = 420 - cy * 0.2 - 55 * (0.55 * Math.sin(wx * 0.007 + 2.1) + 0.3 * Math.sin(wx * 0.007 * 2.3 + 2.1 * 1.7) + 0.15 * Math.sin(wx * 0.007 * 5.1 + 2.1 * 2.9));
+        const y = 420 - hc * 0.2 - 55 * (0.55 * Math.sin(wx * 0.007 + 2.1) + 0.3 * Math.sin(wx * 0.007 * 2.3 + 2.1 * 1.7) + 0.15 * Math.sin(wx * 0.007 * 5.1 + 2.1 * 2.9));
         if (sx === -10) ctx.moveTo(sx, y + 4); else ctx.lineTo(sx, y + 4 + Math.sin(wx * 0.05) * 3);
       }
       ctx.stroke();
       ctx.restore();
       forEachItem(cx * 0.1 - t * 15, 380, 23, (x, i, h) => fluffyCloud(ctx, x, 70 + h * 80 - cy * 0.05, 0.9 + h * 0.5, '#a58cc9', '#7c64a8'));
       const off3 = cx * 0.55;
-      hillPath(ctx, off3, 480 - cy * 0.45, 25, 0.014, 0.7);
+      hillPath(ctx, off3, 480 - hc * 0.45, 25, 0.014, 0.7);
       ctx.fillStyle = '#c785b0';
       ctx.fill();
       if (flash > 0) {
@@ -4657,6 +5261,7 @@ const Scenery = (() => {
   return {
     floodBack, floodFront, floodEdge,
     windmill, millPlank, rain,
+    lightningRod, lightningRodSky, lighthouse,
     THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
     rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
     drawMudRun, mudMist, stilt, cabinSprite, CABIN_H, ropeBridge,
