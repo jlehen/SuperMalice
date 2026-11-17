@@ -559,6 +559,35 @@ const Music = (() => {
     return S.out({ drumV: 0.55 });
   }
 
+  // 3-4. Le combat contre Bourrasque : une tarentelle, qui tourne comme sa toupie ! La Vallée en do mineur, mais en
+  // 12/8 et à toute allure : la mélodie à l'accordéon, la guitare qui gratte ses accords sur les deux dernières croches
+  // de chaque temps (oum-pa-pa), la contrebasse qui sautille, et le tambourin qui secoue ses grelots. Au refrain, les
+  // cordes tourbillonnent par-dessus, avec un grand coup de vent ; à la fin, le glockenspiel, comme des grêlons.
+  function bossStorm() {
+    const S = new Song({ bpm: 138, warp: swing(2 / 3), mode: MINOR });
+    const T = 1 / 3;
+    const OOMPA = [rep(4, (b) => [[b, 0.3, b % 2 ? '5L' : 'R'], [b + T, 0.18, 'C', 0.55], [b + 2 * T, 0.18, 'C', 0.7]]).flat()];
+    const tamb = rep(12, (i) => [i * T, 'y', i % 3 === 0 ? 0.75 : i % 3 === 1 ? 0.3 : 0.45]);
+    const D = [[[0, 'k', 0.8], [2, 'k', 0.6], [1 + 2 * T, 'w', 0.5], [3 + 2 * T, 'w', 0.6], ...tamb]];
+    const FILL = [[0, 'k'], [1, 't', 0.7], [1 + T, 't', 0.75], [1 + 2 * T, 't', 0.8], [2, 's', 0.6], [2 + T, 's', 0.7], [2 + 2 * T, 's', 0.8], [3, 's', 0.9], [3 + T, 's'], [3 + 2 * T, 'k']];
+    const base = (p) => {
+      p.pattern('bass', 'upright', 0.17, OOMPA.map((bar) => bar.filter(([, , w]) => w !== 'C')));
+      p.pattern('strum', 'guitar', 0.045, OOMPA.map((bar) => bar.filter(([, , w]) => w === 'C')), { low: 57 });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'accordion', 0.075); base(p); p.drums(D, { crash: 0.5 }); p.hit(0, 'n', 0.6); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'accordion', 0.075); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'accordion', 0.075); p.melody('mando', 'pizz', 0.1, { oct: 1, top: true, gate: 0.5 }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.B, (p) => {
+      p.melody('lead', 'strings', 0.07);
+      p.melody('acc', 'accordion', 0.05, { oct: -1, top: true });
+      base(p);
+      p.drums(D, { crash: 0.7, fill: FILL });
+      p.hit(0, 'n', 0.7);
+    });
+    S.part(SECT.C2, (p) => { p.melody('lead', 'accordion', 0.075, { top: true }); p.melody('hail', 'glock', 0.045, { oct: 1, top: true, delay: T }); base(p); p.drums(D, { fill: FILL }); });
+    return S.out({ drumV: 0.7 });
+  }
+
   // 4. Les Pentes du Volcan : valse à 3/4 en mode lydien (fa♯), accordéon, tuba « oum-pa-pa » et glockenspiel.
   function mountain() {
     const S = new Song({ bpm: 172, meter: 3, warp: waltz, mode: LYD, modeChords: false, chordMap: { F: 'D', G7: 'Gmaj7', Bb: 'Bb', Db: 'Db' } });
@@ -798,6 +827,7 @@ const Music = (() => {
     'badge-saut': bossa(),
     storm: storm(),
     'storm-phare': stormLighthouse(),
+    'boss-orage': bossStorm(),
     mountain: mountain(),
     'badge-grappin': swingJazz(),
     volcano: volcano(),

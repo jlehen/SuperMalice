@@ -1310,6 +1310,8 @@ const Art = (() => {
       case 'wet': return mixPalette(C, WET, clamp(left / 0.5, 0, 1));
       // (trempée par la pluie d'un petit nuage : un peu moins, elle s'ébroue)
       case 'shake': return mixPalette(C, WET, 0.8 * clamp(left / 0.5, 0, 1));
+      // (un grêlon : un peu bleue de froid)
+      case 'hail': return mixPalette(C, WET, 0.4 * clamp(left / 0.5, 0, 1));
       case 'slime': return mixPalette(C, SLIMY, clamp(left / 0.5, 0, 1));
       case 'dirt': return mixPalette(C, DIRTY, clamp(left / 0.5, 0, 1));
       // toute verte d'un coup, puis elle reprend sa couleur après avoir coassé deux fois
@@ -1374,6 +1376,12 @@ const Art = (() => {
       // les bras ballants, elle tangue
       const w = Math.sin(ot * 9);
       return { legF: 0.3 + w * 0.15, legB: -0.3, armF: 0.25 + w * 0.25, armB: -0.15, lean: w * 0.09 };
+    }
+    if (k.kind === 'hail') {
+      // un grêlon sur la tête : elle tangue, et elle se serre dans ses bras en grelottant (brrr !)
+      const w = Math.sin(ot * 8);
+      const s = Math.sin(ot * 44) * 0.05;
+      return { legF: 0.28 + w * 0.12 + s, legB: -0.26 - s, armF: 0.95 + s, armB: 0.7 - s, lean: w * 0.08 };
     }
     if (k.kind === 'dirt') {
       // projetée en l'air : les bras qui moulinent, les jambes qui pédalent
@@ -1441,6 +1449,11 @@ const Art = (() => {
       case 'ko':
         fx.eye = 'ko';
         fx.mouth = 'tongue';
+        break;
+      case 'hail':
+        // toc ! d'abord les yeux plissés, puis sonnée (les yeux en croix), la bouche ronde : brrr !
+        fx.eye = t < 0.3 ? 'squeeze' : 'ko';
+        fx.mouth = t < 0.3 ? 'wide' : Math.floor(t * 14) % 2 ? 'o' : 'small';
         break;
       case 'hypno':
         fx.eye = 'spiral';
@@ -1576,6 +1589,59 @@ const Art = (() => {
       starShape(ctx, 3.8, 0.45);
       paint(ctx, '#ffe94a', '#b07800', 0.9);
       ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // Un grêlon sur la tête (Bourrasque) : des étoiles et des flocons de neige tournent autour de sa tête (y : le centre
+  // du tour, au-dessus de la tête ; r : la largeur du tour), et un petit glaçon fond sur sa casquette.
+  function hailStars(ctx, k, t, y, r) {
+    ctx.save();
+    ctx.globalAlpha *= clamp((k.dur - k.t) / 0.2, 0, 1);
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      const a = t * 6 + (i * TAU) / n;
+      const s = Math.sin(a);
+      // (ceux de derrière sont un peu plus petits et plus pâles)
+      ctx.save();
+      ctx.globalAlpha *= s < 0 ? 0.7 : 1;
+      ctx.translate(Math.cos(a) * r, y + s * r * 0.26);
+      ctx.rotate(t * (i % 2 ? -4 : 5) + i);
+      const sc = s < 0 ? 0.85 : 1;
+      ctx.scale(sc, sc);
+      if (i % 2) {
+        starShape(ctx, 3.8, 0.45);
+        paint(ctx, '#ffe94a', '#b07800', 0.9);
+      } else {
+        snowflake(ctx, 4.2);
+      }
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // un flocon de neige (6 branches, avec de petites pointes), centré en (0, 0)
+  function snowflake(ctx, r) {
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.strokeStyle = pass ? '#ffffff' : '#3a78b8';
+      ctx.lineWidth = pass ? 1.3 : 2.8;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i * TAU) / 6;
+        const cx = Math.cos(a);
+        const sy = Math.sin(a);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(cx * r, sy * r);
+        const mx = cx * r * 0.6;
+        const my = sy * r * 0.6;
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx + Math.cos(a + 0.8) * r * 0.35, my + Math.sin(a + 0.8) * r * 0.35);
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx + Math.cos(a - 0.8) * r * 0.35, my + Math.sin(a - 0.8) * r * 0.35);
+      }
+      ctx.stroke();
     }
     ctx.restore();
   }
@@ -1914,7 +1980,8 @@ const Art = (() => {
     // le bras avant passe sous la tête (sauf quand Malice tient le bébé oiseau)
     if (!o.holding) drawArm(ctx, C, 1.2, -27.8, armF, false);
     // sonnée, la tête tombe un peu en avant ; hypnotisée, elle dodeline
-    const tilt = kind === 'ko' ? 0.2 + Math.sin(t * 9) * 0.08 : kind === 'hypno' ? Math.sin(t * 3) * 0.12 : 0;
+    // (un grêlon sur la tête : sonnée aussi, la tête qui dodeline)
+    const tilt = kind === 'ko' ? 0.2 + Math.sin(t * 9) * 0.08 : kind === 'hail' ? 0.12 + Math.sin(t * 7) * 0.1 : kind === 'hypno' ? Math.sin(t * 3) * 0.12 : 0;
     if (tilt) {
       ctx.save();
       ctx.translate(0, -30);
@@ -1923,6 +1990,7 @@ const Art = (() => {
     }
     drawHead(ctx, C, o, ouchFx(k, pose));
     if (kind === 'ko') koStars(ctx, k, t);
+    if (kind === 'hail') hailStars(ctx, k, t, -72, 17);
     if (tilt) ctx.restore();
     if (kind === 'spots') spotsOverlay(ctx, k);
     if (kind === 'wet' || kind === 'shake') wetOverlay(ctx, k, -62);
@@ -6341,7 +6409,7 @@ const Art = (() => {
     dandelion, dandelionStem, dandelionLeaves, dandelionFlower, dandelionSeed,
     snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow, hedgehog, boar, squirrel, nest,
     // pour les autres personnages (heroes.js)
-    paint, mixColor, ouchPose, koStars, spotsOverlay, wetOverlay, slimeOverlay, dirtOverlay, frog, CROAKS, croaking, croakOverlay,
+    paint, mixColor, ouchPose, koStars, hailStars, snowflake, spotsOverlay, wetOverlay, slimeOverlay, dirtOverlay, frog, CROAKS, croaking, croakOverlay,
     PIN_PULLS, PIN_REACH_POSES, pinAt, pinsWince, pinsReach, pinsOverlay, spinTurn, spinWhirl,
   };
 })();

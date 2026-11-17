@@ -114,6 +114,9 @@ const OUCH = {
   // le petit nuage grognon : toute trempée par sa pluie (les mains sur la tête), elle s'ébroue comme un chien (les
   // gouttes volent partout : voir Art.SHAKE), puis, encore mouillée, elle avance moins vite un moment (Player.soak)
   shake: { dur: 1.6, pose: 0.4, lock: 0.25, vx: 120, vy: -260, hold: 0.3, text: 'Splash !', color: '#9fdcff' },
+  // un grêlon de Bourrasque (le boss de la Vallée des Orages) : toc ! sonnée, des étoiles et des flocons de neige
+  // tournent autour de sa tête, et elle grelotte, toute bleue de froid (voir Art.hailStars)
+  hail: { dur: 1.7, pose: 0.5, lock: 0.25, vx: 200, vy: -340, hold: 0.45, text: 'Brrr, un grêlon !', color: '#bfe6ff' },
   // n'importe quoi d'autre
   hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
 };
@@ -214,6 +217,8 @@ class Player {
     // dripT : le prochain « flic » de ses pas mouillés)
     this.soak = 0;
     this.dripT = 0;
+    // emportée par quelque chose qui la déplace lui-même (la toupie de Bourrasque) : { move(p, dt) }, voir update
+    this.carry = null;
     // le personnage choisi et son pouvoir (voir heroes.js et pouvoirs.js)
     this.hero = world.game.hero || 'malice';
     this.pow = POWERS[this.hero] || {};
@@ -265,6 +270,13 @@ class Player {
         w.spawn({ type: 'spark', x: this.cx + rand(-18, 18), y: this.y + rand(0, this.h), vy: -30, life: 0.5, size: rand(3, 6), color: `hsl(${randInt(0, 360)},100%,70%)` });
       }
       if (this.star <= 0) w.game.onStarEnd();
+    }
+    // emportée par quelque chose (la toupie de Bourrasque, voir js/boss/bourrasque.js) : c'est lui qui la déplace
+    // (carry.move), et elle ne fait rien d'autre tant qu'il ne la lâche pas (carry = null) ; rien ne la touche
+    // (voir World.interactions)
+    if (this.carry) {
+      this.carry.move(this, dt);
+      return;
     }
     if (this.stunT > 0) {
       // électrocutée : figée sur place, puis projetée

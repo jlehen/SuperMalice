@@ -1025,9 +1025,10 @@ class World {
     this.shakeMag = Math.max(this.shakeMag, m);
   }
 
-  bubble(x, y, text, alpha) {
+  // (below : la bulle est sous (x, y), sa pointe vers le haut ; sinon au-dessus, sa pointe vers le bas)
+  bubble(x, y, text, alpha, below) {
     if (x < this.cam.x - 60 || x > this.cam.x + VIEW_W + 60) return;
-    this.bubbles.push({ x, y, text, alpha });
+    this.bubbles.push({ x, y, text, alpha, below: !!below });
   }
 
   // ---------- Mise à jour ----------
@@ -1124,8 +1125,8 @@ class World {
 
   interactions() {
     const p = this.player;
-    // (sous l'eau, on ne touche rien)
-    if (p.dive > 0) return;
+    // (sous l'eau, on ne touche rien ; ni emportée par la toupie de Bourrasque, voir Player.carry)
+    if (p.dive > 0 || p.carry) return;
     const pb = { x: p.x + 3, y: p.y + 4, w: p.w - 6, h: p.h - 4 };
     // Mesuré avant le premier rebond : en tombant sur une coccinelle et sur son point noir
     // en même temps, on écrase les deux.
@@ -1553,6 +1554,8 @@ class World {
     ctx.save();
     ctx.translate(-camX, -camY);
     this.lights.length = 0;
+    // le ciel de l'arène du boss, derrière tout le décor (le beau soleil, à la fin de Bourrasque : voir Boss.drawSky)
+    if (this.boss) this.boss.drawSkyArena(ctx);
     if (this.lighthouse) this.drawLighthouse(ctx, camX, camY);
     for (const rod of this.rods) rod.drawSky(ctx);
     this.drawStormClouds(ctx);
@@ -2460,7 +2463,7 @@ class World {
       const w = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 26;
       const h = lines.length * 21 + 16;
       const x = clamp(b.x - w / 2, this.cam.x + 6, this.cam.x + VIEW_W - w - 6);
-      const y = Math.max(this.cam.y + 6, b.y - h);
+      const y = b.below ? b.y + 10 : Math.max(this.cam.y + 6, b.y - h);
       ctx.fillStyle = 'rgba(0,0,0,0.15)';
       roundRectPath(ctx, x + 2, y + 4, w, h, 14);
       ctx.fill();
@@ -2468,9 +2471,11 @@ class World {
       roundRectPath(ctx, x, y, w, h, 14);
       ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(clamp(b.x, x + 16, x + w - 16) - 8, y + h - 1);
-      ctx.lineTo(clamp(b.x, x + 16, x + w - 16) + 8, y + h - 1);
-      ctx.lineTo(clamp(b.x, x + 16, x + w - 16), y + h + 10);
+      const tx = clamp(b.x, x + 16, x + w - 16);
+      const ty = b.below ? y + 1 : y + h - 1;
+      ctx.moveTo(tx - 8, ty);
+      ctx.lineTo(tx + 8, ty);
+      ctx.lineTo(tx, b.below ? y - 10 : y + h + 10);
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = '#3a2a4a';

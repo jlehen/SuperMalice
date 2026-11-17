@@ -734,12 +734,16 @@ const LEVELS = [
     // (le tunnel sous le rocher est une galerie de terre)
     galeries: true,
     storms: [[12, 24, 60], [62, 66, 22]],
+    // tout en haut, sur la galerie du phare, Bourrasque, le nuage enrhumé, et sa toupie (voir js/boss/bourrasque.js) ;
+    // il fait la sieste sur la lanterne (&)
+    boss: "bourrasque",
+    arene: [57, 76],
     talk: [
       "Au bout de la falaise, il y a un vieux phare. Il faut grimper tout en haut, jusqu'à sa grande lumière qui tourne\u00a0!",
       "Voici un paratonnerre\u00a0! De temps en temps, l'orage l'électrise. Quand un petit nuage gronde au-dessus, que ça fait des étincelles et bzz bzz… descends vite, avant que ça grésille\u00a0! Le reste du temps, saute dessus sans crainte.",
       "Le vieux phare\u00a0! Grimpe de palier en palier. Si un paratonnerre grésille, attends sur une planche\u00a0: il se calme toujours, et toujours au même rythme. Et deux paratonnerres l'un au-dessus de l'autre ne grésillent jamais en même temps\u00a0!",
       "Ouf, ici c'est calme. Au palier du dessus, un Rubik's cube sous l'orage, un petit nuage grognon, puis le dernier escalier\u00a0! Un secret\u00a0: le bloc magique du Lutin, posé sur un paratonnerre, ne laisse pas passer l'électricité.",
-      "Bravo, tu es tout en haut du vieux phare\u00a0! Regarde sa grande lumière qui tourne… Tu entends\u00a0? Là-haut, dans l'orage, quelqu'un éternue\u00a0!",
+      "Bravo, tu es tout en haut du vieux phare\u00a0! Regarde sa grande lumière qui tourne… Tu entends\u00a0? Là-haut, sur la lanterne, quelqu'un ronfle… et éternue\u00a0! C'est Bourrasque, le nuage enrhumé, avec sa toupie.",
     ],
     map: [
       '.............................................................................',
@@ -750,7 +754,7 @@ const LEVELS = [
       '.............................................................................',
       '.............................................................................',
       '..................................................#..........................',
-      '..................................................#T......!..o.o.o....o.o.G..',
+      '..................................................#T......!..o.o.o.&..o.o.G..',
       '..................................................###-----###################',
       '..................................................###....o...................',
       '..................................................###........................',

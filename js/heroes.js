@@ -261,6 +261,8 @@ const Heroes = (() => {
       case 'wet': return { color: '#3a8ae8', a: 0.3 * clamp(left / 0.5, 0, 1) };
       // trempé par la pluie d'un petit nuage (il s'ébroue comme un chien)
       case 'shake': return { color: '#3a8ae8', a: 0.25 * clamp(left / 0.5, 0, 1) };
+      // un grêlon sur la tête : un peu bleu de froid
+      case 'hail': return { color: '#7ab8f0', a: 0.2 * clamp(left / 0.5, 0, 1) };
       case 'slime': return { color: '#8ee05a', a: 0.38 * clamp(left / 0.5, 0, 1) };
       case 'dirt': return { color: '#7a4a24', a: 0.38 * clamp(left / 0.5, 0, 1) };
       // tout vert (la grenouille), puis il reprend sa couleur après avoir coassé deux fois
@@ -365,6 +367,8 @@ const Heroes = (() => {
       Art.koStars(ctx, k, t);
       ctx.restore();
     }
+    // un grêlon sur la tête : des étoiles et des flocons tournent autour (comme les étoiles quand il est sonné)
+    if (k && k.kind === 'hail') Art.hailStars(ctx, k, t, info.headY - 22, 18);
     if (k && k.kind === 'spots') Art.spotsOverlay(ctx, k);
     if (k && (k.kind === 'wet' || k.kind === 'shake')) Art.wetOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'slime') Art.slimeOverlay(ctx, k, info.headY - 12);

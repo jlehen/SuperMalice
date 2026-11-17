@@ -35,11 +35,15 @@
 //                            depuis le haut de sa boîte, où l'on compte qu'on lui saute dessus
 //   dangerous()              est-ce qu'il fait mal quand on le touche (en plein combat) ?
 //   drawBody(ctx)            son dessin (seulement quand il est à l'écran)
+//   drawSky(ctx)             le ciel de son arène, derrière tout le décor (le beau soleil qui revient à la fin…)
 //   drawDecor(ctx)           le décor de son arène (dessiné même quand il n'est pas à l'écran)
 //   drawWall(ctx, x, k, side) le mur qui ferme l'arène (side : -1 à gauche, 1 à droite ; k : de 0, caché, à 1,
 //                            fermé) ; le niveau le dessine de chaque côté qui n'est pas le bout du niveau
 //   drawLife(ctx, x, y, full, t)  une de ses vies dans le haut de l'écran (un chapeau, une citrouille…)
-//   sayAt()                  d'où sort sa bulle quand il parle
+//   sayAt()                  d'où sort sa bulle quand il parle ({ x, y } ; below : la bulle sous ce point, pour un boss
+//                            tout en haut de l'écran, qui ne doit pas passer sous ses vies)
+//   tipAt()                  d'où sort le petit conseil ({ x, y, below }, comme sayAt ; par défaut, au-dessus de la tête
+//                            de Malice) : pour ne pas cacher ce que le conseil montre
 //   light()                  sa lumière, la nuit
 //  Et ce que la base lui donne :
 //   speak(text, dur)         il dit quelque chose (une bulle au-dessus de lui ; « Malice » devient le nom du personnage)
@@ -57,6 +61,12 @@
 //  Son nom en haut de l'écran peut tenir sur deux lignes (« Pépé Chêne\net Ronchon ») : la boîte s'élargit.
 //  Dans un niveau où l'on grimpe ("grimpe"), l'écran ne suit plus les sauts pendant le combat : il reste sur le
 //  haut de l'arène (arena.camY, voir World.updateCamera).
+//  Un boss qui vole (comme Bourrasque, le nuage) : arena.y1 doit rester le sol de l'arène (setup le met sous ses
+//  pieds : il le remet sur le sol), et cornered() peut répondre false (on ne se coince pas sous un nuage).
+//  Un boss (ou une aide) peut emporter Malice : p.carry = { move(p, dt) } la déplace à sa place (elle ne fait plus
+//  rien d'autre, et rien ne la touche) jusqu'à ce qu'il la lâche (p.carry = null), comme la toupie de Bourrasque.
+//  Une plateforme que le boss fait apparaître (l'arc-en-ciel de Bourrasque) va dans world.platforms : elle a
+//  x, y, w, h, dx, dy, update(dt), draw(ctx) et blockZone() (là où le Lutin ne pose pas de bloc).
 //  La difficulté : w.diff.bossK (plus petit en Bébé : il est plus lent ; plus grand en Difficile).
 // =====================================================================
 
@@ -303,6 +313,11 @@ class Boss extends Enemy {
     return { x: this.cx, y: this.y - 20 };
   }
 
+  tipAt() {
+    const p = this.world.player;
+    return { x: p.cx, y: p.y - 30 };
+  }
+
   // (une bulle qui apparaît et disparaît en douceur)
   static fade(b) {
     return clamp(Math.min(b.t * 3, (b.dur - b.t) * 6), 0, 1);
@@ -355,6 +370,7 @@ class Boss extends Enemy {
   box() {}
   dangerous() { return true; }
   drawBody() {}
+  drawSky() {}
   drawDecor() {}
   drawWall() {}
   drawLife(ctx, x, y, full) {
@@ -362,6 +378,14 @@ class Boss extends Enemy {
   }
 
   // ---------- Dessin ----------
+  // Le ciel de son arène (le niveau l'appelle juste après le fond, avant tout le reste du décor), quand on la voit.
+  drawSkyArena(ctx) {
+    const A = this.arena;
+    const w = this.world;
+    if (A.x1 < w.cam.x - 200 || A.x0 > w.cam.x + VIEW_W + 200) return;
+    this.drawSky(ctx);
+  }
+
   // Son arène (le niveau l'appelle à chaque image, même quand il n'est pas à l'écran) : le décor, et les murs
   // des côtés qui ne sont pas le bout du niveau.
   drawArena(ctx) {
@@ -380,11 +404,11 @@ class Boss extends Enemy {
     this.drawBody(ctx);
     if (this.say && this.say.t > 0) {
       const at = this.sayAt();
-      w.bubble(at.x, at.y, this.say.text, Boss.fade(this.say));
+      w.bubble(at.x, at.y, this.say.text, Boss.fade(this.say), at.below);
     }
     if (this.tip && this.tip.t > 0 && this.state === 'fight') {
-      const p = w.player;
-      w.bubble(p.cx, p.y - 30, this.tip.text, Boss.fade(this.tip));
+      const at = this.tipAt();
+      w.bubble(at.x, at.y, this.tip.text, Boss.fade(this.tip), at.below);
     }
   }
 

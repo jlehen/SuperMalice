@@ -35,6 +35,10 @@
 // vineReach : à combien de pixels du milieu de Malice on attrape une liane (le Vieux Chêne).
 // bossK : la vitesse des boss (et de leurs attaques) ; plus petit, ils sont plus lents et attendent plus longtemps.
 // acornHits : combien de gros glands il faut renvoyer sur le nez de Pépé Chêne pour le battre (la dernière manche).
+// Bourrasque (le boss de la Vallée des Orages) : gustHops : combien de fois il faut lui sauter sur la tête (la première
+// manche, depuis sa toupie) ; gustTickles : combien de chatouilles avec la plume pour que sa toupie éclate de rire (la
+// deuxième) ; gustBells : combien de temps une cloche sonne (la dernière : l'arc-en-ciel n'apparaît que si les trois
+// sonnent en même temps ; Infinity : elle sonne jusqu'au bout).
 const DIFFS = {
   bebe: {
     name: 'Bébé', lives: Infinity, eyeChase: 90, cubeFuse: 2.5, shootMin: 3.6, shootMax: 5,
@@ -48,6 +52,7 @@ const DIFFS = {
     cloudSpeed: 60, cloudWarn: 1.4, cloudRest: [3.5, 4.5], soakTime: 2.6, soakSlow: 0.75,
     rodRest: 5, rodWarn: 3, rodZap: 1,
     vineReach: 46,
+    gustHops: 2, gustTickles: 2, gustBells: Infinity,
   },
   gentil: {
     name: 'Gentil', lives: Infinity, eyeChase: 115, cubeFuse: 1.9, shootMin: 2.8, shootMax: 3.8,
@@ -61,6 +66,7 @@ const DIFFS = {
     cloudSpeed: 80, cloudWarn: 1.15, cloudRest: [2.8, 3.6], soakTime: 3, soakSlow: 0.7,
     rodRest: 4.2, rodWarn: 2.5, rodZap: 1.1,
     vineReach: 40,
+    gustHops: 2, gustTickles: 3, gustBells: 16,
   },
   classique: {
     name: 'Classique', lives: 3, eyeChase: 135, cubeFuse: 1.55, shootMin: 2.2, shootMax: 3.2,
@@ -74,6 +80,7 @@ const DIFFS = {
     cloudSpeed: 100, cloudWarn: 0.95, cloudRest: [2.2, 3], soakTime: 3.4, soakSlow: 0.65,
     rodRest: 3.5, rodWarn: 2.1, rodZap: 1.2,
     vineReach: 36,
+    gustHops: 3, gustTickles: 4, gustBells: 11,
   },
   difficile: {
     name: 'Difficile', lives: 3, eyeChase: 155, cubeFuse: 1.3, shootMin: 1.7, shootMax: 2.6,
@@ -87,6 +94,7 @@ const DIFFS = {
     cloudSpeed: 120, cloudWarn: 0.8, cloudRest: [1.6, 2.4], soakTime: 3.8, soakSlow: 0.6,
     rodRest: 2.9, rodWarn: 1.7, rodZap: 1.3,
     vineReach: 34,
+    gustHops: 4, gustTickles: 5, gustBells: 8,
   },
 };
 
