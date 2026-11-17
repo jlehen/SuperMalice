@@ -38,6 +38,7 @@
           </div>
           <p class="credits">Un jeu imaginé par Alice</p>
           <p class="version" id="version"></p>
+          <button class="small danger hidden" data-action="wipe" id="btn-wipe">Effacer la progression</button>
         </section>
 
         <!-- Choix du personnage (Malice + 3 tirés au hasard à chaque chargement) -->
@@ -91,6 +92,16 @@
           <div class="row-btns">
             <button data-action="reset-no" data-esc>Non, je garde tout</button>
             <button class="danger" data-action="reset-yes">Oui, tout effacer</button>
+          </div>
+        </section>
+
+        <!-- Tout effacer, depuis l'écran titre : la progression et les réglages -->
+        <section class="screen dim" id="scr-wipe">
+          <h2>Effacer la progression&nbsp;?</h2>
+          <p class="tagline">Les niveaux débloqués, les badges, la difficulté et le son<br>seront effacés&nbsp;: le jeu repartira comme au tout début.</p>
+          <div class="row-btns">
+            <button data-action="back" data-esc>Non, je garde tout</button>
+            <button class="danger" data-action="wipe-yes">Oui, tout effacer</button>
           </div>
         </section>
 

@@ -77,4 +77,10 @@ const Save = {
       if (Array.isArray(data.badges)) localStorage.setItem(this.badgeKey, JSON.stringify(data.badges));
     } catch (e) { /* navigation privée */ }
   },
+  clear() {
+    try {
+      localStorage.removeItem(this.key);
+      localStorage.removeItem(this.badgeKey);
+    } catch (e) { /* navigation privée */ }
+  },
 };

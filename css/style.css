@@ -281,7 +281,15 @@ button {
   background: linear-gradient(#ffa66b, #f0642e 50%, #c8401a);
   box-shadow: 0 calc(var(--s) * 5px) 0 #7a2410, 0 calc(var(--s) * 10px) calc(var(--s) * 20px) rgba(0, 0, 0, 0.3);
 }
-#scr-reset .tagline { text-align: center; display: block; line-height: 1.35; }
+#scr-reset .tagline, #scr-wipe .tagline { text-align: center; display: block; line-height: 1.35; }
+/* Effacer la progression : petit, dans le coin, pour ne pas le toucher par erreur */
+#btn-wipe {
+  position: absolute;
+  left: calc(var(--s) * 16px);
+  bottom: calc(var(--s) * 10px);
+  font-size: max(12px, calc(var(--s) * 14px));
+  padding: calc(var(--s) * 4px) calc(var(--s) * 14px);
+}
 /* La grande carte est dessinée dans le jeu : on la touche à travers l'écran, sauf ses deux boutons en bas */
 #screens.see-through { pointer-events: none; }
 #screens.see-through .screen.show button { pointer-events: auto; }

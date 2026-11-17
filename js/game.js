@@ -409,6 +409,20 @@ const Game = {
         this.setReach(LEVELS[ORDER[0]].key);
         this.showMap();
         break;
+      case 'wipe': this.showScreen('scr-wipe'); break;
+      case 'wipe-yes':
+        // depuis l'écran titre, on efface tout, même la difficulté et le son : comme au tout premier jour
+        Save.clear();
+        this.save = Object.assign(Save.load(), { v: 3, rescued: false, badges: [], nids: [] });
+        this.diffKey = this.save.difficulty;
+        this.diff = DIFFS[this.diffKey];
+        Sound.setMuted(this.save.muted);
+        Sound.setMusicOff(this.save.musicOff);
+        this.updateSoundBtn();
+        this.updateMusicBtn();
+        this.setReach(LEVELS[ORDER[0]].key);
+        this.toTitle();
+        break;
       default: break;
     }
   },
@@ -418,6 +432,9 @@ const Game = {
     this.stateT = 0;
     this.world = null;
     Input.setCapture(false);
+    // il n'y a quelque chose à effacer qu'une fois qu'on a avancé (ou fait un câlin)
+    const s = this.save;
+    $('#btn-wipe').classList.toggle('hidden', keyPos(s.reach) <= 0 && !s.badges.length && !(s.nids && s.nids.length));
     this.showScreen('scr-title');
     Sound.playMusic('title');
   },
