@@ -2155,8 +2155,9 @@ const Art = (() => {
     ctx.lineJoin = 'round';
     for (const side of [-1, 1]) {
       const p = lp + (side > 0 ? 0 : Math.PI);
-      const sw = moving ? Math.sin(p) : 0;
-      const lift = moving ? Math.max(0, -Math.cos(p)) * 4 : 0;
+      // le pied se lève quand il part vers l'avant (dans le sens de dir), et glisse vers l'arrière posé au sol
+      const sw = moving ? Math.sin(p) * dir : 0;
+      const lift = moving ? Math.max(0, Math.cos(p)) * 4 : 0;
       const fx = side * 7 + sw * 7;
       ctx.strokeStyle = '#7d3a5c';
       ctx.lineWidth = 5;
