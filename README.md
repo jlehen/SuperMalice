@@ -141,7 +141,8 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      3. Ronchon, tout nu, va se cacher derrière Pépé Chêne (on voit dépasser ses petites fesses roses), et Pépé Chêne
         se fâche : il fait tomber de **gros glands**, qui rebondissent et attendent par terre en brillant. On **saute
         sur un gros gland** : il repart en faisant un grand arc… et tape sur le nez en nœud de bois de Pépé Chêne.
-        TOC !
+        Toc ! Il en faut plusieurs : **2 en Bébé, 3 en Gentil, 4 en Classique, 5 en Difficile**. À chaque gland,
+        son nez rougit un peu plus et on voit combien il en reste (« Toc ! Encore 2 ! »)… et au dernier : TOC !
      - Ses attaques sont toujours annoncées. **Les glands** : il secoue ses branches, un gland tremble au bout de sa
        brindille sous les feuilles, et son ombre grandit par terre… puis il tombe (une bosse sous la casquette).
        Les petits glands se cassent en touchant le sol. **Les racines** : il tape par terre, la terre se soulève et

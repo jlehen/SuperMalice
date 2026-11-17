@@ -14,7 +14,8 @@
 //      dessus. (Les chips sur Pépé Chêne : il éternue, et ça souffle les piquants de Ronchon aussi.) Ronchon fonce
 //      toujours, et se cogne sans mal (« Tonk ! Même pas mal ! »).
 //   3. Ronchon, tout nu, se cache derrière Pépé Chêne, qui se fâche : il fait tomber de gros glands. On saute dessus
-//      pour les renvoyer : ils repartent sur son nez en nœud de bois. Toc !
+//      pour les renvoyer : ils repartent sur son nez en nœud de bois. Toc ! Il en faut plusieurs (diff.acornHits :
+//      2 en Bébé… 5 en Difficile) ; son nez rougit un peu plus à chaque gland.
 //  Pendant tout le combat, Pépé Chêne fait tomber des glands (un gland tremble là-haut, son ombre grandit par terre)
 //  et sortir ses racines du sol (la terre se soulève et tremble avant). Le caramel colle les piquants de Ronchon
 //  (il ne peut plus se mettre en boule : on lui saute dessus), et les pouvoirs qui renversent le font tomber
@@ -57,6 +58,8 @@ class PepeChene extends Boss {
     this.armBack = 1.3;
     this.wiggle = 0;
     this.nose = 0;
+    // les gros glands déjà renvoyés sur son nez (la dernière manche)
+    this.tocs = 0;
     this.grumpy = 0;
     this.happy = 0;
     this.squash = 0;
@@ -235,7 +238,8 @@ class PepeChene extends Boss {
     this.arm = approach(this.arm, arm, dt * (a === 'slam' && this.actT >= 0.25 ? 14 : 6));
     this.armBack = approach(this.armBack, a === 'shake' ? -0.6 + Math.cos(this.t * 24) * 0.22 : a === 'sticky' ? 0.2 - Math.sin(this.t * 18) * 0.35 : 1.3, dt * 6);
     this.eyes = approach(this.eyes, a === 'sneeze' && this.actT < 0.75 ? 0.25 : 1, dt * 4);
-    this.nose = approach(this.nose, 0, dt * 0.6);
+    // (son nez reste un peu rouge : de plus en plus à chaque gros gland reçu)
+    this.nose = approach(this.nose, 0.7 * this.tocs / this.tocsNeeded(), dt * 0.6);
     this.grumpy = approach(this.grumpy, this.phase >= 2 || a === 'ouch' ? 1 : 0.55, dt * 2);
     this.squash = approach(this.squash, 0, dt * 3);
     this.sneezeK = approach(this.sneezeK, a === 'sneeze' && this.actT < 0.75 ? 1 : 0, dt * (this.actT < 0.75 ? 1.6 : 6));
@@ -377,8 +381,28 @@ class PepeChene extends Boss {
   // Ronchon, quand il ne peut pas se défendre (les deux premières manches) ; puis un gros gland renvoyé sur son nez.
   takes(how, part) {
     if (part === this.ronchon) return this.phase < 2 && part.open();
-    if (part instanceof CheneGland) return this.phase >= 2 && how === 'acorn';
+    // (le dernier gros gland seulement : les autres font juste « Toc ! », voir CheneGland.hitNose)
+    if (part instanceof CheneGland) return this.phase >= 2 && how === 'acorn' && this.tocs + 1 >= this.tocsNeeded();
     return false;
+  }
+
+  // combien de gros glands il faut lui renvoyer sur le nez (plus en Difficile qu'en Bébé)
+  tocsNeeded() { return this.world.diff.acornHits || 1; }
+
+  // Un gros gland sur le nez, mais pas encore le dernier : il rougit, il râle… et on voit combien il en reste.
+  toc() {
+    const w = this.world;
+    const n = this.nosePos();
+    this.tocs++;
+    const left = this.tocsNeeded() - this.tocs;
+    this.act = 'ouch';
+    this.actT = 0;
+    this.grumpy = 1;
+    this.wobble = 0.6;
+    Sound.sfx.noseToc();
+    w.popText(n.x, n.y - 30, left > 1 ? `Toc ! Encore ${left} !` : 'Toc ! Encore un !', '#ffe0a8', 22);
+    this.speak(choose(['Aïe, mon nez !', 'Ouille ouille ouille !', 'Même pas mal… si, un peu !', 'Grmbl… mes glands !']), 1.6);
+    this.leaves(5);
   }
 
   onHit(how, part) {
@@ -1384,6 +1408,8 @@ class CheneGland extends Enemy {
     this.dead = true;
     if (B.hitWith('acorn', this)) {
       // (le dernier coup : TOC ! voir onBeaten)
+    } else if (B.state === 'fight' && B.phase >= 2 && B.recover <= 0) {
+      B.toc();
     } else {
       Sound.sfx.acornLand(true);
       w.popText(n.x, n.y - 30, 'Toc\u00a0!', '#ffe0a8', 20);
