@@ -2303,6 +2303,9 @@ class Ladybug extends Enemy {
     const w = this.world;
     const p = w.player;
     const dx = p.cx - this.cx;
+    // au-dessus de la lave, Malice ne peut pas esquiver : la coccinelle attend qu'elle soit retombée sur le sol
+    const lava = w.overLava(p);
+    if (this.aimT > 0 && lava) this.aimT = 0;
     if (this.aimT > 0) {
       this.aimT -= dt;
       this.open = Math.min(1, this.open + dt * 5);
@@ -2313,7 +2316,7 @@ class Ladybug extends Enemy {
       this.shootT -= dt;
       // dans un niveau où l'on grimpe, on voit les étages du dessus et du dessous : elle ne vise que le sien
       const sameFloor = !w.def.grimpe || Math.abs(p.y + p.h - (this.y + this.h)) < 4 * TILE;
-      if (this.shootT <= 0 && w.onScreen(this, -20) && !p.dead && !p.won && Math.abs(dx) < 520 && sameFloor) {
+      if (this.shootT <= 0 && w.onScreen(this, -20) && !p.dead && !p.won && Math.abs(dx) < 520 && sameFloor && !lava) {
         this.aimT = 0.6;
       }
     }

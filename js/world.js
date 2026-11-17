@@ -391,6 +391,20 @@ class World {
     return this.height + 200;
   }
 
+  // Au-dessus de la lave (ou du chocolat, ou de la boue) ? Il suffit d'un bout de Malice,
+  // et une planche ou un nuage au-dessus de la lave compte aussi (on ne peut pas y esquiver).
+  overLava(b) {
+    for (const x of [b.x + 2, b.x + b.w / 2, b.x + b.w - 2]) {
+      const c = Math.floor(x / TILE);
+      for (let r = Math.max(0, Math.floor((b.y + b.h - 1) / TILE)); r < this.rows; r++) {
+        const ch = this.tileAt(c, r);
+        if (ch === '~') return true;
+        if (isSolidCh(ch) || ch === WATER) break;
+      }
+    }
+    return false;
+  }
+
   // Les pieds dans une flaque d'eau (w) ?
   inPuddle(b) {
     const feet = b.y + b.h;
