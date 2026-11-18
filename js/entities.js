@@ -499,6 +499,8 @@ class Player {
 
     if (I.pressed.caramel) this.throwIt('caramel');
     if (I.pressed.chips) this.throwIt('chips');
+    // le bocal à éclairs (badge) : relancer un éclair au chocolat attrapé (voir Eclair.catches)
+    if (I.pressed.bocal && game.hasBadge('bocal')) this.throwIt('eclair');
 
     this.prevBottom = this.y + this.h;
     const wasGround = this.onGround;
@@ -700,8 +702,8 @@ class Player {
     const r = Math.floor((this.y + this.h + 2) / TILE);
     const ch = w.tileAt(c, r);
     // (pas sur un bloc magique du Lutin ni sur un bloc lutin : ils disparaissent, ou sont perchés au-dessus de l'eau ;
-    // ni sur un paratonnerre, qui grésille de temps en temps)
-    if ((isSolidCh(ch) || isLedgeCh(ch)) && ch !== 'u' && ch !== 'z' && !LUTIN_BLOCKS.includes(ch)) this.safe = { x: (c + 0.5) * TILE, y: r * TILE, pad: null };
+    // ni sur un paratonnerre, qui grésille de temps en temps, ni sur un bouchon en chocolat, qui fond)
+    if ((isSolidCh(ch) || isLedgeCh(ch)) && ch !== 'u' && ch !== 'z' && ch !== PLUG && !LUTIN_BLOCKS.includes(ch)) this.safe = { x: (c + 0.5) * TILE, y: r * TILE, pad: null };
   }
 
   safeSpot() {
@@ -1355,16 +1357,26 @@ class Player {
     this.platform = null;
   }
 
+  // kind : 'caramel', 'chips', ou 'eclair' (un éclair au chocolat du bocal : il se compte dans game.bocal)
   throwIt(kind) {
     const g = this.world.game;
     // (pas en tenant un pissenlit géant : elle a les mains prises)
     if (this.throwT > 0 || this.pound || this.hurtT > 0 || this.puff) return;
-    if (g[kind] <= 0) return;
-    g[kind]--;
+    const stock = kind === 'eclair' ? 'bocal' : kind;
+    if (g[stock] <= 0) {
+      if (kind === 'eclair') Sound.sfx.bocalEmpty();
+      return;
+    }
+    g[stock]--;
     this.throwT = 0.28;
     this.throwAnim = 0.22;
     this.world.projectiles.push(new Throwable(this.world, kind, this.cx + this.facing * 14, this.y + 24, this.facing, this.vx));
-    Sound.sfx.throwIt();
+    if (kind === 'eclair') {
+      g.bocalPop = 1;
+      Sound.sfx.bocalThrow();
+    } else {
+      Sound.sfx.throwIt();
+    }
   }
 
   bounceOff() {
@@ -1916,17 +1928,28 @@ const SINK = {
 };
 
 // ======================= PROJECTILES DE MALICE =======================
+// Comment part chaque chose qu'elle lance : vitesse (vx, vy), pesanteur (g), taille (size). L'éclair au chocolat
+// du bocal file un peu plus vite et plus loin que les chips, presque à plat (il ne passe pas au-dessus d'une
+// grenouille), et retombe par terre à environ 7 cases quand on le lance debout.
+const THROWS = {
+  caramel: { vx: 440, vy: -280, g: 1300, size: 18 },
+  chips: { vx: 520, vy: -160, g: 650, size: 18 },
+  eclair: { vx: 560, vy: -120, g: 520, size: 26 },
+};
+
 class Throwable {
   constructor(world, kind, x, y, dir, pvx) {
+    const o = THROWS[kind];
     this.world = world;
     this.kind = kind;
-    this.w = 18;
-    this.h = 18;
-    this.x = x - 9;
-    this.y = y - 9;
-    this.vx = dir * (kind === 'caramel' ? 440 : 520) + pvx * 0.3;
-    this.vy = kind === 'caramel' ? -280 : -160;
-    this.g = kind === 'caramel' ? 1300 : 650;
+    this.w = o.size;
+    this.h = o.size;
+    this.x = x - o.size / 2;
+    this.y = y - o.size / 2;
+    this.dir = dir;
+    this.vx = dir * o.vx + pvx * 0.3;
+    this.vy = o.vy;
+    this.g = o.g;
     this.t = 0;
     this.dead = false;
   }
@@ -1940,7 +1963,19 @@ class Throwable {
     const cx = this.x + this.w / 2;
     const cy = this.y + this.h / 2;
     if (w.solidAt(cx, cy) || this.t > 2.5 || this.y > w.height) {
+      // (un éclair au chocolat qui touche un bouchon en chocolat le fait fondre : voir World.meltPlug)
+      const c = Math.floor(cx / TILE);
+      const r = Math.floor(cy / TILE);
+      if (this.kind === 'eclair' && w.tileAt(c, r) === PLUG) {
+        this.dead = true;
+        w.meltPlug(c, r);
+        return;
+      }
       this.splat();
+      return;
+    }
+    if (this.kind === 'eclair') {
+      this.zapEnemies();
       return;
     }
     for (const e of w.enemies) {
@@ -1961,9 +1996,39 @@ class Throwable {
     }
   }
 
+  // L'éclair au chocolat lancé (le bocal à éclairs) : le premier ennemi qu'il touche est électrisé et renversé
+  // (comme sous un éclair de l'orage : voir Eclair), un seul à la fois. Il passe à travers les boss et tout ce qui
+  // est à eux (leurs glands, leurs citrouilles, la toupie de Bourrasque…), et ce que les chips traversent : les
+  // combats restent comme ils ont été pensés. (On le touche d'un peu plus loin que les chips : un ennemi qu'on vise
+  // à peu près est touché.)
+  zapEnemies() {
+    const w = this.world;
+    const box = { x: this.x - 6, y: this.y - 6, w: this.w + 12, h: this.h + 12 };
+    for (const e of w.enemies) {
+      if (e.dying || e.dead || e.passThrow || e.boss || e instanceof Boss) continue;
+      if (!overlap(box, e.shotBox ? e.shotBox() : e)) continue;
+      this.dead = true;
+      Sound.sfx.bocalZap();
+      w.popText(e.cx, e.y - 10, 'Bzzz !', '#fff59a', 24);
+      for (let i = 0; i < 10; i++) {
+        w.spawn({ type: 'spark', x: e.cx, y: e.cy, vx: rand(-240, 240), vy: rand(-260, -40), g: 600, life: 0.5, size: rand(4, 7), color: i % 2 ? '#fff59a' : '#ffffff' });
+      }
+      e.kill('zap');
+      return;
+    }
+  }
+
   splat() {
     const w = this.world;
     this.dead = true;
+    if (this.kind === 'eclair') {
+      // (il retombe sans rien toucher : quelques étincelles qui s'éteignent, il ne grésille pas par terre)
+      Sound.sfx.bocalFizzle();
+      for (let i = 0; i < 7; i++) {
+        w.spawn({ type: 'spark', x: this.x + this.w / 2, y: this.y + this.h / 2, vx: rand(-160, 160), vy: rand(-200, -40), g: 700, life: 0.4, size: rand(3, 5), color: '#fff59a' });
+      }
+      return;
+    }
     Sound.sfx.splat();
     const cx = this.x + this.w / 2;
     const cy = this.y + this.h / 2;
@@ -1980,7 +2045,11 @@ class Throwable {
     const cx = this.x + this.w / 2;
     const cy = this.y + this.h / 2;
     if (this.kind === 'caramel') Art.caramelBlob(ctx, cx, cy, 10, this.t);
-    else Art.chip(ctx, cx, cy, 1.2, this.t * 14);
+    else if (this.kind === 'eclair') {
+      // l'éclair au chocolat file en tournoyant, tout électrique
+      Art.sparks(ctx, cx, cy + 6, 22, Math.floor(this.t * 20), 0.8);
+      Art.eclair(ctx, cx, cy, this.dir * this.t * 9, 0.75);
+    } else Art.chip(ctx, cx, cy, 1.2, this.t * 14);
   }
 }
 
@@ -5093,6 +5162,12 @@ class Stalactite {
 }
 
 // Éclair au chocolat qui tombe du ciel puis fait des éclairs électriques par terre.
+// Avec le badge Bocal à éclairs (et de la place dans le bocal), Malice l'attrape (voir catches) : en tombant, s'il
+// passe tout près d'elle (au-dessus de sa tête ou juste à côté : il tombe dans son bocal au lieu de grésiller) ;
+// ou par terre, quand il a fini de grésiller (il refroidit, il ne fait plus mal : on le ramasse en le touchant ; avec
+// le badge, il reste là plus longtemps, et il brille).
+const ECLAIR_REST = 1.2;
+const ECLAIR_REST_BOCAL = 2.8;
 class Eclair {
   constructor(world, x) {
     this.world = world;
@@ -5136,6 +5211,7 @@ class Eclair {
         }
         this.phase = 'zap';
         this.timer = 0.85;
+        this.long = w.game.hasBadge('bocal');
         if (w.onScreen({ x: this.x - 40, y: this.y - 40, w: 80, h: 80 })) {
           Sound.sfx.zap();
           w.shake(4);
@@ -5153,7 +5229,7 @@ class Eclair {
       this.timer -= dt;
       if (this.timer <= 0) {
         this.phase = 'rest';
-        this.timer = 1.2;
+        this.timer = this.long ? ECLAIR_REST_BOCAL : ECLAIR_REST;
       }
     } else {
       this.timer -= dt;
@@ -5184,9 +5260,16 @@ class Eclair {
     if (this.phase === 'fall') {
       Art.eclair(ctx, this.x, this.y, this.angle + Math.PI / 2 * 0.15, 1);
     } else if (this.phase === 'zap' || this.phase === 'rest') {
-      const a = this.phase === 'rest' ? Math.max(0, this.timer / 1.2) : 1;
+      const a = this.phase === 'rest' ? Math.max(0, Math.min(1, this.timer / ECLAIR_REST)) : 1;
       ctx.save();
       ctx.globalAlpha = a;
+      if (this.phase === 'rest' && this.long) {
+        // (avec le bocal : il brille doucement, on peut le ramasser)
+        const k = 0.5 + 0.5 * Math.sin(this.t * 7);
+        ctx.fillStyle = `rgba(255,240,140,${0.25 + 0.25 * k})`;
+        ellipsePath(ctx, this.x, this.groundY - 8, 34 + k * 4, 14 + k * 2);
+        ctx.fill();
+      }
       Art.eclair(ctx, this.x, this.groundY - 8, 0, 1);
       ctx.restore();
       if (this.phase === 'zap') {
@@ -5194,6 +5277,32 @@ class Eclair {
         Art.sparks(ctx, this.x, this.groundY - 6, 72, seed, Math.min(1, this.timer * 3));
       }
     }
+  }
+
+  // Le bocal à éclairs : Malice (sa boîte pb) l'attrape-t-elle ? En tombant, tout près d'elle : de 40 pixels de chaque
+  // côté, et jusqu'à 80 pixels au-dessus de sa tête (on n'a pas à viser juste, et il n'a jamais le temps de la
+  // toucher) ; par terre, quand il ne grésille plus, en le touchant.
+  catches(pb) {
+    if (this.phase === 'fall') return boxOverlap(pb, this.x - 22 - 40, this.y - 9, 44 + 80, 18 + 80);
+    if (this.phase === 'rest') return boxOverlap(pb, this.x - 28, this.groundY - 26, 56, 28);
+    return false;
+  }
+
+  // Attrapé : il file dans le bocal (avec des étincelles), et il n'y a ni éclair par terre ni grésillement.
+  caught(p) {
+    const w = this.world;
+    const g = w.game;
+    const x = this.x;
+    const y = this.phase === 'fall' ? this.y : this.groundY - 8;
+    this.dead = true;
+    g.bocal = Math.min(BOCAL_MAX, g.bocal + 1);
+    g.bocalPop = 1;
+    Sound.sfx.bocalCatch(g.bocal >= BOCAL_MAX);
+    for (let i = 0; i < 8; i++) {
+      const k = i / 8;
+      w.spawn({ type: 'spark', x: x + (p.cx - x) * k, y: y + (p.cy - y) * k, vx: rand(-60, 60), vy: rand(-80, 0), life: 0.35, size: rand(3, 6), color: '#fff59a' });
+    }
+    w.popText(p.cx, p.y - 14, g.bocal >= BOCAL_MAX ? 'Bocal plein !' : `Éclair ${g.bocal}/${BOCAL_MAX}`, '#ffe08a', 22);
   }
 
   // Ombre au sol et "!" dessinés par-dessus Malice pour qu'on les voie bien.

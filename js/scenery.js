@@ -647,6 +647,52 @@ const Scenery = (() => {
     });
   }
 
+  // Le bouchon en chocolat (le Défi du Bocal à éclairs) : une grosse tablette de chocolat qui bouche le passage, avec un
+  // petit éclair jaune dessus (c'est un éclair lancé qui le fait fondre). top / bot : le haut / le bas du bouchon
+  // (des coins arrondis ; au milieu, les cases se touchent).
+  function plugSprite(top, bot) {
+    return sprite(`plug:${top | 0}${bot | 0}`, TILE + PAD * 2, TILE + PAD * 2, (g) => {
+      const T = TILE;
+      g.translate(PAD, PAD);
+      const rt = top ? 10 : 2;
+      const rb = bot ? 6 : 2;
+      g.fillStyle = '#3f1f0e';
+      cornerRect(g, 0, 0, T, T, rt, rt, rb, rb);
+      g.fill();
+      // les 4 carrés de la tablette, en relief
+      for (const [x, y] of [[4, 4], [T / 2 + 1, 4], [4, T / 2 + 1], [T / 2 + 1, T / 2 + 1]]) {
+        const w = T / 2 - 5;
+        const gr = g.createLinearGradient(x, y, x + w, y + w);
+        gr.addColorStop(0, '#9a5a2e');
+        gr.addColorStop(1, '#5e3017');
+        g.fillStyle = gr;
+        roundRectPath(g, x, y, w, w, 4);
+        g.fill();
+        g.fillStyle = 'rgba(255,220,180,0.35)';
+        roundRectPath(g, x + 3, y + 2, w - 8, 3, 1.5);
+        g.fill();
+      }
+      // le petit éclair jaune (comme ceux des orages)
+      g.save();
+      g.translate(T / 2, T / 2);
+      g.beginPath();
+      g.moveTo(3, -13);
+      g.lineTo(-7, 2);
+      g.lineTo(-1, 2);
+      g.lineTo(-4, 13);
+      g.lineTo(7, -3);
+      g.lineTo(1, -3);
+      g.closePath();
+      g.fillStyle = '#ffe94a';
+      g.strokeStyle = '#7a3a10';
+      g.lineWidth = 2;
+      g.lineJoin = 'round';
+      g.stroke();
+      g.fill();
+      g.restore();
+    });
+  }
+
   // Une feuille : de (x, y) vers l'angle a, longue de 12 * s.
   function leaf(g, x, y, a, s, color) {
     g.save();
@@ -5262,7 +5308,7 @@ const Scenery = (() => {
     floodBack, floodFront, floodEdge,
     windmill, millPlank, rain,
     lightningRod, lightningRodSky, lighthouse,
-    THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, platformSprite, thornSprite,
+    THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, plugSprite, platformSprite, thornSprite,
     rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
     drawMudRun, mudMist, stilt, cabinSprite, CABIN_H, ropeBridge,
     trunkSprite, crown, riverBed, drawWaterRun, reeds, burrowCell, burrowSunbeam, burrowLantern,

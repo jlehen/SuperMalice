@@ -1630,7 +1630,8 @@ class BourrasqueGrelon extends Enemy {
 // ======================= LES ÉCLAIRS ÉTERNUÉS =======================
 // « Aaa… aaah… » : l'endroit où il va tomber est marqué par terre (une ombre et un « ! » qui clignote : aim)… puis
 // ATCHOUM ! Un éclair au chocolat part de son nez tout droit jusque-là (fly), et grésille par terre (zap), comme
-// les éclairs de la Vallée des Orages (OUCH.zap).
+// les éclairs de la Vallée des Orages (OUCH.zap). C'est un éclair enrhumé (tout bleu, avec des gouttes de rhume :
+// voir BourrasqueArt.eclairRhume) : le bocal à éclairs ne l'attrape pas, et il ne ressemble pas à ceux qu'on attrape.
 class BourrasqueEclair extends Enemy {
   constructor(world, boss, x, warn) {
     super(world, x - 15, -9999, 30, 30);
@@ -1682,7 +1683,7 @@ class BourrasqueEclair extends Enemy {
           if (w.onScreen(this, 100)) Sound.sfx.zap();
           w.shake(4);
           for (let i = 0; i < 10; i++) {
-            w.spawn({ type: 'spark', x: this.ex, y: this.groundY - 6, vx: rand(-260, 260), vy: rand(-260, -40), g: 600, life: 0.5, size: rand(4, 7), color: '#fff59a' });
+            w.spawn({ type: 'spark', x: this.ex, y: this.groundY - 6, vx: rand(-260, 260), vy: rand(-260, -40), g: 600, life: 0.5, size: rand(4, 7), color: i % 2 ? '#bfe8ff' : '#ffffff' });
           }
         }
         break;
@@ -1730,22 +1731,17 @@ class BourrasqueEclair extends Enemy {
     if (this.state === 'fly' || this.state === 'zap') this.world.puff(this.state === 'fly' ? this.fx : this.ex, this.state === 'fly' ? this.fy : this.groundY - 10, '#fff2c0');
   }
 
+  // (un éclair enrhumé, tout bleu, qui goutte : pas comme ceux des orages, qu'on attrape avec le bocal à éclairs)
   draw(ctx) {
     if (this.state === 'fly') {
-      const glow = ctx.createRadialGradient(this.fx, this.fy, 4, this.fx, this.fy, 40);
-      glow.addColorStop(0, 'rgba(255,240,120,0.7)');
-      glow.addColorStop(1, 'rgba(255,240,120,0)');
-      ctx.fillStyle = glow;
-      circlePath(ctx, this.fx, this.fy, 40);
-      ctx.fill();
-      Art.eclair(ctx, this.fx, this.fy, this.ang, 1);
+      BourrasqueArt.eclairRhume(ctx, this.fx, this.fy, this.ang, 1, this.t, true);
     } else if (this.state === 'zap' || this.state === 'fade') {
       const a = this.state === 'fade' ? Math.max(0, 1 - this.stT / 0.4) : 1;
       ctx.save();
       ctx.globalAlpha = a;
-      Art.eclair(ctx, this.ex, this.groundY - 8, 0, 1);
+      BourrasqueArt.eclairRhume(ctx, this.ex, this.groundY - 8, 0, 1, this.t);
       ctx.restore();
-      if (this.state === 'zap') Art.sparks(ctx, this.ex, this.groundY - 6, 50, Math.floor(this.t * 20) + this.seed, Math.min(1, (0.55 - this.stT) * 3));
+      if (this.state === 'zap') Art.sparks(ctx, this.ex, this.groundY - 6, 50, Math.floor(this.t * 20) + this.seed, Math.min(1, (0.55 - this.stT) * 3), BourrasqueArt.RHUME_COLD);
     }
   }
 
@@ -2355,6 +2351,76 @@ const BourrasqueArt = (() => {
     ctx.restore();
   }
 
+  // ---------- Les éclairs éternués ----------
+  // Un éclair enrhumé : le même éclair au chocolat que ceux des orages, mais tout bleu de froid (glaçage bleu, pâte
+  // bleutée), avec des gouttes de rhume qui en tombent et un halo bleu : il ne se met pas dans le bocal, on ne doit
+  // pas le confondre avec ceux qu'on attrape. (x, y) : son milieu ; a : l'angle ; t : le temps (les gouttes).
+  const RHUME_COLD = ['120,200,255', '225,245,255'];
+  function eclairRhume(ctx, x, y, a, s, t, glow) {
+    if (glow) {
+      const gl = ctx.createRadialGradient(x, y, 4, x, y, 40);
+      gl.addColorStop(0, 'rgba(140,210,255,0.75)');
+      gl.addColorStop(1, 'rgba(140,210,255,0)');
+      ctx.fillStyle = gl;
+      circlePath(ctx, x, y, 40);
+      ctx.fill();
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a || 0);
+    ctx.scale(s || 1, s || 1);
+    const g = ctx.createLinearGradient(0, -6, 0, 9);
+    g.addColorStop(0, '#cdeefa');
+    g.addColorStop(1, '#6ea9c8');
+    ctx.fillStyle = g;
+    roundRectPath(ctx, -24, -5, 48, 14, 7);
+    ctx.fill();
+    ctx.fillStyle = '#f2fdff';
+    roundRectPath(ctx, -21, -3, 42, 4, 2);
+    ctx.fill();
+    ctx.fillStyle = '#2d6a96';
+    ctx.beginPath();
+    ctx.moveTo(-22, -2);
+    ctx.quadraticCurveTo(-24, -9, -16, -9);
+    ctx.lineTo(16, -9);
+    ctx.quadraticCurveTo(24, -9, 22, -2);
+    for (let i = 0; i <= 8; i++) ctx.lineTo(22 - i * 5.5, -1 + (i % 2) * 2.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(190,235,255,0.95)';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-13, -7);
+    ctx.lineTo(10, -7);
+    ctx.stroke();
+    ctx.restore();
+    // les gouttes de rhume : elles pendent dessous, grossissent et tombent (toujours vers le bas, même quand il vole
+    // de travers)
+    ctx.save();
+    const a0 = ctx.globalAlpha;
+    const ca = Math.cos(a || 0) * (s || 1);
+    const sa = Math.sin(a || 0) * (s || 1);
+    for (let i = 0; i < 3; i++) {
+      const k = (t * 1.6 + i / 3) % 1;
+      const u = -14 + i * 14;
+      const dx = x + u * ca - 8 * sa;
+      const dy = y + u * sa + 8 * ca + k * k * 16;
+      const r = 2 + k * 1.6;
+      ctx.globalAlpha = a0 * (1 - k * 0.6);
+      ctx.fillStyle = '#9fdcff';
+      ctx.strokeStyle = '#3d7fb0';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(dx, dy - r * 2.2);
+      ctx.quadraticCurveTo(dx + r * 1.1, dy - r * 0.4, dx, dy + r);
+      ctx.quadraticCurveTo(dx - r * 1.1, dy - r * 0.4, dx, dy - r * 2.2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // ---------- Les grêlons ----------
   function hailstone(ctx, x, y, r, rot) {
     ctx.save();
@@ -2703,7 +2769,8 @@ const BourrasqueArt = (() => {
   }
 
   return {
-    BELL, cloud, dizzyStars, lifeCloud, toupie, suckWind, liftSwirl, breeze, hailstone, hailPuff, puddle, feather, bell,
+    BELL, RHUME_COLD, cloud, dizzyStars, lifeCloud, toupie, suckWind, liftSwirl, breeze, eclairRhume, hailstone, hailPuff,
+    puddle, feather, bell,
     rainbow, windWall, downpour, sky, farMill,
   };
 })();

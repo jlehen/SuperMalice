@@ -3065,14 +3065,14 @@ const Art = (() => {
     ctx.restore();
   }
 
-  // Éclairs électriques (zigzags) autour d'un point.
-  function sparks(ctx, x, y, radius, seed, alpha) {
+  // Éclairs électriques (zigzags) autour d'un point. rgb : la couleur du halo, puis du trait ('r,g,b' ; jaune sinon).
+  function sparks(ctx, x, y, radius, seed, alpha, rgb) {
     ctx.save();
     ctx.translate(x, y);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     for (let pass = 0; pass < 2; pass++) {
-      ctx.strokeStyle = pass === 0 ? `rgba(255,230,80,${0.45 * alpha})` : `rgba(255,255,240,${alpha})`;
+      ctx.strokeStyle = pass === 0 ? `rgba(${rgb ? rgb[0] : '255,230,80'},${0.45 * alpha})` : `rgba(${rgb ? rgb[1] : '255,255,240'},${alpha})`;
       ctx.lineWidth = pass === 0 ? 6 : 2;
       for (let b = 0; b < 6; b++) {
         const side = b % 2 ? 1 : -1;
@@ -3090,6 +3090,74 @@ const Art = (() => {
         ctx.stroke();
       }
     }
+    ctx.restore();
+  }
+
+  // Le bocal à éclairs (badge de Malice) : un bocal de confiture en verre, son couvercle en tissu à carreaux rouges
+  // noué d'une ficelle, et dedans n éclairs au chocolat empilés (au plus 3), qui grésillent un peu (t : le temps).
+  // (x, y) : le milieu du bocal ; à la taille 1, il fait 46 de large et 62 de haut. calm : sans les étincelles (sur le badge).
+  function bocal(ctx, x, y, s, n, t, calm) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(s, s);
+    // le verre, derrière (un peu bleuté)
+    ctx.fillStyle = 'rgba(200,235,255,0.35)';
+    roundRectPath(ctx, -21, -20, 42, 48, 11);
+    ctx.fill();
+    // les éclairs, du fond vers le haut
+    for (let i = 0; i < Math.min(n, 3); i++) {
+      const wob = Math.sin((t || 0) * 9 + i * 2.1) * 0.8;
+      eclair(ctx, wob, 18 - i * 13, (i % 2 ? 0.08 : -0.08), 0.66);
+    }
+    if (n > 0 && !calm) {
+      // ça grésille dans le bocal
+      const k = Math.floor((t || 0) * 10);
+      ctx.save();
+      roundRectPath(ctx, -20, -19, 40, 46, 10);
+      ctx.clip();
+      sparks(ctx, 0, 26 - Math.min(n, 3) * 13, 16, k, 0.55);
+      ctx.restore();
+    }
+    // le verre, devant : son bord et un reflet
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 2.5;
+    roundRectPath(ctx, -21, -20, 42, 48, 11);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(80,120,160,0.55)';
+    ctx.lineWidth = 1.2;
+    roundRectPath(ctx, -22.5, -21.5, 45, 51, 12);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    roundRectPath(ctx, -16, -14, 5, 30, 2.5);
+    ctx.fill();
+    // le goulot, le couvercle en tissu à carreaux, la ficelle
+    ctx.fillStyle = 'rgba(220,240,255,0.8)';
+    roundRectPath(ctx, -17, -25, 34, 7, 3);
+    ctx.fill();
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(-22, -26);
+    ctx.quadraticCurveTo(-24, -36, -12, -37);
+    ctx.lineTo(12, -37);
+    ctx.quadraticCurveTo(24, -36, 22, -26);
+    ctx.quadraticCurveTo(16, -22, 11, -25);
+    ctx.quadraticCurveTo(5, -21, 0, -25);
+    ctx.quadraticCurveTo(-5, -21, -11, -25);
+    ctx.quadraticCurveTo(-16, -22, -22, -26);
+    ctx.closePath();
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.clip();
+    ctx.fillStyle = 'rgba(230,40,60,0.85)';
+    for (let i = -4; i <= 4; i++) ctx.fillRect(i * 6 - 1.5, -40, 3.5, 20);
+    for (let j = 0; j < 3; j++) ctx.fillRect(-26, -37 + j * 6, 52, 3.5);
+    ctx.restore();
+    ctx.strokeStyle = '#a0522d';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-17, -27);
+    ctx.lineTo(17, -27);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -3429,7 +3497,7 @@ const Art = (() => {
     ctx.restore();
   }
 
-  const BADGE_COLORS = { saut: ['#7fd0ff', '#2a7de0'], grappin: ['#d6a6ff', '#7a3ad8'], roulade: ['#b8f07a', '#3fa84a'] };
+  const BADGE_COLORS = { saut: ['#7fd0ff', '#2a7de0'], grappin: ['#d6a6ff', '#7a3ad8'], roulade: ['#b8f07a', '#3fa84a'], bocal: ['#ffd88a', '#e07a1e'] };
 
   // Médaille de badge avec ses rubans.
   function badge(ctx, x, y, r, kind, t) {
@@ -3512,6 +3580,18 @@ const Art = (() => {
       ctx.fillStyle = '#ffffff';
       circlePath(ctx, 0.5, -2, 2);
       ctx.fill();
+    } else if (kind === 'bocal') {
+      // le bocal, avec un éclair au chocolat dedans, et un éclair électrique qui en sort
+      ctx.strokeStyle = '#fff59a';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(10, -20);
+      ctx.lineTo(16, -13);
+      ctx.lineTo(12, -11);
+      ctx.lineTo(19, -3);
+      ctx.stroke();
+      bocal(ctx, -2, 4, 0.5, 1, 0, true);
     } else if (kind === 'grappin') {
       // une moustache accrochée à un anneau
       ctx.strokeStyle = '#ffc21f';
@@ -6404,7 +6484,7 @@ const Art = (() => {
     MALICE, MIMIC_DUR, CUBE_COLORS, COUGHS, SCRAMBLE_BACK, MALICE_SPOTS, spotPop, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,
-    eclair, sparks, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
+    eclair, sparks, bocal, babyBird, lutinFace, flag, butterfly, mustacheRope, anchorRing, badge,
     bat, grumpyBird, gummyBear, candyEye, gem, GEMS, bigBird, birdNest,
     dandelion, dandelionStem, dandelionLeaves, dandelionFlower, dandelionSeed,
     snail, lilyPad, bunny, fish, slimeDrop, mole, moleHill, moleHole, firefly, glow, hedgehog, boar, squirrel, nest,

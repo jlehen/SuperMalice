@@ -1,8 +1,11 @@
 'use strict';
 
 const LUTIN_BLOCKS = 'LFKCS';
+// le bouchon en chocolat (le Défi du Bocal à éclairs) : il est solide, et seul un éclair au chocolat lancé avec le
+// bocal le fait fondre (voir meltPlug)
+const PLUG = '%';
 // u : bloc magique du Lutin (il disparaît tout seul)
-const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || LUTIN_BLOCKS.includes(ch);
+const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || ch === PLUG || LUTIN_BLOCKS.includes(ch);
 // plateformes qu'on traverse par dessous : planche, nuage… pont arc-en-ciel, ou paratonnerre (le Phare sur la Falaise)
 const isLedgeCh = (ch) => ch === '-' || ch === '=' || ch === 'z';
 // l'eau de la rivière (la Rivière aux Nénuphars)
@@ -913,6 +916,35 @@ class World {
     return broke;
   }
 
+  // Un éclair au chocolat lancé (le bocal à éclairs) touche un bouchon en chocolat : il fond, avec ceux qui sont
+  // collés au-dessus et en dessous (tout le bouchon d'un coup), et le passage est ouvert.
+  meltPlug(c, r) {
+    let r0 = r;
+    let r1 = r;
+    while (this.tileAt(c, r0 - 1) === PLUG) r0--;
+    while (this.tileAt(c, r1 + 1) === PLUG) r1++;
+    const cx = c * TILE + TILE / 2;
+    for (let k = r0; k <= r1; k++) {
+      this.tiles[k][c] = '.';
+      const cy = k * TILE + TILE / 2;
+      for (let i = 0; i < 6; i++) {
+        this.spawn({
+          type: 'debris', x: cx + rand(-16, 16), y: cy + rand(-16, 16),
+          vx: rand(-220, 220), vy: rand(-420, -120), g: 1600, life: 0.8, size: rand(7, 12),
+          color: i % 3 ? '#6b3a1f' : '#9a5a2e', vr: rand(-10, 10),
+        });
+      }
+      this.puff(cx, cy, '#c08a5e');
+    }
+    for (let i = 0; i < 10; i++) {
+      this.spawn({ type: 'spark', x: cx, y: (r1 + 0.5) * TILE, vx: rand(-240, 240), vy: rand(-260, -40), g: 600, life: 0.5, size: rand(4, 7), color: i % 2 ? '#fff59a' : '#ffffff' });
+    }
+    Sound.sfx.bocalZap();
+    Sound.sfx.splat();
+    this.shake(4);
+    this.popText(cx, r0 * TILE - 6, 'Ça fond !', '#ffe08a', 24);
+  }
+
   breakBlock(c, r) {
     let ch = this.tiles[r][c];
     // l'étoile, c'est seulement pour Super Malice : les autres ont déjà leur pouvoir (5 bonbons à la place)
@@ -1198,7 +1230,14 @@ class World {
         else if (h instanceof Stalactite) h.crash();
       }
     }
+    // le bocal à éclairs (badge de Malice) : un éclair au chocolat qui tombe tout près d'elle, ou qui refroidit par
+    // terre, va dans son bocal s'il n'est pas plein (voir Eclair.catches) ; sinon, il fait mal comme d'habitude
+    const bocal = this.game.hasBadge('bocal') && !p.dead;
     for (const ec of this.eclairs) {
+      if (bocal && this.game.bocal < BOCAL_MAX && ec.catches(pb)) {
+        ec.caught(p);
+        continue;
+      }
       const b = ec.box();
       if (b && boxOverlap(pb, b.x, b.y, b.w, b.h)) p.hurt(b, 'zap');
     }
@@ -1323,7 +1362,14 @@ class World {
     const col = p.cx / TILE;
     // (dans un niveau où l'on grimpe, un orage peut n'être que sur un étage : [début, fin, rangée de son sol])
     const z = this.storms.find(([a, b, r]) => col >= a - 3 && col <= b + 2 && (r === undefined || Math.abs(p.groundY - r * TILE) < TILE));
-    if (!z) {
+    // (un petit nuage, d'une seule colonne, se repose quand le bocal de Malice est plein : on peut rester dessous
+    // sans être électrocutée ; c'est un orage plus large qui apprend que le bocal plein fait mal)
+    // (s'il grondait déjà, il se calme : l'éclair qu'il annonçait ne tombe pas)
+    const resting = z && z[0] === z[1] && this.game.hasBadge('bocal') && this.game.bocal >= BOCAL_MAX;
+    if (resting) {
+      for (const ec of this.eclairs) if (ec.phase === 'warn' && Math.abs(ec.x - (z[0] + 0.5) * TILE) < TILE) ec.dead = true;
+    }
+    if (!z || resting) {
       this.stormT = Math.max(this.stormT, 0.8);
       return;
     }
@@ -1702,6 +1748,8 @@ class World {
           img = Scenery.brickSprite(th);
         } else if (LUTIN_BLOCKS.includes(ch)) {
           img = Scenery.lutinSprite();
+        } else if (ch === PLUG) {
+          img = Scenery.plugSprite(this.tileAt(c, r - 1) !== PLUG, this.tileAt(c, r + 1) !== PLUG);
         } else if (ch === '-') {
           // (dans le terrier, les plateformes sont des racines)
           const pth = this.terrier && r >= this.terrier - 2 ? 'burrow' : this.tileTheme(c, r);

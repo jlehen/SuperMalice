@@ -632,6 +632,36 @@ const Music = (() => {
     return S.out({ drumV: 1.2 });
   }
 
+  // Stage du Bocal à éclairs : funk, tout électrique ! Grosse caisse et caisse claire bien carrées avec des notes
+  // fantômes, charleston en doubles croches ; basse « slap » qui saute d'octave en doubles croches, clavinet qui
+  // gratte des petits accords de neuvième sur les contretemps, la mélodie aux cuivres tout en staccato (comme une
+  // section de cuivres de funk), et le saxophone au milieu.
+  function funk() {
+    const S = new Song({
+      bpm: 110,
+      chordMap: { C: 'C9', F: 'F9', G: 'G9', G7: 'G9', Ab: 'Ab9', Bb: 'Bb9', Db: 'Db9' },
+    });
+    const SLAP = [[[0, 0.2, 'R'], [0.5, 0.12, 'O', 0.75], [0.75, 0.2, 'R', 0.8], [1.5, 0.12, 'O'], [2, 0.2, 'R'], [2.75, 0.12, 'F', 0.7], [3, 0.12, 'O'], [3.5, 0.2, 'A', 0.85]]];
+    const CLAV = [
+      [[0.25, 0.1, 'G'], [0.75, 0.1, 'G', 0.6], [1.25, 0.1, 'G'], [1.75, 0.1, 'G', 0.55], [2.25, 0.1, 'G'], [2.5, 0.1, 'G', 0.5], [3.25, 0.1, 'G'], [3.75, 0.1, 'G', 0.6]],
+      [[0.25, 0.1, 'G'], [0.75, 0.1, 'G', 0.6], [1.5, 0.1, 'G', 0.7], [2.25, 0.1, 'G'], [2.75, 0.1, 'G', 0.55], [3.25, 0.1, 'G'], [3.5, 0.1, 'G', 0.5]],
+    ];
+    const hats = rep(16, (i) => [i * 0.25, 'h', i % 2 ? 0.32 : 0.62]);
+    const D = [[[0, 'k'], [0.75, 'k', 0.55], [1, 's'], [1.75, 's', 0.22], [2.5, 'k', 0.8], [3, 's'], [3.25, 's', 0.25], [3.75, 'k', 0.45], [3.5, 'o', 0.5], ...hats]];
+    const FILL = [[0, 'k'], [1, 's'], [1.75, 's', 0.4], [2, 's', 0.6], [2.25, 's', 0.65], [2.5, 's', 0.7], [2.75, 't', 0.8], [3, 't'], [3.25, 's', 0.8], [3.5, 's', 0.9], [3.75, 's']];
+    const base = (p) => {
+      p.pattern('bass', 'synbass', 0.15, SLAP);
+      p.pattern('clav', 'pluck', 0.05, CLAV, { low: 58 });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'brass', 0.2, { gate: 0.55 }); base(p); p.drums(D, { crash: 0.6 }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.2, { gate: 0.55 }); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.2, { gate: 0.55 }); p.melody('bone', 'brass', 0.08, { oct: -1, top: true, gate: 0.55 }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.B, (p) => { p.melody('sax', 'reed', 0.12, { top: true }); base(p); p.drums(D, { crash: 0.5 }); });
+    S.part(SECT.C2, (p) => { p.melody('lead', 'brass', 0.2, { top: true, gate: 0.55 }); p.melody('sax', 'reed', 0.05, { oct: -1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'brass', 0.2, { gate: 0.55 }); p.melody('bone', 'brass', 0.08, { oct: -1, top: true, gate: 0.55 }); base(p); p.drums(D, { crash: 0.6, fill: FILL }); });
+    return S.out({ drumV: 0.8 });
+  }
+
   // 5. Le Cœur du Volcan : marche épique en mineur, pédale d'orgue, timbales, cuivres et cordes.
   function volcano() {
     const S = new Song({ bpm: 128, mode: MINOR });
@@ -828,6 +858,7 @@ const Music = (() => {
     storm: storm(),
     'storm-phare': stormLighthouse(),
     'boss-orage': bossStorm(),
+    'badge-bocal': funk(),
     mountain: mountain(),
     'badge-grappin': swingJazz(),
     volcano: volcano(),

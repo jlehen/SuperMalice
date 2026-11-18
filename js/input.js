@@ -2,8 +2,8 @@
 
 // Regroupe clavier, écran tactile et manette en une seule liste d'actions.
 const Input = (() => {
-  // roll : la roulade (voir plus bas, « askRoll »)
-  const ACTIONS = ['left', 'right', 'down', 'jump', 'caramel', 'chips', 'grapple', 'power', 'pause', 'roll'];
+  // roll : la roulade (voir plus bas, « askRoll ») ; bocal : relancer un éclair du bocal (badge Bocal à éclairs)
+  const ACTIONS = ['left', 'right', 'down', 'jump', 'caramel', 'chips', 'grapple', 'power', 'pause', 'roll', 'bocal'];
   const keys = {};
   const touch = {};
   const pad = {};
@@ -44,6 +44,8 @@ const Input = (() => {
     KeyC: 'chips', KeyK: 'chips',
     KeyV: 'grapple', KeyL: 'grapple',
     KeyB: 'power', KeyI: 'power',
+    // E comme éclair (au même endroit sur un clavier AZERTY)
+    KeyE: 'bocal', KeyU: 'bocal',
     Escape: 'pause', KeyP: 'pause',
   };
 
@@ -65,13 +67,13 @@ const Input = (() => {
   // ---------- Boutons tactiles ----------
   // Pas besoin de viser : tout le côté gauche de l'écran sert à marcher
   // (◀ ou ▶ selon où se pose le doigt) et tout le côté droit
-  // à sauter. Les petits boutons (▼, caramel, chips, moustache, pouvoir) ne comptent
+  // à sauter. Les petits boutons (▼, caramel, chips, moustache, pouvoir, bocal) ne comptent
   // que si le doigt se pose dessus.
   // Un doigt garde son bouton jusqu'à ce qu'il se lève : il peut seulement
   // glisser de ◀ à ▶, pour ne jamais lancer des chips en voulant sauter, ni
   // s'écraser en l'air en voulant avancer.
   const SMALL_LEFT = ['down'];
-  const SMALL_RIGHT = ['caramel', 'chips', 'grapple', 'power'];
+  const SMALL_RIGHT = ['caramel', 'chips', 'grapple', 'power', 'bocal'];
   let touchButtons = [];
   const B = {};
   const pointers = new Map();
@@ -202,7 +204,9 @@ const Input = (() => {
       if (b(2)) pad.caramel = true;
       if (b(1)) pad.chips = true;
       if (b(3)) pad.power = true;
-      if (b(4) || b(5) || b(6) || b(7)) pad.grapple = true;
+      // les boutons de devant : en haut (L1, R1) la moustache-grappin, en bas (L2, R2) le bocal à éclairs
+      if (b(4) || b(5)) pad.grapple = true;
+      if (b(6) || b(7)) pad.bocal = true;
       if (b(9)) pad.pause = true;
     }
   }

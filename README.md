@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux, son boss (Pépé Chêne et Ronchon) et son stage d'entraînement (le Super Saut, refait dans le sous-bois), la Vallée des Orages ses quatre niveaux et son boss (Bourrasque, le nuage enrhumé), et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux, son boss (Pépé Chêne et Ronchon) et son stage d'entraînement (le Super Saut, refait dans le sous-bois), la Vallée des Orages ses quatre niveaux, son boss (Bourrasque, le nuage enrhumé) et son stage d'entraînement (le Bocal à éclairs), et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -294,8 +294,9 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
         dessous), jusqu'en haut, juste sous Bourrasque… et on lui saute sur la tête.
      - Ses attaques sont **toujours annoncées**. **L'éternuement** : « Aaa… aaah… », il se gonfle, les yeux plissés, et
        l'endroit où l'éclair va tomber est marqué par terre (une ombre et un « ! » qui clignote, là où était Malice)…
-       puis « ATCHOUM ! » : un éclair au chocolat file au-dessus de la marque et tombe dessus, et grésille par terre
-       (comme les éclairs de la Vallée : on est électrocutée). Il ne touche jamais Malice qui s'est écartée de la
+       puis « ATCHOUM ! » : un éclair au chocolat enrhumé (tout bleu, avec des gouttes de rhume : il ne va pas dans le
+       bocal à éclairs) file au-dessus de la marque et tombe dessus, et grésille par terre (comme les éclairs de la
+       Vallée : on est électrocutée). Il ne touche jamais Malice qui s'est écartée de la
        marque. **Les grêlons** : il souffle de petits nuages de grêle qui s'arrêtent là-haut, au-dessus de Malice (et
        à côté d'elle quand il y en a plusieurs, jamais l'un sur l'autre : on peut toujours passer entre deux) ; le
        grêlon grossit dedans et son ombre grandit par terre… puis il tombe. Il ne fait mal qu'en tombant ; par terre,
@@ -320,11 +321,27 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
        l'arc-en-ciel s'efface doucement). « Merci, Malice ! Va, mon toupie : va faire tourner le moulin ! » : sa
        toupie devient une **petite brise**, qui s'envole jusqu'au petit moulin au loin, sur son rocher au bord de la
        mer… et ses ailes se mettent à tourner. Puis l'arrivée apparaît : on va la toucher, et sur la carte, le
-       château de la Vallée des Orages est ouvert.
+       château de la Vallée des Orages est ouvert (puis le stage du Bocal à éclairs avec Malice, et le monde 4).
      - Si on perd une vie pendant le combat, on repart du drapeau juste avant l'arène, et tout recommence (il se
        réveille bien plus vite : « Encore toi ? Atch… Mon toupie ! »). En Bébé, tout est plus lent : la toupie
        aspire plus longtemps, les grêlons et les éclairs s'annoncent plus longtemps, la toupie se sauve moins vite,
        Bourrasque reste tombé par terre et les cloches sonnent jusqu'au bout ; en Difficile, tout va plus vite.
+   - ⭐ **Stage d'entraînement : le Défi du Bocal à éclairs** → on gagne le badge *Bocal à éclairs* (l'idée
+     d'Alice : Malice remplit un bocal avec les éclairs au chocolat qu'elle attrape, jusqu'à 3, et les relance comme
+     le caramel ou les chips). Dans la Vallée, sous l'orage, avec une musique funk. Les fleurs expliquent pas à pas :
+     **attraper** (un petit nuage en chocolat qui gronde toujours au même endroit : on se met juste dessous, l'éclair
+     tombe dans le bocal ; quand le bocal est plein, le petit nuage se repose, on ne se fait pas électrocuter
+     dessous) ; **lancer** (un gros œil sous un grand rocher, trop bas pour lui sauter dessus, puis un **bouchon en
+     chocolat** qui ferme le passage : on leur lance l'éclair avec E, ou le bouton bocal ; l'œil est électrisé, et le
+     bouchon **fond**) ; **ramasser** (un orage plus large : l'éclair tombé à côté grésille par terre, puis on le
+     ramasse ; le bocal tient 3 éclairs, et plein, les éclairs font mal comme d'habitude ; l'orage s'arrête avant les
+     fleurs, on les lit tranquille) ; **enchaîner** (trois grenouilles, de loin, avant qu'elles sautent) ; et le
+     **petit final** : remplir le bocal sous un petit nuage, puis deux gros yeux et un bouchon en chocolat à la suite
+     dans un grand tunnel, et le trophée. Les bouchons obligent à attraper et à lancer : on ne passe ni en roulade,
+     ni par-dessus (les rochers montent jusqu'en haut, même un super saut n'y arrive pas), ni en se faisant mal ; le
+     bocal vide, on retourne sous le petit nuage juste avant. Des petits fossés d'une case gardent les gros yeux sous
+     leur rocher (ils ne viennent jamais jusqu'aux fleurs) ; on les saute, et si on tombe dedans, on en ressort en
+     sautant.
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    (aucune coccinelle ne tire quand Malice est au-dessus de la lave, même debout sur une planche : elles attendent qu'elle soit
    retombée sur le sol)
@@ -426,12 +443,31 @@ La page [`outils/galerie.html`](outils/galerie.html) montre tous les personnages
   juste avant d'arriver (0,2 s) compte encore, et si on lâche ↓, le chapeau la garde encore un petit moment (0,35 s,
   le temps d'appuyer sur le saut), puis elle rebondit comme d'habitude (le grand rebond, si elle est arrivée en
   écrasant). (Dans les niveaux d'avant le stage, comme les Champignons Géants, rien ne change.)
+- **Bocal à éclairs** : Malice a un bocal de confiture (couvercle à carreaux rouges) qui tient **3 éclairs au
+  chocolat**. Pour en attraper un, rien à faire : quand le bocal n'est pas plein, un éclair qui tombe tout près
+  d'elle (au-dessus de sa tête, ou à moins d'une case à côté) tombe dans le bocal au lieu de grésiller (« Éclair 1/3 »,
+  cling !) ; et un éclair tombé plus loin, une fois qu'il a fini de grésiller par terre, refroidit et brille un moment
+  (2,8 s) : on le ramasse en le touchant. Il n'électrocute jamais celle qui l'attrape. Quand le bocal est plein
+  (« Bocal plein ! »), les éclairs font mal comme d'habitude. Pour en **relancer** un : **E** (ou U), le bouton
+  bocal sur tablette (à la place du bouton pouvoir, que Malice n'a pas ; il n'est là que dans les niveaux à orages,
+  ou quand le bocal contient un éclair : ailleurs, cet endroit sert au saut), L2 ou R2 à la manette. Il file presque à
+  plat, à environ 7 cases, et le premier ennemi qu'il touche est électrisé et renversé (« Bzzz ! »), un seul à la
+  fois ; il passe à travers les boss et tout ce qui est à eux (les combats restent comme ils ont été pensés), et il
+  ne fait rien aux paratonnerres. Les éclairs qu'**éternue Bourrasque** sont des éclairs enrhumés, tout bleus avec
+  des gouttes de rhume : ils ne vont jamais dans le bocal (on s'écarte de la marque, comme sans le badge). Le
+  bocal et ses éclairs sont affichés en haut de l'écran, à côté du badge. Ce
+  qu'il contient reste d'un niveau à l'autre (comme le caramel et les chips), jusqu'à une nouvelle partie.
+  Une fois gagné, il sert **partout**, même dans les niveaux d'avant son stage quand on y rejoue (les orages de la
+  Vallée des Orages). Il protège un peu de l'orage, sans le rendre inoffensif : un robot qui reste 30 s sans bouger
+  sous l'orage du 3-1 ou du 4-1 est électrocuté 0 à 8 fois sans le bocal, 0 à 6 fois avec (bocal plein), et 0 à 3
+  fois s'il le vide sans arrêt.
 - **Moustache-Grappin** : près d'un anneau doré, appuyer sur **V** : la moustache de Malice s'y accroche.
   On se balance avec ← →, on saute pour se lancer, et on peut enchaîner les anneaux.
 
 Un badge se gagne en finissant son stage avec **Super Malice**, et il est gardé dans la sauvegarde (`badges`, et
 aussi à part, pour qu'un vieil onglet d'une ancienne version du jeu ne le fasse pas perdre). Il sert dans son stage,
-puis, une fois gagné, dans tous les niveaux d'après sur la carte. Avec Malice, la carte s'arrête au premier stage dont
+puis, une fois gagné, dans tous les niveaux d'après sur la carte (le Bocal à éclairs, lui, partout : `partout` dans
+`BADGE_INFO`, en haut de `js/game.js`). Avec Malice, la carte s'arrête au premier stage dont
 elle n'a pas le badge : il faut le faire pour aller plus loin (même si un autre personnage est déjà passé). Sur la
 carte, l'étoile d'un stage dont Malice n'a pas encore le badge scintille.
 Les badges ne sont que pour **Super Malice** : les autres personnages ont déjà leur pouvoir (et pas de moustache !).
@@ -474,6 +510,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | X | Lancer du caramel |
 | C | Lancer des chips |
 | V | Moustache-grappin (avec le badge) |
+| E (ou U) | Lancer un éclair au chocolat du bocal (avec le badge Bocal à éclairs) |
 | B | Pouvoir du personnage |
 | Échap ou P | Pause |
 | M | Couper le son |
@@ -481,7 +518,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 Sur tablette ou téléphone (à tenir à l'horizontale), des gros boutons apparaissent sur l'écran.
 Pas besoin de viser sans regarder : n'importe où sur la moitié droite de l'écran, on saute ; n'importe où
 sur la moitié gauche, on marche (◀ ou ▶ selon le côté où se pose le pouce). Les petits boutons
-(▼, caramel, chips, moustache) ne marchent que si on pose le doigt dessus, et un doigt garde son bouton
+(▼, caramel, chips, moustache, bocal) ne marchent que si on pose le doigt dessus, et un doigt garde son bouton
 jusqu'à ce qu'on le lève : on ne lance plus des chips en voulant sauter. Sur Android, le téléphone vibre
 un tout petit peu à chaque appui.
 Pour courir, c'est pareil avec le bouton ◀ ou ▶ (ou la manette) : un appui rapide, puis on rappuie
@@ -495,7 +532,8 @@ Quand Malice touche un drapeau, il se transforme en papillon : si elle perd une 
 (le papillon l'attend, posé en haut du mât). Le drapeau de l'arrivée devient un grand papillon étoilé qui lui tourne autour.
 
 Astuce : si on ne touche à rien pendant quelques secondes, Malice se tourne vers toi et fait une grimace.
-Une manette de jeu fonctionne aussi.
+Une manette de jeu fonctionne aussi : A (ou la croix vers le haut) pour sauter, X le caramel, B les chips, Y le
+pouvoir, L1 ou R1 la moustache-grappin, L2 ou R2 le bocal à éclairs, Start la pause.
 
 ## Difficulté (choisie au début)
 
@@ -514,7 +552,13 @@ La progression (jusqu'où on est arrivé sur la carte) est gardée dans le navig
 la plus loin (« 3-1 », « 2-stage »…) : si on ajoute des niveaux à un monde, on ne perd rien, et les anciennes
 sauvegardes (d'avant les mondes) sont reprises telles quelles (et le jeu écrit toujours l'ancien « unlocked », pour un vieil onglet).
 Une sauvegarde d'avant les badges gardés reçoit, une seule fois, les badges de tous les stages d'avant sa case la
-plus loin (la Roulade comprise, pour quelqu'un qui était déjà dans le monde 2) : elle n'est jamais bloquée. Pour tout
+plus loin (la Roulade comprise, pour quelqu'un qui était déjà dans le monde 2) : elle n'est jamais bloquée.
+La sauvegarde retient aussi les stages qu'elle connaît (`stages`, les noms de leurs badges ; sans ce champ, ceux
+d'avant le Bocal à éclairs). Quand un stage est ajouté sur le chemin (comme le Bocal à éclairs, après le monde 3), une
+Super Malice qui l'avait déjà dépassé (sa case la plus loin est après lui, et elle n'était pas arrêtée avant par un
+stage dont elle n'avait pas le badge) reçoit son badge, une seule fois : elle n'est ni bloquée ni renvoyée en arrière,
+et le stage reste ouvert sur la carte pour le jouer quand on veut. Une sauvegarde qui n'est pas encore arrivée au
+nouveau stage le fera, comme tout le monde. Pour tout
 effacer (badges compris) :
 sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 
@@ -525,7 +569,8 @@ La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
 `O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `f` = grenouille sauteuse,
 `x` = l'axe des ailes d'un moulin à vent (tout autour, rien de solide), `a` = petit nuage grognon,
-`z` = paratonnerre (une plaque de métal qu'on traverse par dessous, et qui grésille de temps en temps), `i` = lucioles, `j` = fleur-lanterne,
+`z` = paratonnerre (une plaque de métal qu'on traverse par dessous, et qui grésille de temps en temps), `%` = bouchon en
+chocolat (seul un éclair lancé avec le bocal le fait fondre), `i` = lucioles, `j` = fleur-lanterne,
 `J` = liane, `q` = écureuil, `k` = nid, `p` = le nid secret de l'oisillon qui donne une vie…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
 par la lune : `clairDeLune`), monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne),
@@ -584,9 +629,11 @@ Un **nouveau monde** s'ajoute **à la fin** de `WORLDS` (sinon les numéros des 
 Si un niveau a un `world` qui n'est pas dans `WORLDS`, il n'apparaît pas et la console du navigateur le dit.
 
 Pour tester directement un niveau : `index.html?niveau=1-2` (monde 1, niveau 2), ou `index.html?niveau=3`
-(le premier niveau du monde 3 : c'est aussi l'ancien « niveau 3 »), ou un stage d'entraînement : `index.html?stage=1`
-(le 1er stage sur le chemin de la carte : maintenant la Roulade ; `?stage=2` le Super Saut, `?stage=3` la
-Moustache-Grappin), ou par le nom de son badge : `?stage=roulade`, `?stage=saut`, `?stage=grappin`.
+(le premier niveau du monde 3 : c'est aussi l'ancien « niveau 3 »), ou un stage d'entraînement : `index.html?stage=N`,
+le N-ième stage sur le chemin de la carte (maintenant : `?stage=1` la Roulade, `?stage=2` le Super Saut, `?stage=3`
+le Bocal à éclairs, `?stage=4` la Moustache-Grappin ; attention, un stage ajouté plus tôt sur le chemin décale les
+numéros : avant le Bocal à éclairs, `?stage=3` était la Moustache-Grappin), ou, ce qui ne change jamais, par le nom
+de son badge : `?stage=roulade`, `?stage=saut`, `?stage=bocal`, `?stage=grappin`.
 Avec ces raccourcis, Malice a, pour l'essai, les badges des stages d'avant ce niveau (ils ne sont pas gardés : un
 badge ne se gagne qu'en finissant son stage avec Malice, jamais avec un autre personnage).
 On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=difficile`.
@@ -612,6 +659,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | La Vallée des Orages (la Vallée des Orages, le Moulin à Vent, la Crue) | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
   | Le Phare sur la Falaise | la même, un peu moins vite : la mélodie aux cuivres comme une corne de brume, une cloche de bouée qui répond en écho (glockenspiel), des cordes en tenue qui roulent comme la mer |
   | Le combat contre Bourrasque | une tarentelle, qui tourne comme sa toupie : do mineur en 12/8 à toute allure, la mélodie à l'accordéon, la guitare qui gratte « oum-pa-pa », la contrebasse qui sautille, le tambourin et ses grelots ; au refrain, les cordes tourbillonnent avec un grand coup de vent, et à la fin le glockenspiel tombe comme des grêlons |
+  | Stage du Bocal à éclairs | funk, tout électrique : basse « slap » qui saute d'octave, clavinet sur les contretemps (accords de neuvième), la mélodie aux cuivres tout en staccato, le saxophone au milieu, charleston en doubles croches et caisse claire avec des notes fantômes |
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |

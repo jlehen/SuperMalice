@@ -620,6 +620,30 @@ const Sound = (() => {
       noise({ filter: 'lowpass', f: 600, f2: 90, d: 0.9, v: 0.35 });
       tone({ type: 'sawtooth', f: 1600, f2: 120, d: 0.3, v: 0.06, vib: 50, vibDepth: 400 });
     },
+    // le bocal à éclairs : un éclair au chocolat tombe dedans (cling ! sur le verre, et ça grésille un tout petit peu) ;
+    // plein (le 3e) : une petite montée en plus
+    bocalCatch(full) {
+      tone({ type: 'sine', f: 2350, d: 0.22, v: 0.09 });
+      tone({ type: 'sine', f: 3520, d: 0.16, v: 0.04, delay: 0.02 });
+      noise({ filter: 'bandpass', f: 4200, d: 0.12, v: 0.06, q: 3, delay: 0.05 });
+      if (full) arp([784, 988, 1319], { type: 'triangle', d: 0.12, v: 0.1, gap: 0.06, delay: 0.12 });
+    },
+    // Malice relance un éclair : fiouuu, avec un bzz électrique
+    bocalThrow() {
+      tone({ type: 'sawtooth', f: 300, f2: 1300, d: 0.18, v: 0.05, vib: 60, vibDepth: 120 });
+      noise({ filter: 'highpass', f: 3000, f2: 6000, d: 0.16, v: 0.08 });
+    },
+    // l'éclair lancé électrise un ennemi : bzzzt !
+    bocalZap() {
+      tone({ type: 'sawtooth', f: 900, f2: 160, d: 0.3, v: 0.07, vib: 50, vibDepth: 260 });
+      noise({ filter: 'highpass', f: 3500, d: 0.28, v: 0.14 });
+    },
+    // il retombe par terre sans rien toucher : pfft, un petit grésillement qui s'éteint
+    bocalFizzle() {
+      noise({ filter: 'bandpass', f: 3000, f2: 800, d: 0.22, v: 0.08, q: 2 });
+    },
+    // le bocal est vide : un petit « tuc » sur le verre
+    bocalEmpty() { tone({ type: 'sine', f: 1500, f2: 1200, d: 0.07, v: 0.05 }); },
     // la plaque grésille : krrzz
     rodCrackle() {
       noise({ filter: 'bandpass', f: rand(2500, 5000), d: 0.07, v: 0.09, q: 2 });

@@ -67,6 +67,8 @@
 //   I  plateforme qui monte (3 cases)
 //   T  fleur qui parle (ses phrases sont dans "talk", dans l'ordre)
 //   @  anneau doré pour la moustache-grappin
+//   %  bouchon en chocolat (solide ; seul un éclair au chocolat lancé avec le bocal le fait fondre, avec les % collés
+//      au-dessus et en dessous)
 //   Z  trophée du badge (fin d'un stage d'entraînement)
 //   P  départ de Malice          !  drapeau (on y repart si on perd une vie)
 //   G  arrivée du niveau         N  le bébé oiseau (on le sauve dans le volcan)
@@ -74,7 +76,9 @@
 //   &  le boss du niveau (voir "boss" ; ses pieds sur le sol de la case du dessous)
 //
 //  "storms" : les colonnes où tombent les éclairs au chocolat [début, fin] (dans un niveau où l'on grimpe :
-//             [début, fin, rangée], seulement quand Malice marche sur le sol de cette rangée).
+//             [début, fin, rangée], seulement quand Malice marche sur le sol de cette rangée). Avec une seule
+//             colonne ([c, c]), l'éclair tombe toujours au même endroit (un petit nuage qui gronde au-dessus : on se met
+//             dessous pour l'attraper avec le bocal, comme dans le Défi du Bocal à éclairs).
 //  "winds" : les colonnes où souffle le vent [début, fin, sens] (1 = vers la droite, -1 = vers la gauche).
 //  "updrafts" : les colonnes où l'air monte [début, fin, rangée] : avec un pissenlit, on remonte
 //             jusqu'à cette rangée (des feuilles s'envolent pour qu'on les voie).
@@ -810,6 +814,44 @@ const LEVELS = [
       '#############################################################################',
       '#############################################################################',
       '#############################################################################',
+    ],
+  },
+  {
+    world: 3,
+    name: "Le Défi du Bocal à éclairs",
+    theme: "storm",
+    badge: "bocal",
+    intro: "",
+    // les petits nuages en chocolat d'un seul endroit ([c, c]) : leur éclair tombe toujours au même endroit, on se met
+    // juste dessous pour l'attraper ; et un orage plus large, où l'on ramasse aussi les éclairs tombés par terre (pas
+    // jusqu'aux fleurs de chaque côté : on les lit sans être électrocutée)
+    storms: [[18, 18], [31, 31], [58, 65], [115, 115]],
+    talk: [
+      "Bienvenue au stage d'entraînement\u00a0! Termine-le pour gagner le badge Bocal à éclairs.",
+      "Tu as un bocal\u00a0! Là-bas, un petit nuage en chocolat gronde. Va juste dessous et ne bouge plus\u00a0: l'éclair au chocolat tombe tout droit dans ton bocal\u00a0! Quand il est plein, le petit nuage se repose.",
+      "Ton éclair est dans le bocal, en haut de l'écran\u00a0! Sous le rocher, un gros œil, puis un bouchon en chocolat\u00a0: lance-leur tes éclairs avec {BOCAL}. Bzzz, l'œil est électrisé et le bouchon fond\u00a0! (Bocal vide\u00a0? Va sous le petit nuage.)",
+      "Ici, les éclairs tombent un peu partout. Celui qui tombe à côté de toi grésille par terre\u00a0: attends qu'il ait fini, puis ramasse-le\u00a0! Ton bocal tient 3 éclairs. Quand il est plein, attention\u00a0: les éclairs font mal\u00a0!",
+      "Les grenouilles\u00a0! Lance-leur tes éclairs avec {BOCAL}, de loin, avant qu'elles te sautent dessus\u00a0!",
+      "Le dernier défi\u00a0! Remplis ton bocal sous le petit nuage\u00a0: trois éclairs. Puis, dans le grand tunnel, deux gros yeux et un bouchon en chocolat\u00a0: lance tes éclairs à la suite\u00a0!",
+      "Bravo\u00a0! Va chercher ton badge\u00a0!",
+    ],
+    // (les autres personnages n'ont pas de bocal : pour eux, pas de bouchons en chocolat ; ce stage n'est pas sur
+    // leur chemin, seulement pour l'essai : ?stage=bocal&perso=licorne)
+    sansBadges: { add: [[9, 45, "."], [10, 45, "."], [9, 144, "."], [10, 144, "."]] },
+    map: [
+      '.....................................#########............................................................................#######################.................',
+      '.....................................#########............................................................................#######################.................',
+      '.....................................#########............................................................................#######################.................',
+      '.....................................#########............................................................................#######################.................',
+      '.....................................#########............................................................................#######################.................',
+      '.....................................#########............................................................................#######################.................',
+      '.....................................#########............................................................................#######################.................',
+      '.....................................#########..........o.o.o...o.o.o.....................................................#######################.................',
+      '.....................................#########........................................y......y............................#######################.................',
+      '.............................................%..................................................................................................%...........Z.....',
+      '..P..T....T..ooo.....!..T..o.o........o.o.E..%......T......ooo.........T.!..........f.....f.....f....o.o.o..T.!.............o...E..o..E..o......%.....T...#####...',
+      '###################################.###########.########################################################################.#########################.###############',
+      '##################################################################################################################################################################',
     ],
   },
   {
