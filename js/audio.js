@@ -170,6 +170,19 @@ const Sound = (() => {
           for (let i = 0; i < 5; i++) noise({ filter: 'highpass', f: 4200, d: 0.03, v: 0.16, delay: i * 0.035 });
           tone({ type: 'triangle', f: 900, f2: 1700, d: 0.18, v: 0.1, delay: 0.05, vib: 30, vibDepth: 90 });
           break;
+        case 'croak': // splatch ! une grenouille lui tombe dessus (et plouf, elle devient toute verte)
+          noise({ filter: 'lowpass', f: 1200, f2: 250, d: 0.2, v: 0.3 });
+          tone({ type: 'sine', f: 700, f2: 260, d: 0.25, v: 0.16, vib: 16, vibDepth: 60 });
+          break;
+        case 'shake': // splash ! toute la pluie d'un coup sur la tête
+          noise({ filter: 'bandpass', f: 1600, f2: 600, d: 0.35, v: 0.32, q: 0.8 });
+          tone({ type: 'sine', f: 900, f2: 380, d: 0.2, v: 0.1 });
+          break;
+        case 'hail': // tic ! un grêlon sur la tête, et des petites clochettes de glace qui tournent
+          tone({ type: 'sine', f: 2600, f2: 1900, d: 0.08, v: 0.25 });
+          noise({ filter: 'highpass', f: 5000, d: 0.05, v: 0.18 });
+          arp([2349, 2794, 3136, 2794], { type: 'sine', d: 0.1, v: 0.04, gap: 0.08 });
+          break;
         default: break;
       }
     },
@@ -525,6 +538,118 @@ const Sound = (() => {
       tone({ type: 'triangle', f: 700 + i * 45, f2: 1150 + i * 60, d: 0.14, v: 0.07, delay: 0.04, vib: 24, vibDepth: 60 });
     },
 
+    // ---- Le Moulin à Vent ----
+    // Malice coasse : « Croa ! » (une voix qui grince, un peu plus aiguë la deuxième fois)
+    croak(i) {
+      const f = 190 + (i || 0) * 40;
+      tone({ type: 'sawtooth', f, f2: f * 0.8, d: 0.12, v: 0.1, vib: 38, vibDepth: 45 });
+      tone({ type: 'sawtooth', f: f * 1.15, f2: f * 0.75, d: 0.16, v: 0.1, delay: 0.13, vib: 38, vibDepth: 45 });
+    },
+    // la grenouille coasse de joie sous la pluie : rrribbit (tout doux)
+    frogCroak() {
+      tone({ type: 'square', f: 260, f2: 200, d: 0.09, v: 0.035, vib: 50, vibDepth: 40 });
+      tone({ type: 'square', f: 300, f2: 220, d: 0.1, v: 0.035, delay: 0.11, vib: 50, vibDepth: 40 });
+    },
+    // elle se ramasse avant de sauter : un petit ressort qui se tend
+    frogCrouch() {
+      tone({ type: 'triangle', f: 420, f2: 180, d: 0.22, v: 0.08 });
+    },
+    // boiiing ! (plus long pour le grand saut)
+    frogJump(big) {
+      tone({ type: 'sine', f: 240, f2: big ? 1300 : 800, d: big ? 0.32 : 0.18, v: 0.14 });
+    },
+    // elle retombe : splotch
+    frogLand() {
+      noise({ filter: 'lowpass', f: 900, f2: 300, d: 0.12, v: 0.16 });
+    },
+
+    // ---- La Crue ----
+    // la rivière déborde : un grondement sourd, et des gros gloups
+    floodRise() {
+      noise({ filter: 'lowpass', f: 320, f2: 110, d: 1.3, v: 0.4 });
+      tone({ type: 'sine', f: 74, f2: 52, d: 1.2, v: 0.22 });
+      for (let i = 0; i < 3; i++) tone({ type: 'sine', f: 220 + i * 40, f2: 560 + i * 80, d: 0.09, v: 0.07, delay: 0.25 + i * 0.22 });
+    },
+    // l'eau qui monte fait gloup
+    floodGlug() {
+      tone({ type: 'sine', f: 240, f2: 620, d: 0.08, v: 0.05 });
+      tone({ type: 'sine', f: 200, f2: 520, d: 0.08, v: 0.04, delay: 0.13 });
+    },
+    // elle s'arrête : ouf (trois petites notes qui montent)
+    floodStop() { arp([523, 659, 784], { type: 'triangle', d: 0.12, v: 0.06, gap: 0.08 }); },
+    // un petit nuage grognon qui suit Malice : mrrmm…
+    cloudGrumble() {
+      tone({ type: 'sawtooth', f: 115, f2: 92, d: 0.45, v: 0.05, vib: 9, vibDepth: 12 });
+      tone({ type: 'triangle', f: 150, f2: 125, d: 0.3, v: 0.04, delay: 0.12 });
+    },
+    // il se fâche, il devient tout noir : un petit tonnerre
+    cloudThunder() {
+      noise({ filter: 'lowpass', f: 500, f2: 140, d: 0.6, v: 0.25 });
+      tone({ type: 'sawtooth', f: 90, f2: 70, d: 0.4, v: 0.05, vib: 12, vibDepth: 15 });
+    },
+    // il pleut : chhhhh
+    cloudRain() {
+      noise({ filter: 'highpass', f: 2600, d: 1.1, v: 0.12 });
+      noise({ filter: 'bandpass', f: 900, d: 1.1, v: 0.08, q: 0.7 });
+    },
+    // pouf ! il éclate de rire : hi hi hi
+    cloudPouf() {
+      noise({ f: 1600, f2: 300, d: 0.16, v: 0.22 });
+      arp([988, 1175, 988, 1319], { type: 'triangle', d: 0.07, v: 0.07, gap: 0.09, vib: 18, vibDepth: 40 });
+    },
+    // Malice s'ébroue comme un chien : brrrrrr, et les gouttes qui volent
+    shakeOff() {
+      tone({ type: 'sawtooth', f: 130, f2: 110, d: 0.7, v: 0.06, vib: 28, vibDepth: 30 });
+      for (let i = 0; i < 6; i++) noise({ filter: 'highpass', f: 3000, d: 0.04, v: 0.1, delay: 0.05 + i * 0.1 });
+    },
+    // ses pas tout mouillés : flic, floc
+    squish() {
+      noise({ filter: 'lowpass', f: 800, f2: 300, d: 0.07, v: 0.09 });
+      tone({ type: 'sine', f: 520, f2: 320, d: 0.05, v: 0.035 });
+    },
+
+    // ---- Le Phare sur la Falaise ----
+    // un paratonnerre va grésiller : bzz… (u : de 0 à 1, de plus en plus aigu et fort)
+    rodHum(u) {
+      tone({ type: 'sawtooth', f: 110 + 230 * u, f2: 130 + 260 * u, d: 0.09, v: 0.025 + 0.03 * u, vib: 60, vibDepth: 25 });
+      tone({ type: 'square', f: 220 + 460 * u, d: 0.06, v: 0.012 + 0.012 * u });
+    },
+    // la foudre tombe sur sa pointe : crac ! et un grondement
+    rodStrike() {
+      noise({ filter: 'highpass', f: 2500, d: 0.25, v: 0.3 });
+      noise({ filter: 'lowpass', f: 600, f2: 90, d: 0.9, v: 0.35 });
+      tone({ type: 'sawtooth', f: 1600, f2: 120, d: 0.3, v: 0.06, vib: 50, vibDepth: 400 });
+    },
+    // le bocal à éclairs : un éclair au chocolat tombe dedans (cling ! sur le verre, et ça grésille un tout petit peu) ;
+    // plein (le 3e) : une petite montée en plus
+    bocalCatch(full) {
+      tone({ type: 'sine', f: 2350, d: 0.22, v: 0.09 });
+      tone({ type: 'sine', f: 3520, d: 0.16, v: 0.04, delay: 0.02 });
+      noise({ filter: 'bandpass', f: 4200, d: 0.12, v: 0.06, q: 3, delay: 0.05 });
+      if (full) arp([784, 988, 1319], { type: 'triangle', d: 0.12, v: 0.1, gap: 0.06, delay: 0.12 });
+    },
+    // Malice relance un éclair : fiouuu, avec un bzz électrique
+    bocalThrow() {
+      tone({ type: 'sawtooth', f: 300, f2: 1300, d: 0.18, v: 0.05, vib: 60, vibDepth: 120 });
+      noise({ filter: 'highpass', f: 3000, f2: 6000, d: 0.16, v: 0.08 });
+    },
+    // l'éclair lancé électrise un ennemi : bzzzt !
+    bocalZap() {
+      tone({ type: 'sawtooth', f: 900, f2: 160, d: 0.3, v: 0.07, vib: 50, vibDepth: 260 });
+      noise({ filter: 'highpass', f: 3500, d: 0.28, v: 0.14 });
+    },
+    // il retombe par terre sans rien toucher : pfft, un petit grésillement qui s'éteint
+    bocalFizzle() {
+      noise({ filter: 'bandpass', f: 3000, f2: 800, d: 0.22, v: 0.08, q: 2 });
+    },
+    // le bocal est vide : un petit « tuc » sur le verre
+    bocalEmpty() { tone({ type: 'sine', f: 1500, f2: 1200, d: 0.07, v: 0.05 }); },
+    // la plaque grésille : krrzz
+    rodCrackle() {
+      noise({ filter: 'bandpass', f: rand(2500, 5000), d: 0.07, v: 0.09, q: 2 });
+      tone({ type: 'sawtooth', f: rand(90, 140), d: 0.08, v: 0.03, vib: 70, vibDepth: 40 });
+    },
+
     // les lucioles se mettent à suivre Malice : des petites clochettes qui scintillent
     fireflies() {
       arp([1568, 2093, 2349, 3136], { type: 'sine', d: 0.22, v: 0.045, gap: 0.08 });
@@ -657,6 +782,64 @@ const Sound = (() => {
     bloom(i) { tone({ type: 'sine', f: 1200 + (i % 6) * 160, d: 0.18, v: 0.05 }); },
     // Ronchon fait un câlin : mmmh ! (deux notes douces qui montent)
     hug() { arp([660, 880, 1320], { type: 'triangle', d: 0.25, v: 0.12, gap: 0.1 }); },
+
+    // ---- Bourrasque, le nuage enrhumé, et sa toupie (le boss de la Vallée des Orages) ----
+    // il ronfle, le nez bouché : rrrron… snif !
+    gustSnore() {
+      tone({ type: 'sawtooth', f: 95, f2: 82, d: 0.6, v: 0.04, vib: 22, vibDepth: 10, a: 0.2 });
+      noise({ filter: 'bandpass', f: 1200, f2: 2600, d: 0.18, v: 0.07, q: 2, delay: 0.75 });
+    },
+    // snif !
+    gustSniff() { noise({ filter: 'bandpass', f: 1400, f2: 3000, d: 0.16, v: 0.09, q: 2 }); },
+    // il se mouche : POUÊÊÊT ! (comme une trompette enrouée)
+    gustHonk() {
+      tone({ type: 'sawtooth', f: 330, f2: 290, d: 0.55, v: 0.08, vib: 9, vibDepth: 14, a: 0.03 });
+      tone({ type: 'square', f: 660, f2: 560, d: 0.45, v: 0.025, vib: 9, vibDepth: 20, a: 0.03 });
+      noise({ filter: 'bandpass', f: 900, d: 0.5, v: 0.08, q: 1.5 });
+    },
+    // sa toupie arrive : fffffouuu (un tourbillon de vent)
+    toupieWhirl() { noise({ filter: 'bandpass', f: 300, f2: 1400, d: 0.8, v: 0.16, q: 1.2, a: 0.2 }); },
+    // elle aspire : un grand souffle qui monte
+    toupieSuck() {
+      noise({ filter: 'bandpass', f: 1800, f2: 400, d: 1.0, v: 0.14, q: 1.4, a: 0.3 });
+      tone({ type: 'sine', f: 180, f2: 120, d: 0.9, v: 0.06, vib: 7, vibDepth: 18 });
+    },
+    // elle emporte Malice tout là-haut : wiiiii !
+    toupieLift() {
+      tone({ type: 'triangle', f: 320, f2: 1400, d: 0.9, v: 0.1, vib: 16, vibDepth: 40 });
+      noise({ filter: 'bandpass', f: 500, f2: 2200, d: 0.9, v: 0.1, q: 1.5 });
+    },
+    // on saute sur le nuage : pouf ! (tout mou)
+    cloudPouf() {
+      noise({ filter: 'lowpass', f: 900, f2: 200, d: 0.3, v: 0.32 });
+      tone({ type: 'sine', f: 260, f2: 520, d: 0.25, v: 0.16 });
+    },
+    // la toupie a des chatouilles : hi hi !
+    giggle() { arp([1320, 1568, 1320, 1760], { type: 'triangle', d: 0.07, v: 0.07, gap: 0.075 }); },
+    // elle éclate de rire : HA HA HA HA !
+    laugh() {
+      for (let i = 0; i < 5; i++) tone({ type: 'triangle', f: 760 - i * 40, f2: 600 - i * 40, d: 0.12, v: 0.1, delay: i * 0.16, vib: 20, vibDepth: 30 });
+    },
+    // la grêle se forme dans un petit nuage : cric-crac
+    hailForm() { for (let i = 0; i < 4; i++) noise({ filter: 'highpass', f: 4200, d: 0.03, v: 0.1, delay: i * 0.07 }); },
+    // un grêlon rebondit par terre : tic !
+    hailLand() {
+      tone({ type: 'sine', f: 3100, f2: 2500, d: 0.07, v: 0.1 });
+      noise({ filter: 'highpass', f: 6000, d: 0.04, v: 0.08 });
+    },
+    // une cloche sonne (i : laquelle des trois) : ding !
+    bellDing(i) {
+      const f = [784, 988, 1175][i % 3];
+      tone({ type: 'sine', f, d: 1.4, v: 0.12 });
+      tone({ type: 'sine', f: f * 2.76, d: 0.6, v: 0.04 });
+      tone({ type: 'triangle', f: f * 0.5, d: 0.9, v: 0.05 });
+    },
+    // l'arc-en-ciel apparaît : un grand glissando de clochettes
+    rainbow() { arp([523, 659, 784, 988, 1175, 1319, 1568, 2093], { type: 'sine', d: 0.35, v: 0.07, gap: 0.08 }); },
+    // il pleure : une grosse averse
+    downpour() { noise({ filter: 'lowpass', f: 2600, f2: 1800, d: 1.7, v: 0.12, a: 0.25 }); },
+    // la petite brise qui s'envole : fffiou
+    breeze() { noise({ filter: 'bandpass', f: 700, f2: 2400, d: 1.2, v: 0.08, q: 1.5, a: 0.2 }); },
     // il redevient gentil : un petit air tout content
     scareFriend() { arp([523, 659, 784, 1047, 784, 1047], { type: 'triangle', d: 0.14, v: 0.14, gap: 0.09 }); },
   };

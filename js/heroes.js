@@ -14,7 +14,7 @@
 //           sur l'écran de choix pour le faire apparaître (jusqu'au prochain chargement du jeu)
 // =====================================================================
 const HEROES = [
-  { id: 'malice', name: 'Super Malice', call: 'Malice', power: 'L\'héroïne', desc: 'Elle seule gagne les badges\u00a0: roulade, super saut et moustache-grappin\u00a0!', headY: -46 },
+  { id: 'malice', name: 'Super Malice', call: 'Malice', power: 'L\'héroïne', desc: 'Elle seule gagne les badges\u00a0: roulade, super saut, bocal à éclairs et moustache-grappin\u00a0!', headY: -46 },
   { id: 'lutin', name: 'Le Lutin', call: 'Lutin', power: 'Bloc magique', desc: '{POUVOIR}\u00a0: un bloc lutin apparaît sous tes pieds, monte dessus\u00a0!', headY: -44 },
   { id: 'biche', name: 'La Biche', call: 'Biche', power: 'Double saut', desc: 'Saute une deuxième fois en l\'air\u00a0!', headY: -50 },
   { id: 'bonbon', name: 'Gros Bonbon', call: 'Gros Bonbon', power: 'Boule rebondissante', desc: 'Reste appuyé sur {POUVOIR}\u00a0: tu roules en boule et tu rebondis très haut\u00a0!', headY: -36 },
@@ -259,8 +259,14 @@ const Heroes = (() => {
       case 'scramble': return { color: `hsl(${Math.floor(k.t * 900) % 360},90%,55%)`, a: 0.55 * clamp(left / 0.5, 0, 1) };
       case 'hypno': return { color: '#b070ff', a: 0.25 * clamp(left / 0.5, 0, 1) };
       case 'wet': return { color: '#3a8ae8', a: 0.3 * clamp(left / 0.5, 0, 1) };
+      // trempé par la pluie d'un petit nuage (il s'ébroue comme un chien)
+      case 'shake': return { color: '#3a8ae8', a: 0.25 * clamp(left / 0.5, 0, 1) };
+      // un grêlon sur la tête : un peu bleu de froid
+      case 'hail': return { color: '#7ab8f0', a: 0.2 * clamp(left / 0.5, 0, 1) };
       case 'slime': return { color: '#8ee05a', a: 0.38 * clamp(left / 0.5, 0, 1) };
       case 'dirt': return { color: '#7a4a24', a: 0.38 * clamp(left / 0.5, 0, 1) };
+      // tout vert (la grenouille), puis il reprend sa couleur après avoir coassé deux fois
+      case 'croak': return { color: '#3ed03a', a: 0.6 * clamp(k.t / 0.12, 0, 1) * clamp(left / 0.5, 0, 1) };
       // tout rouge d'avoir été piqué, au début
       // (ensuite plus rien : inutile de redessiner le personnage à part)
       case 'pins': return k.t < 0.6 ? { color: '#ff5a6a', a: 0.22 * (1 - k.t / 0.6) } : null;
@@ -305,6 +311,21 @@ const Heroes = (() => {
       if (turn.whirl > 0) Art.spinWhirl(ctx, x, cy, (-top / 2 + 10) * sc, o.ouch.t, turn.whirl);
       return;
     }
+    // trempé par la pluie d'un petit nuage, il s'ébroue comme un chien : tout son corps se tortille de gauche à droite
+    // (autour du milieu de son corps), voir Art.shakeTilt
+    const tilt = o.ouch && o.ouch.kind === 'shake' && !o.shook ? Art.shakeTilt(o.ouch) : 0;
+    if (tilt) {
+      const top = id === 'malice' || !HERO_BY_ID[id] ? -62 : HERO_BY_ID[id].headY - 16;
+      const cy = y + (top / 2) * (o.scale || 1);
+      ctx.save();
+      ctx.translate(x, cy);
+      ctx.rotate(tilt);
+      ctx.scale(1 + Math.abs(tilt) * 0.3, 1 - Math.abs(tilt) * 0.15);
+      ctx.translate(-x, -cy);
+      draw(ctx, id, x, y, Object.assign({}, o, { shook: true }));
+      ctx.restore();
+      return;
+    }
     if (id === 'malice' || !DRAW[id]) {
       Art.malice(ctx, x, y, Object.assign({}, o, {
         palette: o.star ? Art.maliceRainbow(o.t || 0) : o.palette,
@@ -346,11 +367,14 @@ const Heroes = (() => {
       Art.koStars(ctx, k, t);
       ctx.restore();
     }
+    // un grêlon sur la tête : des étoiles et des flocons tournent autour (comme les étoiles quand il est sonné)
+    if (k && k.kind === 'hail') Art.hailStars(ctx, k, t, info.headY - 22, 18);
     if (k && k.kind === 'spots') Art.spotsOverlay(ctx, k);
-    if (k && k.kind === 'wet') Art.wetOverlay(ctx, k, info.headY - 12);
+    if (k && (k.kind === 'wet' || k.kind === 'shake')) Art.wetOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'slime') Art.slimeOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'dirt') Art.dirtOverlay(ctx, k, info.headY - 12);
     if (k && k.kind === 'pins') Art.pinsOverlay(ctx, k, head);
+    if (k && k.kind === 'croak') Art.croakOverlay(ctx, k, info.headY, head[0]);
     // le bébé oiseau assis sur la tête
     if (o.onHead) {
       const [hx, hy] = head;

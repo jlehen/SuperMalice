@@ -15,9 +15,30 @@
 // boarSee : à combien de cases un sanglier voit Malice ; boarWarn : combien de temps il gratte le sol avant de
 // foncer (on peut lui sauter dessus) ; boarRush : sa vitesse quand il fonce ; boarDizzy : combien de temps il
 // reste étourdi après s'être cogné (on peut lui sauter dessus) ; boarWalk : sa vitesse quand il se promène.
+// frogSee : à combien de cases une grenouille sauteuse saute sur Malice ; frogWarn : combien de temps elle se ramasse
+// avant (son ombre est déjà là où elle va retomber) ; frogAir : combien de temps elle reste en l'air pendant ce grand
+// saut (plus long : on a plus de temps pour s'écarter de l'ombre) ; frogRest : combien de temps elle reste assise
+// entre deux sauts [au moins, au plus] (on peut lui sauter dessus).
+// millTurn : le temps que mettent les ailes d'un moulin à vent à faire un tour (secondes).
+// floodSpeed : la vitesse de l'eau qui monte, dans la Crue (pixels par seconde ; plus lente tout près de Malice, plus
+// rapide quand elle est loin en dessous, voir Flood) ; floodWarn : combien de temps la rivière bouillonne avant de
+// monter ; floodBack : après un plouf, l'eau redescend au moins à tant de cases sous l'endroit où Malice ressort ;
+// floodPause : et elle attend ce temps-là avant de remonter (secondes).
+// cloudSpeed : la vitesse d'un petit nuage grognon qui suit Malice ; cloudWarn : combien de temps il se fâche (il devient
+// tout noir) avant de pleuvoir (on peut sauter dedans, ou s'écarter) ; cloudRest : combien de temps il reste vide après
+// avoir plu [au moins, au plus]. soakTime : combien de temps Malice reste trempée (elle avance moins vite ; depuis la
+// pluie, le temps qu'elle s'ébroue compris : OUCH.shake dure 1,6 s) ;
+// soakSlow : sa vitesse quand elle est trempée (une part de sa vitesse).
+// rodRest : combien de temps un paratonnerre reste tranquille (le Phare sur la Falaise) ; rodWarn : combien de temps ça
+// s'annonce avant qu'il grésille (le petit nuage, les étincelles, le bourdonnement : on a le temps d'en descendre) ;
+// rodZap : combien de temps il grésille (secondes). Toujours au même rythme : on peut le guetter.
 // vineReach : à combien de pixels du milieu de Malice on attrape une liane (le Vieux Chêne).
 // bossK : la vitesse des boss (et de leurs attaques) ; plus petit, ils sont plus lents et attendent plus longtemps.
 // acornHits : combien de gros glands il faut renvoyer sur le nez de Pépé Chêne pour le battre (la dernière manche).
+// Bourrasque (le boss de la Vallée des Orages) : gustHops : combien de fois il faut lui sauter sur la tête (la première
+// manche, depuis sa toupie) ; gustTickles : combien de chatouilles avec la plume pour que sa toupie éclate de rire (la
+// deuxième) ; gustBells : combien de temps une cloche sonne (la dernière : l'arc-en-ciel n'apparaît que si les trois
+// sonnent en même temps ; Infinity : elle sonne jusqu'au bout).
 const DIFFS = {
   bebe: {
     name: 'Bébé', lives: Infinity, eyeChase: 90, cubeFuse: 2.5, shootMin: 3.6, shootMax: 5,
@@ -26,7 +47,12 @@ const DIFFS = {
     snailSpeed: 18, padShake: 1.5, moleDig: 90, moleWarn: 0.9, moleOut: 2.6, bossK: 0.7, acornHits: 2,
     hogSpeed: 26, hogNear: 2.2, hogCurl: 1.3, hogOpen: 2.6,
     boarSee: 4.5, boarWarn: 1.7, boarRush: 230, boarDizzy: 3.4, boarWalk: 30,
+    frogSee: 4, frogWarn: 1.3, frogAir: 1.6, frogRest: [2.6, 3.4], millTurn: 12,
+    floodSpeed: 12, floodWarn: 2.5, floodBack: 4.5, floodPause: 3,
+    cloudSpeed: 60, cloudWarn: 1.4, cloudRest: [3.5, 4.5], soakTime: 2.6, soakSlow: 0.75,
+    rodRest: 5, rodWarn: 3, rodZap: 1,
     vineReach: 46,
+    gustHops: 2, gustTickles: 2, gustBells: Infinity,
   },
   gentil: {
     name: 'Gentil', lives: Infinity, eyeChase: 115, cubeFuse: 1.9, shootMin: 2.8, shootMax: 3.8,
@@ -35,7 +61,12 @@ const DIFFS = {
     snailSpeed: 24, padShake: 0.95, moleDig: 115, moleWarn: 0.7, moleOut: 1.9, bossK: 1, acornHits: 3,
     hogSpeed: 34, hogNear: 2.6, hogCurl: 1.6, hogOpen: 2.0,
     boarSee: 5, boarWarn: 1.35, boarRush: 285, boarDizzy: 2.8, boarWalk: 36,
+    frogSee: 4.5, frogWarn: 1.05, frogAir: 1.4, frogRest: [2.1, 2.9], millTurn: 11,
+    floodSpeed: 18, floodWarn: 2, floodBack: 4, floodPause: 2.5,
+    cloudSpeed: 80, cloudWarn: 1.15, cloudRest: [2.8, 3.6], soakTime: 3, soakSlow: 0.7,
+    rodRest: 4.2, rodWarn: 2.5, rodZap: 1.1,
     vineReach: 40,
+    gustHops: 2, gustTickles: 3, gustBells: 16,
   },
   classique: {
     name: 'Classique', lives: 3, eyeChase: 135, cubeFuse: 1.55, shootMin: 2.2, shootMax: 3.2,
@@ -44,7 +75,12 @@ const DIFFS = {
     snailSpeed: 28, padShake: 0.8, moleDig: 135, moleWarn: 0.58, moleOut: 1.6, bossK: 1.15, acornHits: 4,
     hogSpeed: 40, hogNear: 3, hogCurl: 1.9, hogOpen: 1.6,
     boarSee: 5.5, boarWarn: 1.1, boarRush: 335, boarDizzy: 2.3, boarWalk: 40,
+    frogSee: 5, frogWarn: 0.85, frogAir: 1.25, frogRest: [1.7, 2.5], millTurn: 10,
+    floodSpeed: 24, floodWarn: 1.6, floodBack: 3.5, floodPause: 2,
+    cloudSpeed: 100, cloudWarn: 0.95, cloudRest: [2.2, 3], soakTime: 3.4, soakSlow: 0.65,
+    rodRest: 3.5, rodWarn: 2.1, rodZap: 1.2,
     vineReach: 36,
+    gustHops: 3, gustTickles: 4, gustBells: 11,
   },
   difficile: {
     name: 'Difficile', lives: 3, eyeChase: 155, cubeFuse: 1.3, shootMin: 1.7, shootMax: 2.6,
@@ -53,7 +89,12 @@ const DIFFS = {
     snailSpeed: 32, padShake: 0.65, moleDig: 155, moleWarn: 0.48, moleOut: 1.35, bossK: 1.3, acornHits: 5,
     hogSpeed: 46, hogNear: 3.4, hogCurl: 2.2, hogOpen: 1.25,
     boarSee: 6, boarWarn: 0.9, boarRush: 380, boarDizzy: 1.9, boarWalk: 44,
+    frogSee: 5.5, frogWarn: 0.7, frogAir: 1.1, frogRest: [1.3, 2.1], millTurn: 9,
+    floodSpeed: 30, floodWarn: 1.2, floodBack: 3, floodPause: 1.5,
+    cloudSpeed: 120, cloudWarn: 0.8, cloudRest: [1.6, 2.4], soakTime: 3.8, soakSlow: 0.6,
+    rodRest: 2.9, rodWarn: 1.7, rodZap: 1.3,
     vineReach: 34,
+    gustHops: 4, gustTickles: 5, gustBells: 8,
   },
 };
 
@@ -117,7 +158,15 @@ const BADGE_INFO = {
   roulade: { name: 'Roulade', desc: 'Pour rouler, {ROULADE} !' },
   saut: { name: 'Super Saut', desc: 'Accroupis-toi, puis saute deux fois plus haut !' },
   grappin: { name: 'Moustache-Grappin', desc: 'Accroche ta moustache aux anneaux dorés !' },
+  // partout : une fois gagné, le badge sert aussi dans les niveaux d'avant son stage (voir hasBadge) : le bocal
+  // attrape les éclairs de tous les orages, ceux de la Vallée compris, quand on y rejoue
+  bocal: { name: 'Bocal à éclairs', desc: 'Attrape les éclairs au chocolat, et relance-les avec {BOCAL} !', partout: true },
 };
+// Le plus d'éclairs au chocolat que tient le bocal (badge Bocal à éclairs).
+const BOCAL_MAX = 3;
+// Les stages qui existaient avant qu'on garde, dans la sauvegarde, la liste des stages qu'elle connaît (« stages ») :
+// voir Game.init.
+const OLD_STAGES = ['roulade', 'saut', 'grappin'];
 
 // La musique d'un niveau (voir music.js) : une par monde (celle de son monde, même si le niveau
 // a un autre décor, comme les Grands Arbres dans la Prairie), une par stage d'entraînement.
@@ -138,6 +187,8 @@ const Game = {
   score: 0,
   caramel: 0,
   chips: 0,
+  // les éclairs au chocolat dans le bocal de Malice (badge Bocal à éclairs ; au plus BOCAL_MAX)
+  bocal: 0,
   world: null,
   // les gros yeux bonbons déjà attrapés dans le niveau en cours (« colonne,rangée »)
   caughtEyes: new Set(),
@@ -176,6 +227,19 @@ const Game = {
     if (!Array.isArray(this.save.badges)) {
       this.save.badges = TRAINING_LEVELS.filter((i) => ORDER_POS[i] < keyPos(this.save.reach)).map((i) => LEVELS[i].badge);
     }
+    // Les stages que la sauvegarde connaît déjà (« stages » : les noms de leurs badges ; sans ce champ, ceux d'avant
+    // le Bocal à éclairs). Un stage ajouté depuis sur le chemin (comme le Bocal à éclairs, après le monde 3), que
+    // Super Malice avait déjà dépassé, ne la bloque pas et ne la renvoie pas en arrière : son badge lui est offert,
+    // une seule fois (le stage reste ouvert sur la carte, pour le jouer quand on veut). « Déjà dépassé » : avant sa
+    // case la plus loin, et avant le premier stage connu dont elle n'avait pas le badge (là où elle s'arrêtait).
+    const known = Array.isArray(this.save.stages) ? this.save.stages : OLD_STAGES;
+    const stop = TRAINING_LEVELS.find((i) => known.includes(LEVELS[i].badge) && !this.save.badges.includes(LEVELS[i].badge));
+    const passed = Math.min(keyPos(this.save.reach), stop === undefined ? Infinity : ORDER_POS[stop]);
+    for (const i of TRAINING_LEVELS) {
+      const b = LEVELS[i].badge;
+      if (!known.includes(b) && ORDER_POS[i] < passed && !this.save.badges.includes(b)) this.save.badges.push(b);
+    }
+    this.save.stages = TRAINING_LEVELS.map((i) => LEVELS[i].badge);
     this.setReach(this.save.reach);
     this.diffKey = DIFFS[this.save.difficulty] ? this.save.difficulty : 'gentil';
     this.diff = DIFFS[this.diffKey];
@@ -225,9 +289,10 @@ const Game = {
     });
 
     // Raccourcis pour tester : ?niveau=1-2 lance le niveau 2 du monde 1, ?niveau=3 le 1er niveau
-    // du monde 3 (c'est aussi l'ancien niveau 3), ?stage=1 le 1er stage d'entraînement sur le chemin
-    // (la Roulade ; ?stage=2 le Super Saut… ou par son nom : ?stage=roulade, ?stage=saut, ?stage=grappin),
-    // ?perso=licorne joue avec la licorne.
+    // du monde 3 (c'est aussi l'ancien niveau 3), ?stage=N le N-ième stage d'entraînement sur le chemin
+    // (1 la Roulade, 2 le Super Saut, 3 le Bocal à éclairs, 4 la Moustache-Grappin : un stage ajouté plus tôt
+    // sur le chemin décale les numéros ; par son nom, ça ne change jamais : ?stage=roulade, ?stage=saut,
+    // ?stage=bocal, ?stage=grappin), ?perso=licorne joue avec la licorne.
     const params = new URLSearchParams(location.search);
     if (params.get('personnages') === 'tous') this.roster = HEROES.map((h) => h.id);
     const perso = params.get('perso');
@@ -636,6 +701,7 @@ const Game = {
     this.score = 0;
     this.caramel = 0;
     this.chips = 0;
+    this.bocal = 0;
     if (levelIdx !== undefined) this.startLevel(levelIdx);
   },
 
@@ -893,6 +959,8 @@ const Game = {
   step(dt) {
     this.t += dt;
     this.stateT += dt;
+    // (le bocal du HUD qui sursaute quand un éclair y entre ou en sort)
+    if (this.bocalPop > 0) this.bocalPop -= dt * 4;
     const w = this.world;
     switch (this.state) {
       case 'intro':
@@ -1266,9 +1334,20 @@ const Game = {
       drawOutlinedText(ctx, power, bx + 8, 113, 15, '#ffe680', 'left');
       bx += 30 + ctx.measureText(power).width;
     }
-    for (const b of ['roulade', 'saut', 'grappin']) {
+    for (const b of ['roulade', 'saut', 'bocal', 'grappin']) {
       if (!this.hasBadge(b)) continue;
       Art.badge(ctx, bx, 114, 14, b, t);
+      if (b === 'bocal') {
+        // le bocal et ses éclairs (il tremble un peu quand on vient d'en attraper un, voir bocalPop)
+        const pop = Math.max(0, this.bocalPop || 0);
+        ctx.fillStyle = 'rgba(40,10,60,0.32)';
+        roundRectPath(ctx, bx + 18, 92, this.isTouch ? 46 : 74, 44, 16);
+        ctx.fill();
+        Art.bocal(ctx, bx + 41, 116, 0.62 * (1 + pop * 0.25), this.bocal, t);
+        if (!this.isTouch) this.keyCap(ctx, bx + 76, 114, 'E');
+        bx += this.isTouch ? 76 : 104;
+        continue;
+      }
       if (b === 'grappin' && !this.isTouch) this.keyCap(ctx, bx + 26, 112, 'V');
       bx += b === 'grappin' && !this.isTouch ? 64 : 38;
     }
@@ -1326,7 +1405,7 @@ const Game = {
     ctx.fillText(label, x, y + 1);
   },
 
-  // Seule Super Malice gagne les badges (roulade, super saut, moustache-grappin) :
+  // Seule Super Malice gagne les badges (roulade, super saut, bocal à éclairs, moustache-grappin) :
   // les autres personnages ont leur pouvoir, et ils passent les stages d'entraînement.
   withBadges() {
     return this.hero === 'malice';
@@ -1335,10 +1414,13 @@ const Game = {
   // Un badge sert dans son stage (pour l'apprendre), puis, une fois gagné (save.badges), sur tout le chemin
   // après lui (les niveaux d'avant restent comme ils ont été pensés). lent : les badges prêtés par un
   // raccourci pour tester (?niveau=…), jamais gardés.
+  // (Un badge « partout », comme le bocal à éclairs, sert aussi dans les niveaux d'avant, une fois gagné.)
   hasBadge(b) {
     const at = BADGE_AT[b];
-    if (!this.withBadges() || at === undefined || ORDER_POS[this.levelIndex] < ORDER_POS[at]) return false;
-    return this.levelIndex === at || this.save.badges.includes(b) || this.lent.includes(b);
+    if (!this.withBadges() || at === undefined) return false;
+    if (this.levelIndex === at) return true;
+    if (ORDER_POS[this.levelIndex] < ORDER_POS[at] && !BADGE_INFO[b].partout) return false;
+    return this.save.badges.includes(b) || this.lent.includes(b);
   },
 
   // Le niveau qui vient après i sur le chemin de la carte (-1 : c'était le dernier).
@@ -1366,6 +1448,7 @@ const Game = {
       .replace(/\{GRAPPIN\}/g, touch ? 'le bouton moustache' : 'la touche V')
       .replace(/\{CARAMEL\}/g, touch ? 'le bouton caramel' : 'la touche X')
       .replace(/\{CHIPS\}/g, touch ? 'le bouton chips' : 'la touche C')
+      .replace(/\{BOCAL\}/g, touch ? 'le bouton bocal' : 'la touche E')
       .replace(/\{FLECHES\}/g, touch ? '◀ ▶' : '← →')
       .replace(/\{AVANCER\}/g, touch ? 'le bouton ▶' : 'la flèche →')
       .replace(/\{GAUCHE\}/g, touch ? 'le bouton ◀' : 'la flèche ←');
@@ -1374,6 +1457,7 @@ const Game = {
   // ---------- Boutons tactiles ----------
   updateTouchUI() {
     $('#t-grapple').classList.toggle('hidden', !this.hasBadge('grappin'));
+    $('#t-bocal').classList.toggle('hidden', !this.bocalButton());
     $('#t-power').classList.toggle('hidden', this.hero === 'malice');
     if (this.powerIcon !== this.hero) {
       this.powerIcon = this.hero;
@@ -1385,6 +1469,12 @@ const Game = {
     const map = this.state === 'map' || this.state === 'mapask';
     $('#hudbtns').classList.toggle('show', playing || this.state === 'pause' || map);
     $('#btn-pause').classList.toggle('hidden', map);
+  },
+
+  // Le bouton bocal (tablette) n'est là que quand il sert : dans un niveau où il y a des orages, ou quand le bocal
+  // contient un éclair. Ailleurs, cet endroit de l'écran reste au saut (comme pour Malice sans le badge).
+  bocalButton() {
+    return this.hasBadge('bocal') && (this.bocal > 0 || !!(this.world && this.world.storms.length > 0));
   },
 
   updateTouchCounts() {
@@ -1403,6 +1493,16 @@ const Game = {
       this.lastH = h;
       $('#t-chips').classList.toggle('empty', h <= 0);
       $('#t-chips .count').textContent = h;
+    }
+    // le bouton bocal : son dessin montre les éclairs qu'il y a dedans
+    const b = this.bocal;
+    if (b !== this.lastB) {
+      this.lastB = b;
+      const el = $('#t-bocal');
+      el.classList.toggle('empty', b <= 0);
+      el.classList.toggle('hidden', !this.bocalButton());
+      el.querySelector('canvas').dataset.n = b;
+      this.drawIcons(el);
     }
   },
 
@@ -1446,6 +1546,8 @@ const Game = {
         case 'badge-saut': Art.badge(g, c, c - 4, 17, 'saut', 0); break;
         case 'badge-grappin': Art.badge(g, c, c - 4, 17, 'grappin', 0); break;
         case 'badge-roulade': Art.badge(g, c, c - 4, 17, 'roulade', 0); break;
+        case 'badge-bocal': Art.badge(g, c, c - 4, 17, 'bocal', 0); break;
+        case 'bocal': Art.bocal(g, c, c + 2, 0.62, cv.dataset.n === undefined ? BOCAL_MAX : parseInt(cv.dataset.n, 10), 0); break;
         case 'mustache':
           Art.anchorRing(g, c, 16, 0, {});
           Art.mustacheRope(g, c, 44, c, 16, 0, true);

@@ -373,6 +373,8 @@ kbd {
 .tb.small { width: calc(var(--tb) * 0.8); height: calc(var(--tb) * 0.8); flex-direction: column; font-size: calc(var(--tb) * 0.22); font-weight: 700; }
 #t-caramel { right: calc(var(--tb) * 1.55); bottom: calc(var(--tb) * 2.22); }
 #t-chips { right: calc(var(--tb) * 0.35); bottom: calc(var(--tb) * 2.5); }
+/* le bocal à éclairs : à la place du bouton pouvoir (seule Super Malice a le bocal, et elle n'a pas de pouvoir) */
+#t-bocal { right: calc(var(--tb) * 2.32); bottom: calc(var(--tb) * 1.2); width: calc(var(--tb) * 0.9); height: calc(var(--tb) * 0.9); background: rgba(255, 190, 90, 0.35); }
 .tb.empty { opacity: 0.25; }
 .tb .count { line-height: 1; }
 

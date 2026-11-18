@@ -527,6 +527,67 @@ const Music = (() => {
     return S.out({ drumV: 0.6 });
   }
 
+  // 3-4. Le Phare sur la Falaise : la Vallée (do mineur), un peu moins vite ; la mélodie aux cuivres, comme une corne
+  // de brume, et une cloche de bouée qui lui répond en écho (le glockenspiel, tout en haut) ; les arpèges électriques
+  // de l'orage, la basse en pédale, et des cordes en tenue qui roulent comme la mer. Au milieu, la mélodie passe à la
+  // basse, comme dans la Vallée.
+  function stormLighthouse() {
+    const S = new Song({ bpm: 172, mode: MINOR });
+    const ARP = [rep(16, (k) => [k * 0.25, 0.22, 'a' + [0, 1, 2, 3, 2, 1, 2, 3][k % 8]])];
+    const PEDAL = [rep(8, (k) => [k * 0.5, 0.45, k % 2 ? 'O' : 'R'])];
+    const PAD = [[[0, 3.9, 'C']]];
+    const hats = rep(8, (i) => [i * 0.5, 'h', i % 2 ? 0.45 : 0.7]);
+    const D = [[[0, 'k'], [1, 's'], [2, 'k'], [2.5, 'k', 0.6], [3, 's'], ...hats]];
+    const FILL = [[0, 'k'], [1, 's'], [2, 's', 0.7], [2.25, 's', 0.6], [2.5, 't'], [2.75, 't', 0.8], [3, 's'], [3.25, 's', 0.8], [3.5, 's', 0.9], [3.75, 's']];
+    const base = (p) => {
+      p.pattern('arp', 'pluck', 0.05, ARP, { low: 60 });
+      p.pattern('bass', 'synbass', 0.12, PEDAL);
+      p.pattern('pad', 'strings', 0.03, PAD, { low: 55 });
+    };
+    const bell = (p) => p.melody('bell', 'glock', 0.05, { delay: 0.5, oct: 1, top: true });
+    S.part(SECT.I, (p) => { p.melody('lead', 'brass', 0.14); p.pattern('bass', 'synbass', 0.12, PEDAL); p.drums(D, { fill: FILL, crash: true }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.14); bell(p); base(p); p.drums(D, { crash: true }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.14); bell(p); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.B, (p) => { p.melody('lead', 'saw', 0.17); bell(p); base(p); p.drums(D, { crash: true }); });
+    S.part(SECT.B, (p) => {
+      p.melody('bassmel', 'synbass', 0.16, { oct: -2, top: true });
+      p.pattern('arp', 'pluck', 0.05, ARP, { low: 67 });
+      p.pattern('pad', 'strings', 0.04, PAD, { low: 60 });
+      p.drums(D, { fill: FILL, crash: true });
+    });
+    S.part(SECT.C, (p) => { p.melody('lead', 'brass', 0.14); bell(p); base(p); p.drums(D, { fill: FILL, crash: true }); });
+    return S.out({ drumV: 0.55 });
+  }
+
+  // 3-4. Le combat contre Bourrasque : une tarentelle, qui tourne comme sa toupie ! La Vallée en do mineur, mais en
+  // 12/8 et à toute allure : la mélodie à l'accordéon, la guitare qui gratte ses accords sur les deux dernières croches
+  // de chaque temps (oum-pa-pa), la contrebasse qui sautille, et le tambourin qui secoue ses grelots. Au refrain, les
+  // cordes tourbillonnent par-dessus, avec un grand coup de vent ; à la fin, le glockenspiel, comme des grêlons.
+  function bossStorm() {
+    const S = new Song({ bpm: 138, warp: swing(2 / 3), mode: MINOR });
+    const T = 1 / 3;
+    const OOMPA = [rep(4, (b) => [[b, 0.3, b % 2 ? '5L' : 'R'], [b + T, 0.18, 'C', 0.55], [b + 2 * T, 0.18, 'C', 0.7]]).flat()];
+    const tamb = rep(12, (i) => [i * T, 'y', i % 3 === 0 ? 0.75 : i % 3 === 1 ? 0.3 : 0.45]);
+    const D = [[[0, 'k', 0.8], [2, 'k', 0.6], [1 + 2 * T, 'w', 0.5], [3 + 2 * T, 'w', 0.6], ...tamb]];
+    const FILL = [[0, 'k'], [1, 't', 0.7], [1 + T, 't', 0.75], [1 + 2 * T, 't', 0.8], [2, 's', 0.6], [2 + T, 's', 0.7], [2 + 2 * T, 's', 0.8], [3, 's', 0.9], [3 + T, 's'], [3 + 2 * T, 'k']];
+    const base = (p) => {
+      p.pattern('bass', 'upright', 0.17, OOMPA.map((bar) => bar.filter(([, , w]) => w !== 'C')));
+      p.pattern('strum', 'guitar', 0.045, OOMPA.map((bar) => bar.filter(([, , w]) => w === 'C')), { low: 57 });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'accordion', 0.075); base(p); p.drums(D, { crash: 0.5 }); p.hit(0, 'n', 0.6); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'accordion', 0.075); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'accordion', 0.075); p.melody('mando', 'pizz', 0.1, { oct: 1, top: true, gate: 0.5 }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.B, (p) => {
+      p.melody('lead', 'strings', 0.07);
+      p.melody('acc', 'accordion', 0.05, { oct: -1, top: true });
+      base(p);
+      p.drums(D, { crash: 0.7, fill: FILL });
+      p.hit(0, 'n', 0.7);
+    });
+    S.part(SECT.C2, (p) => { p.melody('lead', 'accordion', 0.075, { top: true }); p.melody('hail', 'glock', 0.045, { oct: 1, top: true, delay: T }); base(p); p.drums(D, { fill: FILL }); });
+    return S.out({ drumV: 0.7 });
+  }
+
   // 4. Les Pentes du Volcan : valse à 3/4 en mode lydien (fa♯), accordéon, tuba « oum-pa-pa » et glockenspiel.
   function mountain() {
     const S = new Song({ bpm: 172, meter: 3, warp: waltz, mode: LYD, modeChords: false, chordMap: { F: 'D', G7: 'Gmaj7', Bb: 'Bb', Db: 'Db' } });
@@ -569,6 +630,36 @@ const Music = (() => {
     S.part(SECT.B, (p) => { p.melody('lead', 'vibes', 0.09); base(p); p.drums(D, { fill: FILL }); });
     S.part(SECT.D, (p) => { p.melody('lead', 'brass', 0.23); base(p); p.drums(D, { crash: 0.5, fill: FILL }); });
     return S.out({ drumV: 1.2 });
+  }
+
+  // Stage du Bocal à éclairs : funk, tout électrique ! Grosse caisse et caisse claire bien carrées avec des notes
+  // fantômes, charleston en doubles croches ; basse « slap » qui saute d'octave en doubles croches, clavinet qui
+  // gratte des petits accords de neuvième sur les contretemps, la mélodie aux cuivres tout en staccato (comme une
+  // section de cuivres de funk), et le saxophone au milieu.
+  function funk() {
+    const S = new Song({
+      bpm: 110,
+      chordMap: { C: 'C9', F: 'F9', G: 'G9', G7: 'G9', Ab: 'Ab9', Bb: 'Bb9', Db: 'Db9' },
+    });
+    const SLAP = [[[0, 0.2, 'R'], [0.5, 0.12, 'O', 0.75], [0.75, 0.2, 'R', 0.8], [1.5, 0.12, 'O'], [2, 0.2, 'R'], [2.75, 0.12, 'F', 0.7], [3, 0.12, 'O'], [3.5, 0.2, 'A', 0.85]]];
+    const CLAV = [
+      [[0.25, 0.1, 'G'], [0.75, 0.1, 'G', 0.6], [1.25, 0.1, 'G'], [1.75, 0.1, 'G', 0.55], [2.25, 0.1, 'G'], [2.5, 0.1, 'G', 0.5], [3.25, 0.1, 'G'], [3.75, 0.1, 'G', 0.6]],
+      [[0.25, 0.1, 'G'], [0.75, 0.1, 'G', 0.6], [1.5, 0.1, 'G', 0.7], [2.25, 0.1, 'G'], [2.75, 0.1, 'G', 0.55], [3.25, 0.1, 'G'], [3.5, 0.1, 'G', 0.5]],
+    ];
+    const hats = rep(16, (i) => [i * 0.25, 'h', i % 2 ? 0.32 : 0.62]);
+    const D = [[[0, 'k'], [0.75, 'k', 0.55], [1, 's'], [1.75, 's', 0.22], [2.5, 'k', 0.8], [3, 's'], [3.25, 's', 0.25], [3.75, 'k', 0.45], [3.5, 'o', 0.5], ...hats]];
+    const FILL = [[0, 'k'], [1, 's'], [1.75, 's', 0.4], [2, 's', 0.6], [2.25, 's', 0.65], [2.5, 's', 0.7], [2.75, 't', 0.8], [3, 't'], [3.25, 's', 0.8], [3.5, 's', 0.9], [3.75, 's']];
+    const base = (p) => {
+      p.pattern('bass', 'synbass', 0.15, SLAP);
+      p.pattern('clav', 'pluck', 0.05, CLAV, { low: 58 });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'brass', 0.2, { gate: 0.55 }); base(p); p.drums(D, { crash: 0.6 }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.2, { gate: 0.55 }); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.2, { gate: 0.55 }); p.melody('bone', 'brass', 0.08, { oct: -1, top: true, gate: 0.55 }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.B, (p) => { p.melody('sax', 'reed', 0.12, { top: true }); base(p); p.drums(D, { crash: 0.5 }); });
+    S.part(SECT.C2, (p) => { p.melody('lead', 'brass', 0.2, { top: true, gate: 0.55 }); p.melody('sax', 'reed', 0.05, { oct: -1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'brass', 0.2, { gate: 0.55 }); p.melody('bone', 'brass', 0.08, { oct: -1, top: true, gate: 0.55 }); base(p); p.drums(D, { crash: 0.6, fill: FILL }); });
+    return S.out({ drumV: 0.8 });
   }
 
   // 5. Le Cœur du Volcan : marche épique en mineur, pédale d'orgue, timbales, cuivres et cordes.
@@ -765,6 +856,9 @@ const Music = (() => {
     'boss-foret': bossForest(),
     'badge-saut': bossa(),
     storm: storm(),
+    'storm-phare': stormLighthouse(),
+    'boss-orage': bossStorm(),
+    'badge-bocal': funk(),
     mountain: mountain(),
     'badge-grappin': swingJazz(),
     volcano: volcano(),

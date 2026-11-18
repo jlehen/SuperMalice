@@ -120,6 +120,7 @@
                 <tr><td><kbd>X</kbd></td><td>Lancer du caramel</td></tr>
                 <tr><td><kbd>C</kbd></td><td>Lancer des chips</td></tr>
                 <tr><td><kbd>V</kbd></td><td>Moustache-grappin (badge de Malice)</td></tr>
+                <tr><td><kbd>E</kbd></td><td>Lancer un éclair du bocal (badge de Malice)</td></tr>
                 <tr><td><kbd>B</kbd></td><td>Pouvoir du personnage</td></tr>
                 <tr><td><kbd>Échap</kbd> ou <kbd>P</kbd></td><td>Pause</td></tr>
                 <tr><td><kbd>M</kbd></td><td>Couper le son</td></tr>
@@ -132,6 +133,7 @@
               <h3>Les badges (seulement pour Super Malice)</h3>
               <p class="row"><canvas data-icon="badge-roulade" width="36"></canvas><span><b>Roulade</b>&nbsp;: garde → appuyé et appuie sur ↓ (sur tablette&nbsp;: en marchant, glisse le pouce de ▶ jusqu'à ▼)&nbsp;: en boule, tu passes sous les obstacles et les ennemis&nbsp;!</span></p>
               <p class="row"><canvas data-icon="badge-saut" width="36"></canvas><span><b>Super Saut</b>&nbsp;: accroupis-toi (↓) puis saute, beaucoup plus haut.</span></p>
+              <p class="row"><canvas data-icon="badge-bocal" width="36"></canvas><span><b>Bocal à éclairs</b>&nbsp;: sous un éclair au chocolat qui tombe, ton bocal l'attrape (jusqu'à 3)&nbsp;; appuie sur E (sur tablette&nbsp;: le bouton bocal) pour le relancer sur un ennemi&nbsp;!</span></p>
               <p class="row"><canvas data-icon="badge-grappin" width="36"></canvas><span><b>Moustache-Grappin</b>&nbsp;: près d'un anneau doré, appuie sur V, balance-toi puis saute&nbsp;!</span></p>
             </div>
             <div class="col">
@@ -198,6 +200,7 @@
         <div class="tb small item empty" id="t-chips" data-btn="chips"><canvas data-icon="chips" width="30"></canvas><span class="count">0</span></div>
         <div class="tb grapple hidden" id="t-grapple" data-btn="grapple"><canvas data-icon="mustache" width="34"></canvas></div>
         <div class="tb power hidden" id="t-power" data-btn="power"><canvas data-icon="power" width="50"></canvas></div>
+        <div class="tb small item empty bocal hidden" id="t-bocal" data-btn="bocal"><canvas data-icon="bocal" width="40"></canvas></div>
         <div class="tb jump" data-btn="jump">⤒</div>
       </div>
     </div>
@@ -233,6 +236,7 @@
   <script src="js/boss.js"></script>
   <script src="js/boss/epouvantail.js"></script>
   <script src="js/boss/chene.js"></script>
+  <script src="js/boss/bourrasque.js"></script>
   <script src="js/world.js"></script>
   <script src="js/levels.js"></script>
   <script src="js/carte.js"></script>

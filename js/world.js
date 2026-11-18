@@ -1,10 +1,13 @@
 'use strict';
 
 const LUTIN_BLOCKS = 'LFKCS';
+// le bouchon en chocolat (le Défi du Bocal à éclairs) : il est solide, et seul un éclair au chocolat lancé avec le
+// bocal le fait fondre (voir meltPlug)
+const PLUG = '%';
 // u : bloc magique du Lutin (il disparaît tout seul)
-const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || LUTIN_BLOCKS.includes(ch);
-// plateformes qu'on traverse par dessous : planche, nuage… ou pont arc-en-ciel
-const isLedgeCh = (ch) => ch === '-' || ch === '=';
+const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || ch === PLUG || LUTIN_BLOCKS.includes(ch);
+// plateformes qu'on traverse par dessous : planche, nuage… pont arc-en-ciel, ou paratonnerre (le Phare sur la Falaise)
+const isLedgeCh = (ch) => ch === '-' || ch === '=' || ch === 'z';
 // l'eau de la rivière (la Rivière aux Nénuphars)
 const WATER = '_';
 // la bave des escargots : elle glisse pendant SLIME_WET secondes, puis elle sèche (et disparaît à SLIME_TIME)
@@ -22,8 +25,16 @@ const CAM_HEAD_MIN = 40;
 // hauteur de l'écran (on voit bien l'étage du dessus) ; sa tête n'est jamais à moins de CLIMB_TOP pixels du haut de
 // l'écran, ni ses pieds à moins de CLIMB_BOTTOM pixels du bas
 const CLIMB_FEET = 0.78;
+const CLIMB_FEET_CRUE = 0.66;
 const CLIMB_TOP = 36;
 const CLIMB_BOTTOM = 24;
+// le Phare sur la Falaise : sa grande lumière fait un tour en turn secondes (elle a deux faisceaux) ;
+// le fond, autour du phare : la mer au loin (voir Scenery BG.storm), et depuis la falaise, le phare tout petit au loin
+// (far : de 1, bien visible, à 0 ; ang : sa lumière, voir render)
+const LIGHTHOUSE = { turn: 7 };
+const LIGHTHOUSE_BG = { sea: true, far: 0, ang: 0 };
+// un orage qui n'est que sur un étage apparaît en fondu, sur STORM_FADE pixels de glissement de l'écran
+const STORM_FADE = 150;
 // Une tache de lumière (pour percer le noir) : dessinée une fois, puis agrandie à la taille de chaque lumière.
 let LIGHT_BLOB = null;
 function lightBlob() {
@@ -67,6 +78,20 @@ class World {
     this.projectiles = [];
     this.hazards = [];
     this.platforms = [];
+    // le Moulin à Vent : les moulins (leurs planches sont dans platforms), et la pluie ("pluie")
+    this.mills = [];
+    this.rain = !!def.pluie;
+    this.rainT = 0;
+    // la Crue : l'eau de la rivière qui déborde et monte (voir Flood ; créée plus bas, quand on sait où Malice repart)
+    this.flood = null;
+    // le Phare sur la Falaise : les paratonnerres (z : leurs plaques restent dans les cases, voir LightningRod), et le
+    // phare ("phare" : sa tour et sa galerie, dans le décor ; le rocher : passé le rocher, l'écran reste à sa droite)
+    this.rods = [];
+    const ph = def.phare;
+    this.lighthouse = ph ? {
+      x0: ph.tour[0] * TILE, x1: (ph.tour[1] + 1) * TILE, top: ph.galerie * TILE,
+      rock0: ph.rocher[0], rock1: ph.rocher[1], rockX: ph.rocher[0] * TILE, foot: this.height,
+    } : null;
     this.checkpoints = [];
     this.flowers = [];
     this.critters = [];
@@ -186,12 +211,19 @@ class World {
           case 'm': this.enemies.push(new Mole(this, mx, by)); break;
           case 'h': this.enemies.push(new Hedgehog(this, mx - 20, by - 30)); break;
           case 's': this.enemies.push(new Boar(this, mx - 28, by - 40)); break;
+          case 'f': this.enemies.push(new Frog(this, mx - 20, by - 30)); break;
+          // le moulin à vent : l'axe de ses ailes (ses planches sont des plateformes, voir Windmill)
+          case 'x': this.mills.push(new Windmill(this, mx, y + TILE / 2)); break;
+          // la Crue : un petit nuage grognon (il flotte au-dessus du sol de son étage)
+          case 'a': this.enemies.push(new GrumpyCloud(this, mx, y + TILE / 2)); break;
           case '&':
             this.boss = Boss.create(this, def.boss, mx, by);
             if (this.boss) this.enemies.push(this.boss);
             break;
           case 'i': this.fireflies.push(new Fireflies(this, mx, y + TILE / 2)); break;
           case 'j': this.glows.push({ x: mx, y: by, v: hash2(c, r) }); break;
+          // le Phare sur la Falaise : la plaque d'un paratonnerre (elle reste dans les cases : voir findRods)
+          case 'z': keep = true; break;
           case 'n':
           case 'c':
             // un nénuphar posé sur l'eau (sous lui, la rivière continue)
@@ -228,6 +260,8 @@ class World {
         if (!keep) this.tiles[r][c] = '.';
       }
     }
+    // (le sol du départ, P : dans un niveau où l'on grimpe, on y marche comme dans un niveau ordinaire, voir Checkpoint)
+    this.startFloor = start.y;
     // (le boss cache l'arrivée jusqu'à ce qu'il soit battu, et appelle ses aides)
     if (this.boss) this.boss.setup();
     // les fleurs parlent dans l'ordre, de gauche à droite (pendant le retour, c'est le bébé oiseau) ;
@@ -260,10 +294,22 @@ class World {
     this.player.y = start.y - this.player.h;
     // (si elle tombe à l'eau et que l'endroit où elle était a disparu, elle ressort ici)
     this.startPos = { x: start.x, y: start.y, pad: null };
+    // la Crue : à la reprise d'un drapeau, l'eau est arrêtée sous l'étage du drapeau (voir Flood)
+    if (def.crue) this.flood = new Flood(this, def.crue, start);
     // les escargots, les hérissons et les sangliers partent du côté opposé à l'endroit où Malice apparaît
     // (au début, ou à un drapeau) : ils ne foncent pas tout de suite sur elle
     for (const e of this.enemies) {
       if (e instanceof Snail || e instanceof Hedgehog || e instanceof Boar) e.dir = e.cx < start.x ? -1 : 1;
+    }
+    // les paratonnerres (chaque suite de z côte à côte), numérotés de bas en haut
+    this.rods = this.findRods();
+    // (le pied du phare : le haut du sol, sous le milieu de sa tour)
+    if (this.lighthouse) {
+      const L = this.lighthouse;
+      const mid = Math.floor((L.x0 + L.x1) / 2 / TILE);
+      let r = this.rows;
+      while (r > 0 && isSolidCh(this.tileAt(mid, r - 1))) r--;
+      L.foot = r * TILE;
     }
     // le terrier : les trous cachés sous un bloc lutin, et les cases des galeries (voir burrowCells)
     this.shafts = this.findShafts();
@@ -289,7 +335,7 @@ class World {
   // (sinon Malice attraperait sans sauter celles qui flottent juste au-dessus de sa tête).
   treatY(kind, c, r) {
     const below = this.tileAt(c, r + 1);
-    if (isSolidCh(below) || below === '-') return (r + 1) * TILE - ITEM_SIZE[kind] / 2 - 3;
+    if (isSolidCh(below) || below === '-' || below === 'z') return (r + 1) * TILE - ITEM_SIZE[kind] / 2 - 3;
     return r * TILE + TILE / 2;
   }
 
@@ -383,12 +429,14 @@ class World {
 
   surfaceBelow(x, fromY) {
     const c = Math.floor(x / TILE);
-    for (let r = Math.max(0, Math.floor(fromY / TILE)); r < this.rows; r++) {
+    // (la Crue : l'eau qui a monté)
+    const f = this.flood && this.flood.y >= fromY ? this.flood.y : Infinity;
+    for (let r = Math.max(0, Math.floor(fromY / TILE)); r < this.rows && r * TILE < f; r++) {
       const ch = this.tileAt(c, r);
       if (isSolidCh(ch) || isLedgeCh(ch)) return r * TILE;
       if (ch === '~' || ch === WATER) return r * TILE + 12;
     }
-    return this.height + 200;
+    return f < Infinity ? f : this.height + 200;
   }
 
   // Au-dessus de la lave (ou du chocolat, ou de la boue) ? Il suffit d'un bout de Malice,
@@ -445,6 +493,8 @@ class World {
   // de la surface (sinon null).
   waterSurface(b, deep) {
     const feet = b.y + b.h;
+    // la Crue : l'eau remplit tout ce qui est vide sous sa surface
+    if (this.flood && feet > this.flood.y + deep) return this.flood.y;
     const r = Math.min(Math.floor((feet - 4) / TILE), this.rows - 1);
     const c0 = Math.floor((b.x + 4) / TILE);
     const c1 = Math.floor((b.x + b.w - 4) / TILE);
@@ -608,6 +658,27 @@ class World {
     return this.runsOf((c, r) => this.tiles[r][c] === '=').map(({ r, c0, c1 }) => (
       { x0: c0 * TILE, x1: (c1 + 1) * TILE, r, ph: hash2(c0, r) * 6 }
     ));
+  }
+
+  // ---------- Le Phare sur la Falaise ----------
+  // Les paratonnerres : chaque suite de z côte à côte, numérotés de bas en haut (un sur deux est à contretemps).
+  findRods() {
+    const runs = this.runsOf((c, r) => this.tiles[r][c] === 'z');
+    runs.sort((a, b) => b.r - a.r || a.c0 - b.c0);
+    return runs.map((o, k) => new LightningRod(this, o.c0, o.c1, o.r, k));
+  }
+
+  // La grande lumière du phare tourne (LIGHTHOUSE.turn secondes par tour) : son angle (0 : vers la droite ; π/2 : vers
+  // nous ; elle a deux faisceaux, l'un en face de l'autre : elle nous éclaire deux fois par tour, voir render).
+  beamAngle() {
+    return (this.t / LIGHTHOUSE.turn) * Math.PI * 2;
+  }
+
+  // Le phare, dans le décor (derrière tout) : sa tour, sa lanterne tout en haut et sa lumière qui tourne.
+  drawLighthouse(ctx, camX, camY) {
+    const L = this.lighthouse;
+    if (L.x1 < camX - 400 || L.x0 > camX + VIEW_W + 400) return;
+    Scenery.lighthouse(ctx, L.x0, L.x1, L.top, L.foot, camY, this.t, this.beamAngle());
   }
 
   // Les suites de cases côte à côte, sur une même rangée, pour lesquelles is(c, r) est vrai : [{ r, c0, c1 }].
@@ -845,6 +916,35 @@ class World {
     return broke;
   }
 
+  // Un éclair au chocolat lancé (le bocal à éclairs) touche un bouchon en chocolat : il fond, avec ceux qui sont
+  // collés au-dessus et en dessous (tout le bouchon d'un coup), et le passage est ouvert.
+  meltPlug(c, r) {
+    let r0 = r;
+    let r1 = r;
+    while (this.tileAt(c, r0 - 1) === PLUG) r0--;
+    while (this.tileAt(c, r1 + 1) === PLUG) r1++;
+    const cx = c * TILE + TILE / 2;
+    for (let k = r0; k <= r1; k++) {
+      this.tiles[k][c] = '.';
+      const cy = k * TILE + TILE / 2;
+      for (let i = 0; i < 6; i++) {
+        this.spawn({
+          type: 'debris', x: cx + rand(-16, 16), y: cy + rand(-16, 16),
+          vx: rand(-220, 220), vy: rand(-420, -120), g: 1600, life: 0.8, size: rand(7, 12),
+          color: i % 3 ? '#6b3a1f' : '#9a5a2e', vr: rand(-10, 10),
+        });
+      }
+      this.puff(cx, cy, '#c08a5e');
+    }
+    for (let i = 0; i < 10; i++) {
+      this.spawn({ type: 'spark', x: cx, y: (r1 + 0.5) * TILE, vx: rand(-240, 240), vy: rand(-260, -40), g: 600, life: 0.5, size: rand(4, 7), color: i % 2 ? '#fff59a' : '#ffffff' });
+    }
+    Sound.sfx.bocalZap();
+    Sound.sfx.splat();
+    this.shake(4);
+    this.popText(cx, r0 * TILE - 6, 'Ça fond !', '#ffe08a', 24);
+  }
+
   breakBlock(c, r) {
     let ch = this.tiles[r][c];
     // l'étoile, c'est seulement pour Super Malice : les autres ont déjà leur pouvoir (5 bonbons à la place)
@@ -957,9 +1057,10 @@ class World {
     this.shakeMag = Math.max(this.shakeMag, m);
   }
 
-  bubble(x, y, text, alpha) {
+  // (below : la bulle est sous (x, y), sa pointe vers le haut ; sinon au-dessus, sa pointe vers le bas)
+  bubble(x, y, text, alpha, below) {
     if (x < this.cam.x - 60 || x > this.cam.x + VIEW_W + 60) return;
-    this.bubbles.push({ x, y, text, alpha });
+    this.bubbles.push({ x, y, text, alpha, below: !!below });
   }
 
   // ---------- Mise à jour ----------
@@ -967,8 +1068,10 @@ class World {
     this.t += dt;
     const p = this.player;
     for (const pl of this.platforms) pl.update(dt);
+    for (const rod of this.rods) rod.update(dt);
     p.update(dt);
     if (this.arena) this.keepInArena(p);
+    if (this.flood) this.flood.update(dt);
     const left = this.cam.x - 300;
     const right = this.cam.x + VIEW_W + 260;
     for (const e of this.enemies) {
@@ -1006,6 +1109,7 @@ class World {
     this.updateWinds(dt);
     this.updateUpdrafts(dt);
     this.updateSlime(dt);
+    if (this.rain) this.updateRain(dt);
     this.updateLight(dt);
     for (const [k, v] of this.springs) {
       if (v > 0.4) this.springs.delete(k); else this.springs.set(k, v + dt);
@@ -1053,8 +1157,8 @@ class World {
 
   interactions() {
     const p = this.player;
-    // (sous l'eau, on ne touche rien)
-    if (p.dive > 0) return;
+    // (sous l'eau, on ne touche rien ; ni emportée par la toupie de Bourrasque, voir Player.carry)
+    if (p.dive > 0 || p.carry) return;
     const pb = { x: p.x + 3, y: p.y + 4, w: p.w - 6, h: p.h - 4 };
     // Mesuré avant le premier rebond : en tombant sur une coccinelle et sur son point noir
     // en même temps, on écrase les deux.
@@ -1126,9 +1230,20 @@ class World {
         else if (h instanceof Stalactite) h.crash();
       }
     }
+    // le bocal à éclairs (badge de Malice) : un éclair au chocolat qui tombe tout près d'elle, ou qui refroidit par
+    // terre, va dans son bocal s'il n'est pas plein (voir Eclair.catches) ; sinon, il fait mal comme d'habitude
+    const bocal = this.game.hasBadge('bocal') && !p.dead;
     for (const ec of this.eclairs) {
+      if (bocal && this.game.bocal < BOCAL_MAX && ec.catches(pb)) {
+        ec.caught(p);
+        continue;
+      }
       const b = ec.box();
       if (b && boxOverlap(pb, b.x, b.y, b.w, b.h)) p.hurt(b, 'zap');
+    }
+    // les pieds sur un paratonnerre qui grésille : électrocutée, comme par un éclair au chocolat
+    for (const rod of this.rods) {
+      if (rod.touches(p, pb) && p.hurt(rod.pushFrom(p), 'zap') && !p.dead) rod.eject(p);
     }
     const th = this.thornHit(pb);
     if (th) p.hurt(th, th.ouch);
@@ -1245,8 +1360,16 @@ class World {
     }
     if (p.dead || p.won) return;
     const col = p.cx / TILE;
-    const z = this.storms.find(([a, b]) => col >= a - 3 && col <= b + 2);
-    if (!z) {
+    // (dans un niveau où l'on grimpe, un orage peut n'être que sur un étage : [début, fin, rangée de son sol])
+    const z = this.storms.find(([a, b, r]) => col >= a - 3 && col <= b + 2 && (r === undefined || Math.abs(p.groundY - r * TILE) < TILE));
+    // (un petit nuage, d'une seule colonne, se repose quand le bocal de Malice est plein : on peut rester dessous
+    // sans être électrocutée ; c'est un orage plus large qui apprend que le bocal plein fait mal)
+    // (s'il grondait déjà, il se calme : l'éclair qu'il annonçait ne tombe pas)
+    const resting = z && z[0] === z[1] && this.game.hasBadge('bocal') && this.game.bocal >= BOCAL_MAX;
+    if (resting) {
+      for (const ec of this.eclairs) if (ec.phase === 'warn' && Math.abs(ec.x - (z[0] + 0.5) * TILE) < TILE) ec.dead = true;
+    }
+    if (!z || resting) {
       this.stormT = Math.max(this.stormT, 0.8);
       return;
     }
@@ -1256,6 +1379,21 @@ class World {
       let x = p.cx + p.facing * rand(-120, 380);
       x = clamp(x, z[0] * TILE + 24, (z[1] + 1) * TILE - 24);
       this.eclairs.push(new Eclair(this, x));
+    }
+  }
+
+  // La pluie (le Moulin à Vent) : des gouttes qui éclaboussent le sol, partout à l'écran (dessin : Scenery.rain).
+  updateRain(dt) {
+    this.rainT += dt * 30;
+    while (this.rainT >= 1) {
+      this.rainT--;
+      const x = this.cam.x + rand(0, VIEW_W);
+      const y = this.surfaceBelow(x, this.cam.y);
+      if (y > this.cam.y + VIEW_H || y >= this.height) continue;
+      this.spawn({ type: 'ring', x, y: y - 1, life: 0.22, size: rand(8, 14), color: 'rgba(220,240,255,0.7)', flat: true });
+      for (let i = 0; i < 2; i++) {
+        this.spawn({ type: 'dot', x, y: y - 2, vx: rand(-50, 50), vy: rand(-110, -50), g: 900, life: 0.22, size: rand(1.1, 1.7), color: '#e4f2ff' });
+      }
     }
   }
 
@@ -1364,6 +1502,9 @@ class World {
     tx = clamp(tx, 0, Math.max(0, this.width - VIEW_W));
     // dans le tronc du Vieux Chêne, l'écran reste entre ses deux murs (on ne voit pas dehors)
     if (this.trunk && this.insideTrunk(p)) tx = clamp(tx, this.trunk.x0, Math.max(this.trunk.x0, this.trunk.x1 - VIEW_W));
+    // passé le rocher du phare, l'écran reste à sa droite (on ne voit plus la falaise, tout en bas)
+    const L = this.lighthouse;
+    if (L && p.cx > (L.rock1 + 1) * TILE) tx = Math.max(tx, Math.min(L.rockX, this.width - VIEW_W));
     // pendant le combat contre un boss, l'écran reste sur son arène
     if (this.arena) tx = clamp(tx, this.arena.x0, this.arena.x1 - VIEW_W);
     // Dans un niveau où l'on grimpe ("grimpe") : la caméra suit l'étage où Malice a les pieds (par terre, à une
@@ -1379,7 +1520,8 @@ class World {
       // (à une liane : là où seraient ses pieds si elle pendait tout droit, pour que l'écran ne suive pas le balancement)
       if (g) this.camFeet = g.anchor.y + g.len + p.h - g.hy;
       else if (snap || p.onGround || p.swim || feet > this.camFeet) this.camFeet = feet;
-      ty = this.camFeet - VIEW_H * CLIMB_FEET;
+      // (dans la Crue, ses pieds sont un peu plus haut sur l'écran : on voit mieux l'eau qui monte derrière elle)
+      ty = this.camFeet - VIEW_H * (this.flood ? CLIMB_FEET_CRUE : CLIMB_FEET);
     }
     // le terrier secret : la caméra ne descend sous terre que quand Malice y est
     const under = this.terrier && p.y + p.h > (this.terrier - 1) * TILE;
@@ -1430,11 +1572,38 @@ class World {
     }
     if (this.trunk) this.drawOakBackground(ctx);
     // (un niveau plus haut que l'écran, "haut" : tout en bas, le fond est à sa place, comme dans un niveau ordinaire)
-    else if (sky > 0) Scenery.drawBackground(ctx, this.theme, this.cam.x, this.def.haut ? this.cam.y - Math.max(0, this.height - VIEW_H) + 84 : this.cam.y, this.t, this.flash);
+    // (dans la Crue aussi, et trois fois plus vite : dès qu'on grimpe, les collines du fond descendent sous l'écran, pour
+    // qu'on ne les prenne pas pour le sol, et tout en haut, on est dans le ciel)
+    else if (sky > 0) {
+      const lift = this.cam.y - Math.max(0, this.height - VIEW_H);
+      // (autour du phare, la mer au loin : voir Scenery BG.storm ; on la voit descendre doucement quand on monte)
+      const cy = this.flood ? lift * 3 + 84 : this.def.haut ? lift + 84 : this.lighthouse ? lift * 0.25 + 84 : this.cam.y;
+      // (depuis la falaise, le phare au loin, tout petit ; il s'efface derrière le rocher, juste avant qu'on voie le vrai)
+      if (this.lighthouse) {
+        LIGHTHOUSE_BG.far = clamp((this.lighthouse.x0 - VIEW_W - 60 - this.cam.x) / 200, 0, 1);
+        LIGHTHOUSE_BG.ang = this.beamAngle();
+      }
+      Scenery.drawBackground(ctx, this.theme, this.cam.x, cy, this.t, this.flash, this.lighthouse ? LIGHTHOUSE_BG : null);
+    }
     if (sky < VIEW_H) ctx.restore();
+    // le Phare sur la Falaise : quand sa grande lumière tourne vers nous, elle éclaire tout le fond (seulement le fond :
+    // ce qui est devant, et surtout les dangers, se voit toujours aussi bien)
+    if (this.lighthouse) {
+      const k = Math.pow(Math.abs(Math.sin(this.beamAngle())), 12);
+      if (k > 0.01) {
+        ctx.fillStyle = `rgba(255,236,170,${0.16 * k})`;
+        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+      }
+    }
+    // la pluie, au loin (plus fine, derrière tout le reste)
+    if (this.rain) Scenery.rain(ctx, this.t, this.cam.x, this.cam.y, false);
     ctx.save();
     ctx.translate(-camX, -camY);
     this.lights.length = 0;
+    // le ciel de l'arène du boss, derrière tout le décor (le beau soleil, à la fin de Bourrasque : voir Boss.drawSky)
+    if (this.boss) this.boss.drawSkyArena(ctx);
+    if (this.lighthouse) this.drawLighthouse(ctx, camX, camY);
+    for (const rod of this.rods) rod.drawSky(ctx);
     this.drawStormClouds(ctx);
     this.drawWinds(ctx);
     this.drawTrunks(ctx, camX, camY);
@@ -1446,7 +1615,13 @@ class World {
     this.drawBurrow(ctx, camX, camY);
     this.drawTunnels(ctx, camX, camY);
     this.drawRiverBeds(ctx);
+    // la Crue : l'eau du fond (derrière tout ce qui bouge ; l'eau de devant est dessinée plus loin)
+    if (this.flood) this.flood.draw(ctx, false);
     this.drawDecor(ctx, camX, camY);
+    // les moulins à vent : la tour et les ailes (leurs planches sont dessinées avec les plateformes)
+    for (const m of this.mills) {
+      if (m.seen(camX)) m.draw(ctx);
+    }
     // (dehors, ce qui est derrière la façade du Vieux Chêne n'est pas dessiné : voir facadeEnd)
     const xMax = this.facadeEnd();
     for (const v of this.vines) {
@@ -1472,6 +1647,7 @@ class World {
     this.drawReeds(ctx, false);
     this.drawLutinShine(ctx, camX, camY);
     this.drawMagic(ctx);
+    for (const rod of this.rods) rod.draw(ctx);
     for (const cp of this.checkpoints) cp.draw(ctx);
     for (const d of this.puffs) {
       if (d.x > camX - 140 && d.x < camX + VIEW_W + 140) d.draw(ctx);
@@ -1511,9 +1687,15 @@ class World {
     this.player.draw(ctx);
     if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);
+    for (const rod of this.rods) rod.drawWarning(ctx);
+    // (l'ombre des grenouilles sauteuses, là où elles vont retomber)
+    for (const e of this.enemies) {
+      if (e.drawWarning) e.drawWarning(ctx);
+    }
     this.drawLava(ctx, camX, camY);
     if (this.mud) this.drawMist(ctx, camX);
     this.drawWater(ctx);
+    if (this.flood) this.flood.draw(ctx, true);
     for (const pl of this.platforms) {
       if (pl.onWater) pl.draw(ctx);
     }
@@ -1525,6 +1707,11 @@ class World {
       if (this.onScreen(f, 60)) f.draw(ctx);
     }
     this.drawParticles(ctx);
+    ctx.restore();
+    // la pluie, tout près (par-dessus tout, sauf les bulles des fleurs qui parlent)
+    if (this.rain) Scenery.rain(ctx, this.t, this.cam.x, this.cam.y, true);
+    ctx.save();
+    ctx.translate(-camX, -camY);
     this.drawBubbles(ctx);
     ctx.restore();
   }
@@ -1547,7 +1734,8 @@ class World {
       for (let c = c0; c <= c1; c++) {
         const ch = this.tiles[r][c];
         // (les troncs sont dessinés avant, avec le feuillage : voir drawTrunks)
-        if (ch === '.' || ch === '~' || ch === '|' || ch === WATER) continue;
+        // (les plaques des paratonnerres aussi, avec leur pointe : voir LightningRod)
+        if (ch === '.' || ch === '~' || ch === '|' || ch === WATER || ch === 'z') continue;
         if (capped && (ch === '-' || ch === 'M')) continue;
         // (les ponts de corde du marais sont dessinés à part : voir drawBridges)
         if (ch === '=' && this.cabins) continue;
@@ -1560,6 +1748,8 @@ class World {
           img = Scenery.brickSprite(th);
         } else if (LUTIN_BLOCKS.includes(ch)) {
           img = Scenery.lutinSprite();
+        } else if (ch === PLUG) {
+          img = Scenery.plugSprite(this.tileAt(c, r - 1) !== PLUG, this.tileAt(c, r + 1) !== PLUG);
         } else if (ch === '-') {
           // (dans le terrier, les plateformes sont des racines)
           const pth = this.terrier && r >= this.terrier - 2 ? 'burrow' : this.tileTheme(c, r);
@@ -1672,19 +1862,31 @@ class World {
     if (this.terrier && r >= this.terrier) return 'burrow';
     if (this.stumps && r < this.rows - 2 && this.tiles[r][c] === '#') return 'treetops';
     if (this.trunk && c < this.trunk.c0) return 'forest';
+    // (autour du phare, au-dessus du sol de la falaise : les paliers de pierre et les planches)
+    const L = this.lighthouse;
+    if (L && c > L.rock1 && r * TILE < L.foot) return 'phare';
     return this.theme;
   }
 
   drawStormClouds(ctx) {
-    for (const [a, b] of this.storms) {
+    for (const [a, b, r] of this.storms) {
       const x0 = a * TILE;
       const x1 = (b + 1) * TILE;
       if (x1 < this.cam.x - 200 || x0 > this.cam.x + VIEW_W + 200) continue;
+      // (un orage qui n'est que sur un étage : seulement quand on voit cet étage ; il apparaît et disparaît en
+      // fondu, pendant que l'écran glisse d'un étage à l'autre)
+      let k = 1;
+      if (r !== undefined) {
+        k = clamp(Math.min(r * TILE - this.cam.y + 40, this.cam.y + VIEW_H + 240 - r * TILE) / STORM_FADE, 0, 1);
+        if (k <= 0) continue;
+      }
       const y = this.cam.y + 18;
+      ctx.globalAlpha = k;
       for (let x = x0; x < x1; x += 90) {
         const h = hash(x * 0.37);
         Scenery.fluffyCloud(ctx, x + h * 30, y + h * 22 + Math.sin(this.t + h * 6) * 4, 0.95 + h * 0.4, '#6b3d28', '#3f2015');
       }
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -2147,7 +2349,8 @@ class World {
 
   drawParticles(ctx) {
     for (const q of this.particles) {
-      const a = Math.max(0, Math.min(1, q.life / q.max));
+      // (hold : elle ne s'efface que pendant ses hold dernières secondes, comme le grand « L'eau monte ! »)
+      const a = Math.max(0, Math.min(1, q.life / (q.hold || q.max)));
       ctx.save();
       ctx.globalAlpha = a;
       switch (q.type) {
@@ -2194,8 +2397,10 @@ class World {
           break;
         case 'ring':
           ctx.strokeStyle = q.color;
-          ctx.lineWidth = 4 * a;
-          circlePath(ctx, q.x, q.y, q.size * (1 - a) + 4);
+          ctx.lineWidth = (q.flat ? 2 : 4) * a;
+          // (flat : à plat sur le sol, comme une goutte de pluie qui éclabousse)
+          if (q.flat) ellipsePath(ctx, q.x, q.y, q.size * (1 - a) + 3, (q.size * (1 - a) + 3) * 0.3);
+          else circlePath(ctx, q.x, q.y, q.size * (1 - a) + 4);
           ctx.stroke();
           break;
         case 'heart':
@@ -2306,7 +2511,7 @@ class World {
       const w = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 26;
       const h = lines.length * 21 + 16;
       const x = clamp(b.x - w / 2, this.cam.x + 6, this.cam.x + VIEW_W - w - 6);
-      const y = Math.max(this.cam.y + 6, b.y - h);
+      const y = b.below ? b.y + 10 : Math.max(this.cam.y + 6, b.y - h);
       ctx.fillStyle = 'rgba(0,0,0,0.15)';
       roundRectPath(ctx, x + 2, y + 4, w, h, 14);
       ctx.fill();
@@ -2314,9 +2519,11 @@ class World {
       roundRectPath(ctx, x, y, w, h, 14);
       ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(clamp(b.x, x + 16, x + w - 16) - 8, y + h - 1);
-      ctx.lineTo(clamp(b.x, x + 16, x + w - 16) + 8, y + h - 1);
-      ctx.lineTo(clamp(b.x, x + 16, x + w - 16), y + h + 10);
+      const tx = clamp(b.x, x + 16, x + w - 16);
+      const ty = b.below ? y + 1 : y + h - 1;
+      ctx.moveTo(tx - 8, ty);
+      ctx.lineTo(tx + 8, ty);
+      ctx.lineTo(tx, b.below ? y - 10 : y + h + 10);
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = '#3a2a4a';

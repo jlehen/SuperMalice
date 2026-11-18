@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux, son boss (Pépé Chêne et Ronchon) et son stage d'entraînement (le Super Saut, refait dans le sous-bois), et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux, son boss (Pépé Chêne et Ronchon) et son stage d'entraînement (le Super Saut, refait dans le sous-bois), la Vallée des Orages ses quatre niveaux, son boss (Bourrasque, le nuage enrhumé) et son stage d'entraînement (le Bocal à éclairs), et chaque autre monde son premier niveau :
 
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
@@ -194,7 +194,154 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      vies sont infinies), une seule fois dans toute la partie (gardé dans la sauvegarde, `nids`) : quand on rejoue le
      stage, il fait encore son câlin (tous les cœurs, des points), mais sans vie en plus. Il n'y a aucun danger
      dans ce stage : on ne peut ni tomber dans un trou ni se coincer (en tombant d'une liane ou d'un arbre, on retrouve toujours son champignon).
-3. **La Vallée des Orages** — 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
+3. **La Vallée des Orages**
+   - 3-1 **La Vallée des Orages** : il pleut des éclairs au chocolat, attention aux Rubik's cubes
+   - 3-2 **Le Moulin à Vent** : il pleut, il pleut (des gouttes qui éclaboussent partout). De grands **moulins à
+     vent** en crème rose font tourner leurs ailes, et au bout de chaque aile pend une **planche** (une grosse
+     gaufrette, accrochée à un gros anneau doré) qui reste toujours à plat, comme les nacelles d'une grande roue : on
+     saute dessus, et elle nous emporte. Elle monte à gauche, passe tout en haut vers la droite et redescend à droite
+     : on saute sur une falaise, tout là-haut, ou sur l'autre bord d'un très grand trou. Les planches ne poussent
+     jamais Malice dans un mur ni dans un plafond, et si on tombe, on retombe dans l'herbe (sauf au-dessus du grand
+     trou). Les **grenouilles sauteuses** (l'idée d'Alice) adorent la pluie : elles attrapent les gouttes avec leur
+     langue et coassent de joie, la gorge toute gonflée. Elles sautent très haut… parfois sur Malice : « ! », elles se
+     ramassent en tremblant, et leur **ombre** apparaît déjà là où elles vont retomber (avec un cercle vert qui se
+     resserre) ; il suffit de s'en écarter. On leur saute sur la tête quand elles sont assises ou ramassées (croâ !
+     elles redeviennent gentilles) ; le caramel les colle par terre, et avec les chips elles sont trop lourdes pour
+     sauter. Une grenouille qui monte en sautant ne fait pas mal (c'est quand elle retombe sur Malice qu'il faut
+     s'écarter). On y retrouve les éclairs au chocolat et les Rubik's cubes (pas en même temps que les grenouilles).
+     En Bébé, les grenouilles visent Malice de moins loin, se ramassent plus longtemps, restent plus longtemps en
+     l'air et assises, et les ailes tournent moins vite ; en Difficile, c'est le contraire.
+   - 3-3 **La Crue** : il a tant plu que la rivière déborde ! On grimpe la colline, étage par étage : sur chaque
+     étage, c'est calme (l'eau reste en dessous), puis, au bout, un palier avec un drapeau et une fleur, et un
+     **escalier de nuages**. Dès qu'on monte sur la première marche, la rivière bouillonne (« L'eau monte ! Grimpe
+     vite ! »), déborde d'un coup jusqu'au pied de l'escalier, puis **l'eau monte doucement derrière Malice** :
+     il faut grimper vite jusqu'à l'étage du dessus, où elle s'arrête. Trois escaliers, de plus en plus hauts et
+     rapides. L'eau ne monte jamais plus vite que Malice ne grimpe : tout près d'elle, elle ralentit, et quand
+     Malice grimpe vite, elle la suit de loin, jamais à plus de 4 cases et demie sous ses pieds (juste sous le bas
+     de l'écran, qui devient tout bleu) : dès qu'on hésite, on la voit arriver en bas de l'écran. Si on tombe dedans, plouf : un cœur en moins, on ressort sur la dernière marche
+     où l'on était, et l'eau est redescendue bien en dessous (elle attend un peu avant de remonter) : on ne
+     ressort jamais sous l'eau. Elle ne monte pas pendant qu'on lit une fleur, et les drapeaux sont toujours au sec
+     (on y repart avec l'eau arrêtée sous l'étage). La Sirène et le Pingouin nagent : l'eau les emporte vers le haut.
+     Les **petits nuages grognons** (l'idée d'Alice) suivent Malice sur leur étage en grognant (moins vite qu'elle
+     ne marche) ; arrivés au-dessus d'elle, ils s'arrêtent et se fâchent : ils deviennent tout noirs (« Grrr ! »),
+     leur ombre fonce par terre et les premières gouttes tombent… puis ils lui pleuvent dessus. **Saute dedans** (ou
+     sur eux, ou touche-les) : pouf ! ils éclatent de rire, deviennent tout blancs et gentils, et s'envolent ; ils
+     ne font jamais mal quand on les touche, seule leur pluie mouille (et sous un bloc, on est à l'abri). Le caramel
+     les colle sur place, et avec les chips ils ont le ventre trop plein pour pleuvoir (ils se posent par terre,
+     tout essoufflés). Trempée, Malice avance moins vite un moment (et Gizmo devient un Gremlin). Les petits nuages
+     ne quittent jamais leur étage : jamais de pluie sur un escalier, pendant que l'eau monte ; et si Malice est
+     trempée près de l'eau qui monte, l'eau monte deux fois moins vite. On y retrouve les éclairs au chocolat, les
+     Rubik's cubes et les grenouilles sauteuses. En Bébé, l'eau monte moins vite, bouillonne plus longtemps avant de
+     monter, redescend plus bas après un plouf, et les petits nuages sont plus lents, se fâchent plus longtemps et
+     mouillent moins longtemps ; en Difficile, c'est le contraire.
+   - 3-4 **Le Phare sur la Falaise** : sous la tempête, on longe la falaise au bord de la mer (un orage, un Rubik's
+     cube, une grenouille, un grand rocher ; tout au bout, on voit le phare au loin, avec sa lumière qui tourne), on
+     passe par un tunnel sous le rocher… et on arrive au pied du **vieux
+     phare**, rayé blanc et rouge. On grimpe autour de lui, de palier en palier (trois paliers de pierre, puis la
+     galerie tout en haut), par des escaliers de vieilles planches et de **paratonnerres** (l'idée d'Alice) : des
+     plaques de métal avec leur pointe, que l'orage **électrise de temps en temps**. Ça s'annonce longtemps : un petit
+     nuage en chocolat se forme au-dessus de la pointe et gronde en grossissant, des étincelles sautent sur la pointe
+     puis sur la plaque, qui devient de plus en plus jaune en clignotant, un « ! » clignote, et un bourdonnement monte
+     (bzz… bzz… bzzbzzbzz) ; puis la foudre tombe sur la pointe, et la plaque **grésille** : il faut en être descendue
+     avant (sauter suffit : ça ne grésille que tout contre la plaque). Électrocutée, Malice est figée (on voit son
+     squelette, comme avec les éclairs au chocolat), puis projetée à côté de la plaque. Chaque paratonnerre garde
+     toujours le même rythme (on peut le guetter depuis la planche d'en dessous), et deux paratonnerres qui se
+     suivent dans un escalier ne grésillent jamais en même temps. Les ennemis posés dessus s'envolent aussi. Debout
+     sur le **bloc magique du Lutin** posé sur un paratonnerre, on est à l'abri : il ne laisse pas passer
+     l'électricité. Sur les paliers : un petit nuage grognon et un Rubik's cube, puis, tout en haut, un Rubik's cube
+     sous l'orage et un dernier petit nuage avant le dernier escalier. Tout en haut,
+     sous la lanterne, la **grande lumière du phare tourne** : ses deux faisceaux balaient le ciel, et quand l'un
+     d'eux passe vers nous, il éclaire tout le fond (seulement le fond : ce qui est devant, et surtout les dangers, se
+     voit toujours aussi bien). La galerie, sous la lanterne, est l'arène de Bourrasque, le boss du monde.
+     En Bébé, les paratonnerres s'annoncent bien plus longtemps (3 s), grésillent moins longtemps et restent
+     tranquilles plus longtemps ; en Difficile, c'est le contraire.
+   - 🌩️ **Le boss de la Vallée des Orages : Bourrasque** (sur la galerie, tout en haut du vieux phare). Bourrasque
+     est un gros **nuage d'orage tout enrhumé** (l'idée d'Alice) : un bonnet de laine rayé, des yeux fatigués, un
+     **gros nez rouge qui coule**… et il **éternue des éclairs au chocolat** ! Il fait aussi tomber des **grêlons**,
+     qui rebondissent par terre avant de fondre. Sa petite tornade, avec une frimousse, il l'appelle « **mon
+     toupie** ». Quand Malice arrive, il fait la sieste sur la lanterne du phare (« Zzz… snif… ») ; il se réveille en
+     éternuant (« Aaa… aaah… ATCHOUM ! »), se mouche très fort (« POUÊÊÊT ! »), puis : « Pardon… Qui ose grimper sur
+     bon phare ? Euh… sur MON phare ! Mon toupie, au travail ! ». Un mur de vent se lève derrière Malice : on ne peut
+     plus repartir tant qu'il n'est pas battu. Il a **trois vies** (trois petits nuages au nez rouge en haut de
+     l'écran), et chaque manche se gagne d'une façon différente :
+     1. **Sauter sur le nuage** : sa toupie se gonfle et le vent arrive vers elle de partout : elle **aspire** (on
+        glisse vers elle, moins vite qu'on ne marche : on peut toujours s'écarter). Si on va dedans, elle **emporte
+        Malice** en tournant jusqu'en haut (« Wiiiii ! ») et la lance au-dessus de Bourrasque : on lui retombe sur
+        la tête. **Pouf !** Il faut le faire plusieurs fois (2 en Bébé et en Gentil, 3 en Classique, 4 en Difficile :
+        « Pouf ! Encore 2 ! »), et chaque fois, il faut être retombée par terre avant de recommencer. En Bébé, il
+        plane juste au-dessus de sa toupie : on lui retombe dessus sans toucher aux flèches. Sinon, il plane juste à
+        côté : en l'air, il faut se diriger un peu vers lui avec les flèches (un tout petit peu en Gentil, un peu plus
+        en Difficile ; on peut déjà appuyer pendant que la toupie emporte Malice). Au premier lancer manqué, puis tous
+        les deux, un conseil le redit. Le rebond sur sa tête est doux (même en gardant le saut appuyé) : la tête de
+        Malice ne monte jamais sous ses vies, en haut de l'écran (pendant le combat, l'écran montre un peu plus de
+        ciel).
+     2. **Chatouiller la toupie** : « Mon toupie, protège-moi ! ». Une **grande plume** tombe du ciel en se balançant :
+        on l'attrape en la touchant (Malice la tient devant elle), et on va tout contre la toupie pour la
+        **chatouiller** (« Hi hi ! »). Elle se sauve un peu plus loin… et au bout de quelques chatouilles (2 en Bébé,
+        3, 4, et 5 en Difficile), elle **éclate de rire** (« HA HA HA HA ! »), se couche par terre et s'arrête de
+        tourner. Sans sa toupie, Bourrasque **dégringole** tout près du sol, tout étourdi (des étoiles, les yeux qui
+        tournent) : on lui saute dessus ! (En Bébé, il reste par terre tant qu'on ne lui a pas sauté dessus ; sinon,
+        au bout d'un moment, il remonte et sa toupie se relève : il faut la rechatouiller.) Sans la plume, la toupie
+        repousse Malice (sans lui faire mal) ; elle ne vient jamais la pousser d'elle-même. Si Malice a mal, elle
+        lâche la plume (elle retombe doucement, on peut la reprendre).
+     3. **L'arc-en-ciel** : « Bouhouhou ! Tu as fait rire mon toupie ! ». Bourrasque pleure toute une **grosse
+        averse**… puis **trois cloches** apparaissent : une sur un poteau à chaque bout de la galerie, et une sous le
+        dôme de la lanterne. On les **sonne en sautant dedans** (« Ding ! », de petites notes de musique s'envolent).
+        Chacune sonne un moment (jusqu'au bout en Bébé, 16 s en Gentil, 11 s en Classique, 8 s en Difficile), et
+        **quand les trois sonnent en même temps**, un **arc-en-ciel** apparaît d'un bout à l'autre de la galerie.
+        Bourrasque l'admire, des cœurs dans les yeux (« Oooh… Comme il est beau… ») et ne fait plus rien : c'est un
+        **pont** ! On monte dessus (en marchant jusqu'à son pied, ou en sautant dessus ; on le traverse par en
+        dessous), jusqu'en haut, juste sous Bourrasque… et on lui saute sur la tête.
+     - Ses attaques sont **toujours annoncées**. **L'éternuement** : « Aaa… aaah… », il se gonfle, les yeux plissés, et
+       l'endroit où l'éclair va tomber est marqué par terre (une ombre et un « ! » qui clignote, là où était Malice)…
+       puis « ATCHOUM ! » : un éclair au chocolat enrhumé (tout bleu, avec des gouttes de rhume : il ne va pas dans le
+       bocal à éclairs) file au-dessus de la marque et tombe dessus, et grésille par terre (comme les éclairs de la
+       Vallée : on est électrocutée). Il ne touche jamais Malice qui s'est écartée de la
+       marque. **Les grêlons** : il souffle de petits nuages de grêle qui s'arrêtent là-haut, au-dessus de Malice (et
+       à côté d'elle quand il y en a plusieurs, jamais l'un sur l'autre : on peut toujours passer entre deux) ; le
+       grêlon grossit dedans et son ombre grandit par terre… puis il tombe. Il ne fait mal qu'en tombant ; par terre,
+       il rebondit deux fois (on peut sauter dessus : crac !) et fond en une petite flaque. Il ne fait qu'une chose
+       à la fois, et rien pendant que sa toupie aspire ou que Malice est tout là-haut. Un grêlon (1 en Bébé, 2 en
+       Gentil et en Classique, 3 en Difficile) ; un éclair (deux en Difficile, à partir de la deuxième manche).
+     - Les chips et le caramel passent à travers le nuage et sa toupie. Les pouvoirs qui renversent et l'étoile
+       comptent comme un saut sur sa tête (dans la première manche) et le touchent quand il est tombé par terre ou
+       quand l'arc-en-ciel est là ; les tirs des pouvoirs (ballon, bulles de feu, Kaméhaméha…) ne l'atteignent que
+       quand il est tombé par terre, et ils cassent les grêlons. Sur lui, quand on ne peut pas le toucher, on
+       rebondit et on glisse sur le côté (« Pouf ! »). Les pouvoirs qui volent (le nuage de Goku, les ailes du
+       Poussin, la bulle de la Sirène…) s'arrêtent quand la toupie emporte Malice. On ne sort pas de l'arène (ni en
+       volant, ni par le haut de l'écran).
+     - S'il ne se passe rien depuis un moment, un petit conseil dit quoi faire (aller dans la toupie, se diriger en
+       l'air, prendre la plume, chatouiller la toupie, sauter sur Bourrasque tombé, sonner les cloches, monter sur
+       l'arc-en-ciel). Il ne cache jamais ce qu'il montre : au-dessus des cloches, et sous les pieds de Malice sur
+       l'arc-en-ciel (Bourrasque est juste au-dessus d'elle). Dans la deuxième manche, la bulle de Bourrasque est
+       au-dessus de lui, pour qu'on lise bien les « Hi hi ! Encore 2 ! » de sa toupie. Quand il n'a rien d'autre à dire, il parle tout seul, le nez bouché : « Snif… J'ai attrapé un
+       rhube. Un RHUBE ! »
+     - **La fin** : POUF ! « Aaa… aaah… »… mais rien ne vient : « Tiens ? Plus d'atchoum ! Mon nez ne coule plus : je
+       suis guéri ! ». Il devient tout blanc, le nez tout rose, et le **beau soleil** revient (la pluie s'arrête,
+       l'arc-en-ciel s'efface doucement). « Merci, Malice ! Va, mon toupie : va faire tourner le moulin ! » : sa
+       toupie devient une **petite brise**, qui s'envole jusqu'au petit moulin au loin, sur son rocher au bord de la
+       mer… et ses ailes se mettent à tourner. Puis l'arrivée apparaît : on va la toucher, et sur la carte, le
+       château de la Vallée des Orages est ouvert (puis le stage du Bocal à éclairs avec Malice, et le monde 4).
+     - Si on perd une vie pendant le combat, on repart du drapeau juste avant l'arène, et tout recommence (il se
+       réveille bien plus vite : « Encore toi ? Atch… Mon toupie ! »). En Bébé, tout est plus lent : la toupie
+       aspire plus longtemps, les grêlons et les éclairs s'annoncent plus longtemps, la toupie se sauve moins vite,
+       Bourrasque reste tombé par terre et les cloches sonnent jusqu'au bout ; en Difficile, tout va plus vite.
+   - ⭐ **Stage d'entraînement : le Défi du Bocal à éclairs** → on gagne le badge *Bocal à éclairs* (l'idée
+     d'Alice : Malice remplit un bocal avec les éclairs au chocolat qu'elle attrape, jusqu'à 3, et les relance comme
+     le caramel ou les chips). Dans la Vallée, sous l'orage, avec une musique funk. Les fleurs expliquent pas à pas :
+     **attraper** (un petit nuage en chocolat qui gronde toujours au même endroit : on se met juste dessous, l'éclair
+     tombe dans le bocal ; quand le bocal est plein, le petit nuage se repose, on ne se fait pas électrocuter
+     dessous) ; **lancer** (un gros œil sous un grand rocher, trop bas pour lui sauter dessus, puis un **bouchon en
+     chocolat** qui ferme le passage : on leur lance l'éclair avec E, ou le bouton bocal ; l'œil est électrisé, et le
+     bouchon **fond**) ; **ramasser** (un orage plus large : l'éclair tombé à côté grésille par terre, puis on le
+     ramasse ; le bocal tient 3 éclairs, et plein, les éclairs font mal comme d'habitude ; l'orage s'arrête avant les
+     fleurs, on les lit tranquille) ; **enchaîner** (trois grenouilles, de loin, avant qu'elles sautent) ; et le
+     **petit final** : remplir le bocal sous un petit nuage, puis deux gros yeux et un bouchon en chocolat à la suite
+     dans un grand tunnel, et le trophée. Les bouchons obligent à attraper et à lancer : on ne passe ni en roulade,
+     ni par-dessus (les rochers montent jusqu'en haut, même un super saut n'y arrive pas), ni en se faisant mal ; le
+     bocal vide, on retourne sous le petit nuage juste avant. Des petits fossés d'une case gardent les gros yeux sous
+     leur rocher (ils ne viennent jamais jusqu'aux fleurs) ; on les saute, et si on tombe dedans, on en ressort en
+     sautant.
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    (aucune coccinelle ne tire quand Malice est au-dessus de la lave, même debout sur une planche : elles attendent qu'elle soit
    retombée sur le sol)
@@ -296,12 +443,31 @@ La page [`outils/galerie.html`](outils/galerie.html) montre tous les personnages
   juste avant d'arriver (0,2 s) compte encore, et si on lâche ↓, le chapeau la garde encore un petit moment (0,35 s,
   le temps d'appuyer sur le saut), puis elle rebondit comme d'habitude (le grand rebond, si elle est arrivée en
   écrasant). (Dans les niveaux d'avant le stage, comme les Champignons Géants, rien ne change.)
+- **Bocal à éclairs** : Malice a un bocal de confiture (couvercle à carreaux rouges) qui tient **3 éclairs au
+  chocolat**. Pour en attraper un, rien à faire : quand le bocal n'est pas plein, un éclair qui tombe tout près
+  d'elle (au-dessus de sa tête, ou à moins d'une case à côté) tombe dans le bocal au lieu de grésiller (« Éclair 1/3 »,
+  cling !) ; et un éclair tombé plus loin, une fois qu'il a fini de grésiller par terre, refroidit et brille un moment
+  (2,8 s) : on le ramasse en le touchant. Il n'électrocute jamais celle qui l'attrape. Quand le bocal est plein
+  (« Bocal plein ! »), les éclairs font mal comme d'habitude. Pour en **relancer** un : **E** (ou U), le bouton
+  bocal sur tablette (à la place du bouton pouvoir, que Malice n'a pas ; il n'est là que dans les niveaux à orages,
+  ou quand le bocal contient un éclair : ailleurs, cet endroit sert au saut), L2 ou R2 à la manette. Il file presque à
+  plat, à environ 7 cases, et le premier ennemi qu'il touche est électrisé et renversé (« Bzzz ! »), un seul à la
+  fois ; il passe à travers les boss et tout ce qui est à eux (les combats restent comme ils ont été pensés), et il
+  ne fait rien aux paratonnerres. Les éclairs qu'**éternue Bourrasque** sont des éclairs enrhumés, tout bleus avec
+  des gouttes de rhume : ils ne vont jamais dans le bocal (on s'écarte de la marque, comme sans le badge). Le
+  bocal et ses éclairs sont affichés en haut de l'écran, à côté du badge. Ce
+  qu'il contient reste d'un niveau à l'autre (comme le caramel et les chips), jusqu'à une nouvelle partie.
+  Une fois gagné, il sert **partout**, même dans les niveaux d'avant son stage quand on y rejoue (les orages de la
+  Vallée des Orages). Il protège un peu de l'orage, sans le rendre inoffensif : un robot qui reste 30 s sans bouger
+  sous l'orage du 3-1 ou du 4-1 est électrocuté 0 à 8 fois sans le bocal, 0 à 6 fois avec (bocal plein), et 0 à 3
+  fois s'il le vide sans arrêt.
 - **Moustache-Grappin** : près d'un anneau doré, appuyer sur **V** : la moustache de Malice s'y accroche.
   On se balance avec ← →, on saute pour se lancer, et on peut enchaîner les anneaux.
 
 Un badge se gagne en finissant son stage avec **Super Malice**, et il est gardé dans la sauvegarde (`badges`, et
 aussi à part, pour qu'un vieil onglet d'une ancienne version du jeu ne le fasse pas perdre). Il sert dans son stage,
-puis, une fois gagné, dans tous les niveaux d'après sur la carte. Avec Malice, la carte s'arrête au premier stage dont
+puis, une fois gagné, dans tous les niveaux d'après sur la carte (le Bocal à éclairs, lui, partout : `partout` dans
+`BADGE_INFO`, en haut de `js/game.js`). Avec Malice, la carte s'arrête au premier stage dont
 elle n'a pas le badge : il faut le faire pour aller plus loin (même si un autre personnage est déjà passé). Sur la
 carte, l'étoile d'un stage dont Malice n'a pas encore le badge scintille.
 Les badges ne sont que pour **Super Malice** : les autres personnages ont déjà leur pouvoir (et pas de moustache !).
@@ -316,7 +482,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 |---|---|
 | Ronces au sol | ça pique les fesses ! Elle s'envole en se tenant les fesses toutes rouges |
 | Ronces qui pendent | une grosse bosse soulève sa casquette (avec les épines plantées dedans) |
-| Éclairs au chocolat | électrocutée : figée, on voit son squelette, puis les cheveux en pétard qui fument |
+| Éclairs au chocolat, paratonnerre qui grésille | électrocutée : figée, on voit son squelette, puis les cheveux en pétard qui fument (le paratonnerre la projette à côté de sa plaque) |
 | Boulets des coccinelles | K.O. une demi-seconde : la langue qui pend, les yeux mi-clos, des étoiles autour de la tête |
 | Gros œil | hypnotisée : yeux en spirale, elle avance les bras tendus comme une somnambule |
 | Rubik's cube | toutes ses couleurs sont mélangées, puis reviennent une par une (clic, clic…) |
@@ -327,6 +493,9 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Taupe qui jaillit du sol | projetée en l'air dans une gerbe de terre, elle retombe toute sale, des mottes sur la tête, et un petit ver de terre rose en sort pour lui faire coucou |
 | Hérisson | couverte de piquants comme une pelote d'épingles ! Elle les enlève un par un, en grimaçant : « Aïe ! Aïe ! Aïe ! » |
 | Pépé Chêne et Ronchon | un gland qui tombe fait une bosse sous la casquette ; une racine qui sort du plancher pique les fesses ; Ronchon en boule, c'est la pelote d'épingles |
+| Grenouille sauteuse | toute verte d'un coup ! Accroupie comme une grenouille, la gorge qui se gonfle, elle fait « Croa ! » deux fois, puis elle reprend sa couleur |
+| Grêlon de Bourrasque | « Brrr, un grêlon ! » Toc ! sonnée, la tête qui dodeline, **des étoiles et des flocons de neige tournent autour de sa tête**, et elle grelotte en se serrant dans ses bras, toute bleue de froid (son éclair au chocolat éternué, c'est l'électrocution des éclairs) |
+| Petit nuage grognon | « Splash ! » toute trempée par sa pluie, les mains sur la tête, puis elle **s'ébroue comme un chien** : tout son corps se tortille, et les gouttes volent tout autour d'elle ! Encore mouillée, elle avance moins vite un moment (des gouttes tombent d'elle, et ses pas font « flic, floc ») |
 | Sanglier qui fonce | projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe la tête en bas, les jambes en l'air ; une taupe sort de terre à côté d'elle, toute interloquée (« ? »), et replonge aussitôt. Dans la boue, plof : elle s'y enfonce tout de suite (vite, il faut sauter !) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre) |
 
 ## Commandes
@@ -341,6 +510,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | X | Lancer du caramel |
 | C | Lancer des chips |
 | V | Moustache-grappin (avec le badge) |
+| E (ou U) | Lancer un éclair au chocolat du bocal (avec le badge Bocal à éclairs) |
 | B | Pouvoir du personnage |
 | Échap ou P | Pause |
 | M | Couper le son |
@@ -348,7 +518,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 Sur tablette ou téléphone (à tenir à l'horizontale), des gros boutons apparaissent sur l'écran.
 Pas besoin de viser sans regarder : n'importe où sur la moitié droite de l'écran, on saute ; n'importe où
 sur la moitié gauche, on marche (◀ ou ▶ selon le côté où se pose le pouce). Les petits boutons
-(▼, caramel, chips, moustache) ne marchent que si on pose le doigt dessus, et un doigt garde son bouton
+(▼, caramel, chips, moustache, bocal) ne marchent que si on pose le doigt dessus, et un doigt garde son bouton
 jusqu'à ce qu'on le lève : on ne lance plus des chips en voulant sauter. Sur Android, le téléphone vibre
 un tout petit peu à chaque appui.
 Pour courir, c'est pareil avec le bouton ◀ ou ▶ (ou la manette) : un appui rapide, puis on rappuie
@@ -362,7 +532,8 @@ Quand Malice touche un drapeau, il se transforme en papillon : si elle perd une 
 (le papillon l'attend, posé en haut du mât). Le drapeau de l'arrivée devient un grand papillon étoilé qui lui tourne autour.
 
 Astuce : si on ne touche à rien pendant quelques secondes, Malice se tourne vers toi et fait une grimace.
-Une manette de jeu fonctionne aussi.
+Une manette de jeu fonctionne aussi : A (ou la croix vers le haut) pour sauter, X le caramel, B les chips, Y le
+pouvoir, L1 ou R1 la moustache-grappin, L2 ou R2 le bocal à éclairs, Start la pause.
 
 ## Difficulté (choisie au début)
 
@@ -381,7 +552,13 @@ La progression (jusqu'où on est arrivé sur la carte) est gardée dans le navig
 la plus loin (« 3-1 », « 2-stage »…) : si on ajoute des niveaux à un monde, on ne perd rien, et les anciennes
 sauvegardes (d'avant les mondes) sont reprises telles quelles (et le jeu écrit toujours l'ancien « unlocked », pour un vieil onglet).
 Une sauvegarde d'avant les badges gardés reçoit, une seule fois, les badges de tous les stages d'avant sa case la
-plus loin (la Roulade comprise, pour quelqu'un qui était déjà dans le monde 2) : elle n'est jamais bloquée. Pour tout
+plus loin (la Roulade comprise, pour quelqu'un qui était déjà dans le monde 2) : elle n'est jamais bloquée.
+La sauvegarde retient aussi les stages qu'elle connaît (`stages`, les noms de leurs badges ; sans ce champ, ceux
+d'avant le Bocal à éclairs). Quand un stage est ajouté sur le chemin (comme le Bocal à éclairs, après le monde 3), une
+Super Malice qui l'avait déjà dépassé (sa case la plus loin est après lui, et elle n'était pas arrêtée avant par un
+stage dont elle n'avait pas le badge) reçoit son badge, une seule fois : elle n'est ni bloquée ni renvoyée en arrière,
+et le stage reste ouvert sur la carte pour le jouer quand on veut. Une sauvegarde qui n'est pas encore arrivée au
+nouveau stage le fera, comme tout le monde. Pour tout
 effacer (badges compris) :
 sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 
@@ -390,11 +567,17 @@ sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 Les niveaux sont dessinés avec des lettres dans [`js/levels.js`](js/levels.js) : une lettre = une case.
 La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `E` = gros œil, `S` = bloc lutin avec une étoile,
 `*` = pissenlit géant, `|` = tronc d'arbre, `_` = eau de la rivière, `n` et `c` = nénuphars (solide, qui coule),
-`O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `i` = lucioles, `j` = fleur-lanterne,
+`O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `f` = grenouille sauteuse,
+`x` = l'axe des ailes d'un moulin à vent (tout autour, rien de solide), `a` = petit nuage grognon,
+`z` = paratonnerre (une plaque de métal qu'on traverse par dessous, et qui grésille de temps en temps), `%` = bouchon en
+chocolat (seul un éclair lancé avec le bocal le fait fondre), `i` = lucioles, `j` = fleur-lanterne,
 `J` = liane, `q` = écureuil, `k` = nid, `p` = le nid secret de l'oisillon qui donne une vie…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
 par la lune : `clairDeLune`), monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne),
-ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
+se passer sous la pluie (`pluie`, comme le Moulin à Vent), avoir une rivière qui déborde et dont l'eau monte pendant
+qu'on grimpe (`crue`, avec `grimpe` : voir la Crue ; ses orages peuvent n'être que sur un étage, `storms: [[début,
+fin, rangée]]`), grimper autour d'un phare (`phare`, avec `grimpe` : voir le Phare sur la Falaise ; la tour et sa
+lanterne sont dans le décor), ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
 Défi du Super Saut, dont le décor `sousbois` a des branches `=` sur les troncs `|`, et des feuillages de décor d'où
 pendent les lianes : `feuillage`).
 Il suffit de modifier les lettres et de recharger la page.
@@ -410,7 +593,7 @@ au bout du monde (sur un autre niveau, sa case reste une case normale).
 [`js/boss.js`](js/boss.js) (le réveil quand on entre dans l'arène, la caméra et les murs de l'arène, les vies en
 haut de l'écran, les coups, la victoire, l'arrivée qui apparaît, la reprise au drapeau), et chaque boss a son
 propre fichier dans [`js/boss/`](js/boss/) (l'Épouvantail : [`js/boss/epouvantail.js`](js/boss/epouvantail.js) ;
-Pépé Chêne et Ronchon : [`js/boss/chene.js`](js/boss/chene.js)), avec ses attaques, ses aides et ses dessins. Dans le niveau (`levels.js`) :
+Pépé Chêne et Ronchon : [`js/boss/chene.js`](js/boss/chene.js) ; Bourrasque : [`js/boss/bourrasque.js`](js/boss/bourrasque.js)), avec ses attaques, ses aides et ses dessins. Dans le niveau (`levels.js`) :
 - `boss: "epouvantail"` : le nom du boss (celui de `BOSSES.epouvantail = …` à la fin de son fichier) ;
 - `arene: [192, 211]` : la première et la dernière colonne de son arène (20 colonnes : la largeur de l'écran) ;
 - la lettre `&` dans la carte : là où il attend (sur le sol de la case du dessous) ;
@@ -425,20 +608,32 @@ son corps (`drawBody`), le décor de son arène (`drawDecor`), ses vies (`drawLi
 donner un conseil (`hint`), faire repousser du caramel (`addSource`), et elle pousse toute seule Malice hors de lui
 (sans lui faire mal) à la fin du réveil et quand elle est coincée entre lui et un bord. Ses aides (comme les
 corbeaux et les citrouilles) sont des ennemis avec `boss` : ils s'en vont tout seuls quand il est battu ; leurs
-classes commencent par le nom du boss (`ScareCrow`, `ScarePumpkin`, `CheneRonchon`, `CheneGland`…), pour ne jamais
+classes commencent par le nom du boss (`ScareCrow`, `ScarePumpkin`, `CheneRonchon`, `CheneGland`, `BourrasqueToupie`…), pour ne jamais
 se mélanger avec celles d'un autre boss. Un **boss à deux** (comme Pépé Chêne et Ronchon) : le compagnon est une aide
 qui porte les vies avec lui ; quand on le touche, il appelle `boss.hitWith(how, this)`, et le boss décide avec
 `takes(how, part)` (part : celui qui a reçu le coup). Son nom en haut de l'écran peut tenir sur deux lignes
 (`"Pépé Chêne\net Ronchon"`), et `addSource(kind, x, y, true)` fait sortir de terre une source qui arrive en
-plein combat. Dans un niveau où l'on grimpe, l'écran reste sur le haut de l'arène pendant tout le combat. Sa vitesse suit la difficulté (`bossK` dans `DIFFS`, en haut de `js/game.js`). Ajouter son fichier dans
+plein combat. Dans un niveau où l'on grimpe, l'écran reste sur le haut de l'arène pendant tout le combat. Un
+**boss qui vole** (comme Bourrasque) remet `arena.y1` sur le sol de l'arène, et sa bulle peut s'afficher sous lui
+(`sayAt()` avec `below: true`) pour ne pas passer sous ses vies, en haut de l'écran ; il peut aussi montrer plus de
+ciel (`arena.camY` au-dessus de 0). Le petit conseil sort de `tipAt()` (par défaut, au-dessus de la tête de Malice) :
+un boss le met ailleurs pour qu'il ne cache pas ce qu'il montre. Un boss (ou une aide) peut
+**emporter Malice** : `player.carry = { move(p, dt) }` la déplace à sa place (rien ne la touche) jusqu'à ce qu'il la
+lâche (`player.carry = null`), comme la toupie de Bourrasque. Il peut aussi faire apparaître une **plateforme**
+(dans `world.platforms`, comme l'arc-en-ciel) et dessiner le **ciel** de son arène, derrière tout le décor
+(`drawSky`, comme le beau soleil de la fin). Sa vitesse suit la difficulté (`bossK` dans `DIFFS`, en haut de
+`js/game.js`), et chaque boss peut y avoir ses réglages (`acornHits` pour Pépé Chêne ; `gustHops`, `gustTickles`
+et `gustBells` pour Bourrasque). Ajouter son fichier dans
 `index.html`, après `js/boss.js`.
 Un **nouveau monde** s'ajoute **à la fin** de `WORLDS` (sinon les numéros des mondes d'après changeraient).
 Si un niveau a un `world` qui n'est pas dans `WORLDS`, il n'apparaît pas et la console du navigateur le dit.
 
 Pour tester directement un niveau : `index.html?niveau=1-2` (monde 1, niveau 2), ou `index.html?niveau=3`
-(le premier niveau du monde 3 : c'est aussi l'ancien « niveau 3 »), ou un stage d'entraînement : `index.html?stage=1`
-(le 1er stage sur le chemin de la carte : maintenant la Roulade ; `?stage=2` le Super Saut, `?stage=3` la
-Moustache-Grappin), ou par le nom de son badge : `?stage=roulade`, `?stage=saut`, `?stage=grappin`.
+(le premier niveau du monde 3 : c'est aussi l'ancien « niveau 3 »), ou un stage d'entraînement : `index.html?stage=N`,
+le N-ième stage sur le chemin de la carte (maintenant : `?stage=1` la Roulade, `?stage=2` le Super Saut, `?stage=3`
+le Bocal à éclairs, `?stage=4` la Moustache-Grappin ; attention, un stage ajouté plus tôt sur le chemin décale les
+numéros : avant le Bocal à éclairs, `?stage=3` était la Moustache-Grappin), ou, ce qui ne change jamais, par le nom
+de son badge : `?stage=roulade`, `?stage=saut`, `?stage=bocal`, `?stage=grappin`.
 Avec ces raccourcis, Malice a, pour l'essai, les badges des stages d'avant ce niveau (ils ne sont pas gardés : un
 badge ne se gagne qu'en finissant son stage avec Malice, jamais avec un autre personnage).
 On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=difficile`.
@@ -461,7 +656,10 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Dans le Vieux Chêne | la même, dans le bois du tronc creux : la mélodie au marimba, la flûte en écho tout là-haut, pizzicati, et des wood-blocks qui toquent comme un pic-vert |
   | Le combat contre Pépé Chêne et Ronchon | une marche grognonne sur la pointe des pieds, comme celle du vieux roi de la montagne : do mineur en 4/4 bien carré, la mélodie au basson tout en staccato doublée aux pizzicati, le tuba et les timbales qui marquent le pas, des wood-blocks comme des glands qui tombent ; au refrain, les cordes et les cuivres s'emportent |
   | Stage du Super Saut | bossa nova, accords de jazz, vibraphone |
-  | La Vallée des Orages | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
+  | La Vallée des Orages (la Vallée des Orages, le Moulin à Vent, la Crue) | do mineur rapide, arpèges électriques, la mélodie passe à la basse |
+  | Le Phare sur la Falaise | la même, un peu moins vite : la mélodie aux cuivres comme une corne de brume, une cloche de bouée qui répond en écho (glockenspiel), des cordes en tenue qui roulent comme la mer |
+  | Le combat contre Bourrasque | une tarentelle, qui tourne comme sa toupie : do mineur en 12/8 à toute allure, la mélodie à l'accordéon, la guitare qui gratte « oum-pa-pa », la contrebasse qui sautille, le tambourin et ses grelots ; au refrain, les cordes tourbillonnent avec un grand coup de vent, et à la fin le glockenspiel tombe comme des grêlons |
+  | Stage du Bocal à éclairs | funk, tout électrique : basse « slap » qui saute d'octave, clavinet sur les contretemps (accords de neuvième), la mélodie aux cuivres tout en staccato, le saxophone au milieu, charleston en doubles croches et caisse claire avec des notes fantômes |
   | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |
