@@ -13,6 +13,43 @@ puis le ramener chez sa famille, au pays des bonbons !
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
 du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux, son boss (Pépé Chêne et Ronchon) et son stage d'entraînement (le Super Saut, refait dans le sous-bois), la Vallée des Orages ses quatre niveaux, son boss (Bourrasque, le nuage enrhumé) et son stage d'entraînement (le Bocal à éclairs), et chaque autre monde son premier niveau :
 
+**Des niveaux trois fois plus longs.** Alice trouvait les niveaux trop courts : depuis novembre 2026, les douze
+niveaux des mondes 1 à 3 sont **trois fois plus longs** (environ 600 à 700 colonnes au lieu de 200 à 235 ; trois fois
+plus hauts pour ceux où l'on grimpe : Dans le Vieux Chêne, la Crue, le Phare). Le début de chaque niveau est celui
+qu'on connaissait ; viennent ensuite plusieurs parties **de plus en plus dures**, chacune avec son idée et souvent
+un raccourci ou une cachette, avec un drapeau tous les 60 à 70 cases environ, et la même arrivée (ou la même arène du
+boss) tout au bout. Chaque niveau garde sa découverte : les parties ajoutées n'utilisent que ce qu'on a déjà
+rencontré avant (pas de hérisson dans le 2-1, ni de grenouille dans le 3-1). Les stages d'entraînement ne changent
+pas. Ce qu'on trouve dans les parties ajoutées :
+- 1-1 : un raccourci en planches plein de bonbons, un lac de lave, une colline creuse avec sa cachette (on casse le
+  bloc lutin du toit), l'escalier des gros yeux, une grande course (en courant, on attrape les sucettes au-dessus des
+  trous), et un dernier défi au-dessus de la lave.
+- 1-2 : des pissenlits en relais, des escargots dans les branches, un courant d'air qui mène au chemin du haut (ou
+  celui du bas, gardé), et deux très longs vols.
+- 1-3 : des nénuphars grignotés, des pissenlits au-dessus de la rivière, une deuxième galerie souterraine (un bloc
+  lutin caché sur la berge, un lapin qui parle, des sucettes), deux chemins au choix, et les rapides.
+- 1-4 : la colline aux taupes, la grande rivière, le grand vol (s'arrêter dans le courant d'air pour se poser sur le
+  pilier ; tout en haut, le chemin des étoiles), les planches au-dessus des taupes, le marais des lucioles.
+- 2-1 : escargots, gros yeux, coccinelles, pissenlits et courants d'air, deux ruisseaux à nénuphars, un raccourci en
+  briques et une branche secrète.
+- 2-2 : des chapeaux au-dessus des ronces, des plateformes qui bougent, un gouffre qu'on traverse en pissenlit, des
+  champignons bleus au-dessus d'un très grand trou, et des buttes à hérissons.
+- 2-3 : des cabanes perchées, des radeaux (plateformes qui bougent), un village sur pilotis, le gué des sangliers,
+  des ponts qui dansent avec un grenier secret (le champignon caché dans la boue, en gardant le saut), et quatre
+  sangliers pour finir.
+- 2-4 : quatorze étages de plus : le grenier des écureuils, les champignons bleus, les grands trous à lianes, et le
+  haut du tronc avec un nid secret.
+- 3-1 : des gués à champignons bleus dans le chocolat, les visiteurs de la Forêt (hérissons et sangliers) sous
+  l'orage, et une crête pleine de Rubik's cubes.
+- 3-2 : deux moulins côte à côte au-dessus du vide, le lac de chocolat (un pissenlit planté sur un petit nuage) et un
+  raccourci de petits nuages au-dessus de l'orage, puis la grande traversée à trois moulins.
+- 3-3 : neuf étages de plus : l'orage revient, la colline percée (des trous jusqu'à l'eau), un raccourci de petits
+  nuages, et le sommet ; les escaliers prennent des nuages qui bougent, et l'eau monte de plus en plus vite.
+- 3-4 : dix paliers de plus, de plus en plus de paratonnerres sur les escaliers, une planche cachée au-dessus d'un
+  bloc lutin ; un palier sur deux est calme, avec un drapeau.
+
+Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pendant qu'une fleur toute proche parle.
+
 1. **La Prairie** — 1-1 **La Prairie Fleurie** : on apprend à jouer, des fleurs qui parlent donnent des conseils
    - 1-2 **Les Grands Arbres** : tout là-haut au-dessus de la prairie, on saute de branche en branche (attention aux trous !).
      Les **pissenlits géants** : on les touche, Malice les tient au-dessus de sa tête et descend tout doucement
@@ -141,17 +178,17 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      3. Ronchon, tout nu, va se cacher derrière Pépé Chêne (on voit dépasser ses petites fesses roses), et Pépé Chêne
         se fâche : il fait tomber de **gros glands**, qui rebondissent et attendent par terre en brillant. On **saute
         sur un gros gland** : il repart en faisant un grand arc… et tape sur le nez en nœud de bois de Pépé Chêne.
-        Toc ! Il en faut plusieurs : **2 en Bébé, 3 en Gentil, 4 en Classique, 5 en Difficile**. À chaque gland,
+        Toc ! Il en faut plusieurs : **2 en Bébé, 4 en Gentil, 5 en Classique, 6 en Difficile**. À chaque gland,
         son nez rougit un peu plus et on voit combien il en reste (« Toc ! Encore 2 ! »)… et au dernier : TOC !
      - Ses attaques sont toujours annoncées. **Les glands** : il secoue ses branches, un gland tremble au bout de sa
        brindille sous les feuilles, et son ombre grandit par terre… puis il tombe (une bosse sous la casquette).
        Les petits glands se cassent en touchant le sol. **Les racines** : il tape par terre, la terre se soulève et
        tremble avec un grondement là où est Malice… puis une racine sort d'un coup (elle pique les fesses !) et
        repart sous le plancher. Ronchon gratte le sol et grogne avant de foncer. Pépé Chêne ne lance qu'une attaque
-       à la fois : une racine (deux en Difficile, dans la dernière manche), ou des glands côte à côte, jamais l'un
-       sur l'autre : un petit gland (deux en Classique et en Difficile), ou de gros glands (un en Bébé, deux en
-       Gentil et en Classique, trois en Difficile). Il attend aussi que Ronchon ait fini de foncer (sauf en
-       Difficile, à partir de la deuxième manche).
+       à la fois : une racine (deux en Classique et en Difficile, dans la dernière manche), ou des glands côte à
+       côte, jamais l'un sur l'autre : un petit gland (deux sauf en Bébé), ou de gros glands (un en Bébé, deux en
+       Gentil, trois en Classique et en Difficile). Il attend aussi que Ronchon ait fini de foncer (sauf en
+       Classique et en Difficile, à partir de la deuxième manche).
      - Le caramel colle les piquants de Ronchon (il ne peut plus se mettre en boule : on lui saute dessus), et colle
        les mains de Pépé Chêne (il ne fait plus rien tomber pendant un moment). Les pouvoirs qui renversent font
        tomber Ronchon étourdi dans la première manche, et le touchent quand il ne peut pas se défendre ; ils
@@ -171,7 +208,7 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
        réveille Pépé Chêne bien plus vite : « Encore toi ? »). En Bébé, tout est plus lent : Ronchon gratte le sol plus
        longtemps, fonce moins vite et reste étourdi plus longtemps, les glands tremblent plus longtemps, Ronchon
        reste tout nu (ou collé) jusqu'à ce qu'on lui saute dessus, les gros glands attendent plus longtemps par terre,
-       et il y a moins de racines ; en Difficile, tout va plus vite (et Pépé Chêne fait tomber trois gros glands à la fois).
+       et il y a moins de racines ; en Difficile, tout va plus vite.
    - ⭐ **Stage d'entraînement : le Défi du Super Saut** → on gagne le badge *Super Saut*. Refait dans le
      **sous-bois** de la Forêt (les idées d'Alice) : de grands arbres, des souches couvertes de mousse, des champignons
      géants, des lianes. Le niveau est bien plus haut que l'écran : la caméra suit Malice dans les arbres (`haut`).
@@ -210,7 +247,8 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      sauter. Une grenouille qui monte en sautant ne fait pas mal (c'est quand elle retombe sur Malice qu'il faut
      s'écarter). On y retrouve les éclairs au chocolat et les Rubik's cubes (pas en même temps que les grenouilles).
      En Bébé, les grenouilles visent Malice de moins loin, se ramassent plus longtemps, restent plus longtemps en
-     l'air et assises, et les ailes tournent moins vite ; en Difficile, c'est le contraire.
+     l'air et assises, et les ailes tournent moins vite ; en Difficile, c'est le contraire. Un tour d'ailes dure 10 s
+     en Bébé, 7 s en Gentil, 5,5 s en Classique et 4,5 s en Difficile.
    - 3-3 **La Crue** : il a tant plu que la rivière déborde ! On grimpe la colline, étage par étage : sur chaque
      étage, c'est calme (l'eau reste en dessous), puis, au bout, un palier avec un drapeau et une fleur, et un
      **escalier de nuages**. Dès qu'on monte sur la première marche, la rivière bouillonne (« L'eau monte ! Grimpe
@@ -267,18 +305,18 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      1. **Sauter sur le nuage** : sa toupie se gonfle et le vent arrive vers elle de partout : elle **aspire** (on
         glisse vers elle, moins vite qu'on ne marche : on peut toujours s'écarter). Si on va dedans, elle **emporte
         Malice** en tournant jusqu'en haut (« Wiiiii ! ») et la lance au-dessus de Bourrasque : on lui retombe sur
-        la tête. **Pouf !** Il faut le faire plusieurs fois (2 en Bébé et en Gentil, 3 en Classique, 4 en Difficile :
+        la tête. **Pouf !** Il faut le faire plusieurs fois (2 en Bébé, 3 en Gentil, 4 en Classique, 5 en Difficile :
         « Pouf ! Encore 2 ! »), et chaque fois, il faut être retombée par terre avant de recommencer. En Bébé, il
         plane juste au-dessus de sa toupie : on lui retombe dessus sans toucher aux flèches. Sinon, il plane juste à
         côté : en l'air, il faut se diriger un peu vers lui avec les flèches (un tout petit peu en Gentil, un peu plus
-        en Difficile ; on peut déjà appuyer pendant que la toupie emporte Malice). Au premier lancer manqué, puis tous
-        les deux, un conseil le redit. Le rebond sur sa tête est doux (même en gardant le saut appuyé) : la tête de
+        en Classique et en Difficile ; on peut déjà appuyer pendant que la toupie emporte Malice). Au premier lancer
+        manqué, puis tous les deux, un conseil le redit. Le rebond sur sa tête est doux (même en gardant le saut appuyé) : la tête de
         Malice ne monte jamais sous ses vies, en haut de l'écran (pendant le combat, l'écran montre un peu plus de
         ciel).
      2. **Chatouiller la toupie** : « Mon toupie, protège-moi ! ». Une **grande plume** tombe du ciel en se balançant :
         on l'attrape en la touchant (Malice la tient devant elle), et on va tout contre la toupie pour la
         **chatouiller** (« Hi hi ! »). Elle se sauve un peu plus loin… et au bout de quelques chatouilles (2 en Bébé,
-        3, 4, et 5 en Difficile), elle **éclate de rire** (« HA HA HA HA ! »), se couche par terre et s'arrête de
+        4, 5, et 6 en Difficile), elle **éclate de rire** (« HA HA HA HA ! »), se couche par terre et s'arrête de
         tourner. Sans sa toupie, Bourrasque **dégringole** tout près du sol, tout étourdi (des étoiles, les yeux qui
         tournent) : on lui saute dessus ! (En Bébé, il reste par terre tant qu'on ne lui a pas sauté dessus ; sinon,
         au bout d'un moment, il remonte et sa toupie se relève : il faut la rechatouiller.) Sans la plume, la toupie
@@ -287,7 +325,7 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
      3. **L'arc-en-ciel** : « Bouhouhou ! Tu as fait rire mon toupie ! ». Bourrasque pleure toute une **grosse
         averse**… puis **trois cloches** apparaissent : une sur un poteau à chaque bout de la galerie, et une sous le
         dôme de la lanterne. On les **sonne en sautant dedans** (« Ding ! », de petites notes de musique s'envolent).
-        Chacune sonne un moment (jusqu'au bout en Bébé, 16 s en Gentil, 11 s en Classique, 8 s en Difficile), et
+        Chacune sonne un moment (jusqu'au bout en Bébé, 11 s en Gentil, 8 s en Classique, 6 s en Difficile), et
         **quand les trois sonnent en même temps**, un **arc-en-ciel** apparaît d'un bout à l'autre de la galerie.
         Bourrasque l'admire, des cœurs dans les yeux (« Oooh… Comme il est beau… ») et ne fait plus rien : c'est un
         **pont** ! On monte dessus (en marchant jusqu'à son pied, ou en sautant dessus ; on le traverse par en
@@ -302,7 +340,8 @@ du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses
        grêlon grossit dedans et son ombre grandit par terre… puis il tombe. Il ne fait mal qu'en tombant ; par terre,
        il rebondit deux fois (on peut sauter dessus : crac !) et fond en une petite flaque. Il ne fait qu'une chose
        à la fois, et rien pendant que sa toupie aspire ou que Malice est tout là-haut. Un grêlon (1 en Bébé, 2 en
-       Gentil et en Classique, 3 en Difficile) ; un éclair (deux en Difficile, à partir de la deuxième manche).
+       Gentil, 3 en Classique et en Difficile) ; un éclair (deux en Classique et en Difficile, à partir de la
+       deuxième manche).
      - Les chips et le caramel passent à travers le nuage et sa toupie. Les pouvoirs qui renversent et l'étoile
        comptent comme un saut sur sa tête (dans la première manche) et le touchent quand il est tombé par terre ou
        quand l'arc-en-ciel est là ; les tirs des pouvoirs (ballon, bulles de feu, Kaméhaméha…) ne l'atteignent que
@@ -545,7 +584,10 @@ pouvoir, L1 ou R1 la moustache-grappin, L2 ou R2 le bocal à éclairs, Start la 
 - **Difficile** : 3 vies ; si on les perd toutes, retour au premier niveau du monde où on est
   (par exemple 2-3 → 2-1). Dans un stage d'entraînement, on recommence simplement le stage.
 
-Les ennemis sont aussi un peu plus rapides en Classique et en Difficile.
+Les ennemis sont aussi un peu plus rapides en Classique et en Difficile. En novembre 2026, Alice trouvant le jeu
+trop facile, tout est devenu plus dur d'un cran (sauf en Bébé) : Gentil a les anciens réglages de Classique, Classique
+ceux de Difficile, et Difficile va encore un peu plus loin. Les vies ne changent pas : 3 vies en Classique, et on
+refait tout le niveau, même trois fois plus long (c'est voulu).
 100 friandises (bonbons, sucettes, balles) donnent une vie en plus.
 
 La progression (jusqu'où on est arrivé sur la carte) est gardée dans le navigateur, sous le nom de la case
