@@ -30,8 +30,9 @@ const CLIMB_TOP = 36;
 const CLIMB_BOTTOM = 24;
 // le Phare sur la Falaise : sa grande lumière fait un tour en turn secondes (elle a deux faisceaux) ;
 // le fond, autour du phare : la mer au loin (voir Scenery BG.storm), et depuis la falaise, le phare tout petit au loin
-// (far : de 1, bien visible, à 0 ; ang : sa lumière, voir render)
-const LIGHTHOUSE = { turn: 7 };
+// (far : de 1, bien visible, à 0 ; ang : sa lumière, voir render) ; quand on monte, le fond descend de sea pixels au plus
+// (ensuite, la mer reste à l'horizon : en haut du phare, aussi haut soit-il, on la voit toujours au même endroit)
+const LIGHTHOUSE = { turn: 7, sea: 633 };
 const LIGHTHOUSE_BG = { sea: true, far: 0, ang: 0 };
 // un orage qui n'est que sur un étage apparaît en fondu, sur STORM_FADE pixels de glissement de l'écran
 const STORM_FADE = 150;
@@ -543,6 +544,17 @@ class World {
     const m = margin == null ? 40 : margin;
     return o.x + (o.w || 0) > this.cam.x - m && o.x < this.cam.x + VIEW_W + m &&
       o.y + (o.h || 0) > this.cam.y - m && o.y < this.cam.y + VIEW_H + m;
+  }
+
+  // Un drapeau qu'on voit : le mât (et sa boule, son tissu) ou son papillon, qui voltige autour.
+  flagSeen(cp) {
+    return this.onScreen({ x: cp.x - 50, y: cp.y - 140, w: 110, h: 150 }, 40) || (!!cp.butterfly && this.onScreen(cp.butterfly, 80));
+  }
+
+  // Une plateforme qu'on voit (seulement celles dont on connaît la taille : les autres sont toujours dessinées ; les
+  // planches du moulin regardent elles-mêmes si on voit le moulin).
+  platformSeen(pl) {
+    return !(pl instanceof MovingPlatform || pl instanceof LilyPad) || this.onScreen(pl, 120);
   }
 
   // ---------- Les Grands Arbres ----------
@@ -1488,7 +1500,7 @@ class World {
   drawFacade(ctx, camX, camY) {
     const T = this.trunk;
     if (T.x0 > camX + VIEW_W + 40) return;
-    Scenery.oakFacade(ctx, T.x0, T.x1, camY, this.door, this.facadeK, this.t);
+    Scenery.oakFacade(ctx, T.x0, T.x1, camY, this.door, this.facadeK, this.t, camX);
   }
 
   updateCamera(dt, snap) {
@@ -1577,7 +1589,7 @@ class World {
     else if (sky > 0) {
       const lift = this.cam.y - Math.max(0, this.height - VIEW_H);
       // (autour du phare, la mer au loin : voir Scenery BG.storm ; on la voit descendre doucement quand on monte)
-      const cy = this.flood ? lift * 3 + 84 : this.def.haut ? lift + 84 : this.lighthouse ? lift * 0.25 + 84 : this.cam.y;
+      const cy = this.flood ? lift * 3 + 84 : this.def.haut ? lift + 84 : this.lighthouse ? Math.max(lift * 0.25, -LIGHTHOUSE.sea) + 84 : this.cam.y;
       // (depuis la falaise, le phare au loin, tout petit ; il s'efface derrière le rocher, juste avant qu'on voie le vrai)
       if (this.lighthouse) {
         LIGHTHOUSE_BG.far = clamp((this.lighthouse.x0 - VIEW_W - 60 - this.cam.x) / 200, 0, 1);
@@ -1634,7 +1646,11 @@ class World {
     // (les fleurs-lanternes qu'on voit : cherchées une fois par image)
     this.glowsSeen = this.glows.filter((gl) => gl.x > camX - 150 && gl.x < camX + VIEW_W + 150);
     for (const gl of this.glowsSeen) Scenery.glowFlower(ctx, gl.x, gl.y, gl.v, this.t);
-    for (const f of this.flowers) f.draw(ctx);
+    // (dans un long niveau, on ne dessine que ce qu'on voit, avec une marge pour ce qui dépasse : le dessin ne coûte pas
+    // plus cher quand le niveau est plus long. Une fleur qui parle montre sa bulle même un peu hors de l'écran.)
+    for (const f of this.flowers) {
+      if (f.show > 0.05 || this.onScreen(f, 150)) f.draw(ctx);
+    }
     ctx.restore();
 
     this.drawTiles(ctx, s, camX, camY);
@@ -1648,7 +1664,9 @@ class World {
     this.drawLutinShine(ctx, camX, camY);
     this.drawMagic(ctx);
     for (const rod of this.rods) rod.draw(ctx);
-    for (const cp of this.checkpoints) cp.draw(ctx);
+    for (const cp of this.checkpoints) {
+      if (this.flagSeen(cp)) cp.draw(ctx);
+    }
     for (const d of this.puffs) {
       if (d.x > camX - 140 && d.x < camX + VIEW_W + 140) d.draw(ctx);
     }
@@ -1658,11 +1676,15 @@ class World {
     if (this.goal) this.goal.draw(ctx);
     // (les nénuphars qui flottent sont dessinés par-dessus l'eau, plus loin)
     for (const pl of this.platforms) {
-      if (!pl.onWater) pl.draw(ctx);
+      if (!pl.onWater && this.platformSeen(pl)) pl.draw(ctx);
     }
-    for (const a of this.anchors) a.draw(ctx);
+    for (const a of this.anchors) {
+      if (this.onScreen(a, 100)) a.draw(ctx);
+    }
+    // (seulement ce qu'on voit, avec une marge pour le halo d'un bonus ; mais pendant le combat contre un boss, tout ce
+    // qu'il lance, même de loin)
     for (const it of this.items) {
-      if (it.x < xMax) it.draw(ctx);
+      if (it.x < xMax && (this.arena || this.onScreen(it, 80))) it.draw(ctx);
     }
     for (const ce of this.critters) {
       if (this.onScreen(ce, 80)) ce.draw(ctx);
@@ -1672,11 +1694,16 @@ class World {
     }
     // l'arène du boss : son décor et ses murs (même quand le boss n'est pas à l'écran)
     if (this.boss) this.boss.drawArena(ctx);
+    // (seulement ceux qu'on voit : dans un niveau où l'on grimpe, ceux des autres étages ne sont pas dessinés ; pendant
+    // le combat contre un boss, tous)
     for (const e of this.enemies) {
-      if (e.x + e.w > camX - 80 && e.x < Math.min(camX + VIEW_W + 80, xMax)) e.draw(ctx);
+      if (e.x + e.w > camX - 80 && e.x < Math.min(camX + VIEW_W + 80, xMax) &&
+        (e === this.boss || this.arena || (e.y + e.h > camY - 240 && e.y < camY + VIEW_H + 240))) e.draw(ctx);
     }
     for (const ec of this.eclairs) ec.draw(ctx);
-    for (const h of this.hazards) h.draw(ctx);
+    for (const h of this.hazards) {
+      if (!(h instanceof Stalactite) || this.onScreen(h, 120)) h.draw(ctx);
+    }
     for (const pr of this.projectiles) pr.draw(ctx);
     for (const g of this.gags) g.draw(ctx);
     // dehors, le tronc du Vieux Chêne vu de l'extérieur (il s'efface quand Malice entre)
@@ -1697,7 +1724,7 @@ class World {
     this.drawWater(ctx);
     if (this.flood) this.flood.draw(ctx, true);
     for (const pl of this.platforms) {
-      if (pl.onWater) pl.draw(ctx);
+      if (pl.onWater && this.platformSeen(pl)) pl.draw(ctx);
     }
     this.drawReeds(ctx, true);
     if (this.dark) this.drawDarkness(ctx, camX, camY);
@@ -1786,7 +1813,10 @@ class World {
     const T = TILE;
     const c0 = Math.max(0, Math.floor(camX / T) - 1);
     const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / T) + 1);
-    for (let r = 0; r < this.rows; r++) {
+    // (seulement les rangées qu'on voit : dans un niveau très haut, les autres étages ne coûtent rien)
+    const r0 = Math.max(0, Math.floor(this.cam.y / T) - 2);
+    const r1 = Math.min(this.rows - 1, Math.ceil((this.cam.y + VIEW_H) / T) + 1);
+    for (let r = r0; r <= r1; r++) {
       let c = c0;
       while (c <= c1) {
         if (this.tiles[r][c] !== 'w') { c++; continue; }
@@ -1801,7 +1831,9 @@ class World {
   drawLutinShine(ctx, camX, camY) {
     const c0 = Math.max(0, Math.floor(camX / TILE));
     const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / TILE));
-    for (let r = 0; r < this.rows; r++) {
+    const r0 = Math.max(0, Math.floor(camY / TILE) - 1);
+    const r1 = Math.min(this.rows - 1, Math.ceil((camY + VIEW_H) / TILE) + 1);
+    for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         if (!LUTIN_BLOCKS.includes(this.tiles[r][c])) continue;
         const ph = (this.t * 0.6 + hash(c * 7.3 + r)) % 2.2;
@@ -2250,7 +2282,10 @@ class World {
     const T = TILE;
     const c0 = Math.max(0, Math.floor(camX / T) - 2);
     const c1 = Math.min(this.cols - 1, Math.ceil((camX + VIEW_W) / T) + 2);
-    for (let r = 0; r < this.rows; r++) {
+    // (et les rangées qu'on voit, avec de quoi couvrir la plus grande de ces lumières)
+    const r0 = Math.max(0, Math.floor(camY / T) - 4);
+    const r1 = Math.min(this.rows - 1, Math.ceil((camY + VIEW_H) / T) + 3);
+    for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         const ch = this.tiles[r][c];
         if (ch === 'M') L.push({ x: c * T + T / 2, y: r * T + 14, r: 120, a: 0.85 });
@@ -2349,6 +2384,8 @@ class World {
 
   drawParticles(ctx) {
     for (const q of this.particles) {
+      // (seulement celles qu'on voit ; un texte qui flotte est plus large)
+      if (!this.onScreen(q, q.type === 'text' ? 400 : 150)) continue;
       // (hold : elle ne s'efface que pendant ses hold dernières secondes, comme le grand « L'eau monte ! »)
       const a = Math.max(0, Math.min(1, q.life / (q.hold || q.max)));
       ctx.save();

@@ -1834,7 +1834,8 @@ const Scenery = (() => {
   // couvert d'écorce, avec du lierre, de la mousse en bas, de grosses racines qui s'enfoncent dans l'herbe, et la
   // porte : un grand trou en arche (door : où il est ; on voit l'intérieur à travers). alpha : il s'efface quand
   // Malice entre.
-  function oakFacade(ctx, x0, x1, camY, door, alpha, t) {
+  // (camX : seulement l'écorce qu'on voit, pas toute la largeur du tronc)
+  function oakFacade(ctx, x0, x1, camY, door, alpha, t, camX) {
     const y0 = camY - 10;
     const y1 = camY + VIEW_H + 10;
     const dw = 2 * TILE;
@@ -1885,7 +1886,9 @@ const Scenery = (() => {
     ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
     const img = oakBarkSprite();
     const by0 = Math.floor(y0 / BARK_H) * BARK_H;
-    for (let x = x0; x < x1; x += BARK_W) {
+    const bx0 = camX == null ? x0 : x0 + Math.max(0, Math.floor((camX - 10 - x0) / BARK_W)) * BARK_W;
+    const bx1 = camX == null ? x1 : Math.min(x1, camX + VIEW_W + 10);
+    for (let x = bx0; x < bx1; x += BARK_W) {
       for (let y = by0; y < y1; y += BARK_H) ctx.drawImage(img, x, y, BARK_W, BARK_H);
     }
     // le bord gauche du tronc, éclairé

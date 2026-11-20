@@ -583,8 +583,9 @@ class Player {
   checkWater() {
     const w = this.world;
     const surf = w.waterSurface(this, 0);
-    // (debout sur un nénuphar, on n'est pas dans l'eau, même s'il s'enfonce un tout petit peu)
-    if (surf === null || this.dead || this.platform) {
+    // (debout sur un nénuphar, on n'est pas dans l'eau, même s'il s'enfonce un tout petit peu ; mais un nuage qui
+    // bouge, H ou I, ne flotte pas : dans la Crue, l'eau qui monte le recouvre)
+    if (surf === null || this.dead || (this.platform && !(this.platform instanceof MovingPlatform))) {
       this.swim = false;
       return;
     }
@@ -2289,12 +2290,19 @@ class EyeMonster extends Enemy {
     this.look = { x: -1, y: 0 };
   }
 
+  // Il ne bouge plus pendant qu'une fleur parle près de lui : il écoute, lui aussi (comme les grenouilles et les
+  // petits nuages de la Vallée). On lit tranquille, même quand la fleur montre le gros œil (« Saute-leur sur la tête ! »).
+  hush() {
+    return this.world.flowers.some((f) => f.show > 0.3 && Math.abs(f.x - this.cx) < 9 * TILE);
+  }
+
   ai(dt) {
     const w = this.world;
     const p = w.player;
     const dx = p.cx - this.cx;
     const dy = p.cy - (this.y + 17);
-    const sees = !p.dead && !p.won && Math.abs(dx) < 330 && Math.abs(dy) < 130;
+    const hush = this.hush();
+    const sees = !hush && !p.dead && !p.won && Math.abs(dx) < 330 && Math.abs(dy) < 130;
     if (sees && !this.chasing) {
       this.alertT = 0.4;
       if (this.onGround) this.vy = -260;
@@ -2303,7 +2311,7 @@ class EyeMonster extends Enemy {
     this.chasing = sees;
     this.alertT -= dt;
     if (sees && Math.abs(dx) > 8) this.dir = Math.sign(dx);
-    const speed = this.alertT > 0 ? 0 : sees ? w.diff.eyeChase : 55;
+    const speed = this.alertT > 0 || hush ? 0 : sees ? w.diff.eyeChase : 55;
     let want = this.dir * speed;
     if (this.onGround && want !== 0 && !w.groundAhead(this)) {
       if (sees) want = 0;
