@@ -10,6 +10,16 @@ const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' |
 const isLedgeCh = (ch) => ch === '-' || ch === '=' || ch === 'z';
 // l'eau de la rivière (la Rivière aux Nénuphars)
 const WATER = '_';
+// les éboulis de la Grande Glissade : une case où passe la pente de cailloux (voir "glissades" et findScree)
+const SCREE = '>';
+// La caméra de la Grande Glissade : comme dans un niveau où l'on grimpe, elle suit le sol où Malice a les pieds, ses
+// pieds un peu plus haut sur l'écran (feet, une part de la hauteur de l'écran : on voit bien la pente qui descend
+// devant elle) ; en glissant, elle regarde plus loin devant (ahead pixels). Pour le fond : voir render.
+const SCREE_CAM = { feet: 0.6, ahead: 170 };
+const SCREE_BG = 240;
+// En arrivant sur la pente, ou en y restant, ses pieds se posent sur les cailloux s'ils en sont à moins de stick pixels
+// (en descendant la pente, ils la suivent sans décoller ; voir screeSnap).
+const SCREE_STICK = 18;
 // la bave des escargots : elle glisse pendant SLIME_WET secondes, puis elle sèche (et disparaît à SLIME_TIME)
 const SLIME_WET = 7;
 const SLIME_TIME = 9;
@@ -168,6 +178,11 @@ class World {
     this.boss = null;
     this.arena = null;
 
+    // la Grande Glissade : les pentes d'éboulis ("glissades"), où l'on glisse sans pouvoir s'arrêter (voir findScree ;
+    // avant les ennemis : les hérissons de roche se posent sur la pente)
+    this.scree = def.glissades ? this.findScree(def.glissades) : null;
+    this.screeHit = null;
+
     let start = { x: 3 * TILE, y: 11 * TILE };
     const flowerSpots = [];
     for (let r = 0; r < this.rows; r++) {
@@ -211,6 +226,15 @@ class World {
           case 'O': this.enemies.push(new Snail(this, mx - 22, by - 30)); break;
           case 'm': this.enemies.push(new Mole(this, mx, by)); break;
           case 'h': this.enemies.push(new Hedgehog(this, mx - 20, by - 30)); break;
+          // la Grande Glissade : un hérisson de roche, posé sur la pente (sa case reste des éboulis), ou sur le sol de la
+          // case du dessous
+          case '0':
+            if (this.screeCell(c, r)) {
+              this.tiles[r][c] = SCREE;
+              keep = true;
+            }
+            this.enemies.push(new RockHog(this, mx, by));
+            break;
           case 's': this.enemies.push(new Boar(this, mx - 28, by - 40)); break;
           case 'f': this.enemies.push(new Frog(this, mx - 20, by - 30)); break;
           // le moulin à vent : l'axe de ses ailes (ses planches sont des plateformes, voir Windmill)
@@ -351,6 +375,108 @@ class World {
     return isSolidCh(this.tileAt(Math.floor(px / TILE), Math.floor(py / TILE)));
   }
 
+  // ---------- La Grande Glissade : les pentes d'éboulis ----------
+  // Chaque glissade [c0, r0, c1, r1] est une pente toute droite, du coin en haut à gauche de la case (c0, r0) jusqu'au
+  // coin en bas à droite de la case (c1, r1). Les cases > de la carte sont celles où passe la pente (ailleurs, sur sa
+  // ligne, il y a un rocher ou un trou), et sous la pente, c'est de la terre (#). Pour chaque colonne : ses pentes
+  // (lines) ; fill : les cases de terre juste sous les éboulis (on ne s'y cogne pas, on glisse sur la pente au-dessus).
+  findScree(list) {
+    const T = TILE;
+    const lines = new Array(this.cols).fill(null);
+    for (const [c0, r0, c1, r1] of list) {
+      const L = { x0: c0 * T, y0: r0 * T, x1: (c1 + 1) * T, k: (r1 + 1 - r0) / (c1 + 1 - c0) };
+      for (let c = Math.max(0, c0); c <= Math.min(this.cols - 1, c1); c++) (lines[c] = lines[c] || []).push(L);
+    }
+    const fill = new Uint8Array(this.rows * this.cols);
+    // rock : les cases de terre au-dessus de la pente (les rochers posés dessus : dessinés comme de grosses pierres)
+    const rock = new Uint8Array(this.rows * this.cols);
+    // (déjà là pour screeCell, juste en dessous)
+    this.scree = { lines, fill, rock };
+    for (let c = 0; c < this.cols; c++) {
+      for (let r = 0; r < this.rows - 1; r++) {
+        // (un hérisson de roche posé sur la pente : sa case aussi, voir le constructeur)
+        const ch = this.tiles[r][c];
+        if (ch !== SCREE && !(ch === '0' && this.screeCell(c, r))) continue;
+        for (let rr = r + 1; rr < this.rows && isSolidCh(this.tiles[rr][c]); rr++) fill[rr * this.cols + c] = 1;
+      }
+      // (un rocher : de la terre là où passe la pente, et au-dessus)
+      for (const L of lines[c] || []) {
+        const y = L.y0 + L.k * (c * TILE + TILE / 2 - L.x0);
+        for (let r = Math.floor(y / TILE); r >= 0 && this.tiles[r][c] === '#'; r--) rock[r * this.cols + c] = 1;
+      }
+    }
+    return this.scree;
+  }
+
+  // La pente d'une glissade passe-t-elle dans la case (c, r) ?
+  screeCell(c, r) {
+    const ls = this.scree && this.scree.lines[c];
+    return !!ls && ls.some((L) => {
+      const ya = L.y0 + L.k * (c * TILE - L.x0);
+      const yb = ya + L.k * TILE;
+      return yb > r * TILE + 0.5 && ya < (r + 1) * TILE - 0.5;
+    });
+  }
+
+  // La hauteur de la pente d'éboulis à x (la plus proche de near), ou null s'il n'y a pas d'éboulis là (pas de pente,
+  // ou un rocher, ou un trou). line : la pente trouvée (sa pente k), dans screeHit.
+  screeY(x, near) {
+    const S = this.scree;
+    const c = Math.floor(x / TILE);
+    const ls = S && c >= 0 && c < this.cols ? S.lines[c] : null;
+    if (!ls) return null;
+    let best = null;
+    for (const L of ls) {
+      const y = L.y0 + L.k * (x - L.x0);
+      if (this.tileAt(c, Math.floor((y - 1) / TILE)) !== SCREE && this.tileAt(c, Math.floor((y + 1) / TILE)) !== SCREE) continue;
+      if (best === null || Math.abs(y - near) < Math.abs(best - near)) {
+        best = y;
+        this.screeHit = L;
+      }
+    }
+    return best;
+  }
+
+  // Après avoir bougé (voir moveBody) : les pieds sur la pente ? b.slope : la pente où il glisse (ou null).
+  // On s'y pose en arrivant d'au-dessus ; posé dessus, on la suit en descendant (sans décoller), et en la remontant ;
+  // en sautant (on monte), on la quitte.
+  screeSnap(b, prevBottom, res) {
+    const was = b.slope;
+    b.slope = null;
+    if (b.vy < 0) return;
+    const feet = b.y + b.h;
+    const sy = this.screeY(b.x + b.w / 2, feet);
+    if (sy === null) return;
+    // (déjà posé plus haut : sur un rocher, au bord de la pente)
+    if (b.onGround && feet <= sy + 0.5) return;
+    const from = feet >= sy && prevBottom <= sy + (was ? SCREE_STICK : 2);
+    const stick = was && feet < sy && sy - feet <= SCREE_STICK;
+    if (!from && !stick) return;
+    b.y = sy - b.h;
+    b.vy = 0;
+    b.onGround = true;
+    b.slope = this.screeHit;
+    res.landed = true;
+  }
+
+  // Tombée dans une crevasse, sous la pente : le bord d'en face (les cases > de la colonne c, entre les rangées r0 et r1)
+  // est un mur, sinon on rentrerait dans la terre sous les éboulis. x : le bord de la colonne qu'on touche.
+  screeWall(b, c, r0, r1, x) {
+    let found = false;
+    for (let r = r0; r <= r1 && !found; r++) found = this.tileAt(c, r) === SCREE;
+    if (!found) return false;
+    const sy = this.screeY(x, b.y + b.h);
+    return sy !== null && b.y + b.h > sy + SCREE_STICK;
+  }
+
+  // Une case de terre juste sous les éboulis (sa première rangée), sous un corps qui a les pieds sur la pente (voir
+  // moveBody) ?
+  underScree(b, c, r) {
+    if (!this.scree || this.scree.fill[r * this.cols + c] !== 1) return false;
+    const sy = this.screeY(b.x + b.w / 2, b.y + b.h);
+    return sy !== null && r * TILE < sy + TILE;
+  }
+
   // Déplace un objet en tenant compte des murs, du sol et des plateformes traversables.
   moveBody(b, dt, onFloorHit) {
     const T = TILE;
@@ -359,23 +485,34 @@ class World {
       b.x += b.vx * dt;
       const r0 = Math.floor(b.y / T);
       const r1 = Math.floor((b.y + b.h - 0.01) / T);
+      // (sur la pente d'éboulis, la terre juste sous les pieds n'est pas un mur : on remonte la pente sans s'y cogner)
+      const fill = b.slope && this.scree ? this.scree.fill : null;
+      const step = b.y + b.h - SCREE_STICK;
       if (b.vx > 0) {
         const c = Math.floor((b.x + b.w - 0.01) / T);
         for (let r = r0; r <= r1; r++) {
-          if (isSolidCh(this.tileAt(c, r))) {
+          if (isSolidCh(this.tileAt(c, r)) && !(fill && r * T > step && fill[r * this.cols + c] === 1)) {
             b.x = c * T - b.w;
             res.wall = 1;
             break;
           }
         }
+        if (!res.wall && this.scree && this.screeWall(b, c, r0, r1, c * T + 1)) {
+          b.x = c * T - b.w;
+          res.wall = 1;
+        }
       } else {
         const c = Math.floor(b.x / T);
         for (let r = r0; r <= r1; r++) {
-          if (isSolidCh(this.tileAt(c, r))) {
+          if (isSolidCh(this.tileAt(c, r)) && !(fill && r * T > step && fill[r * this.cols + c] === 1)) {
             b.x = (c + 1) * T;
             res.wall = -1;
             break;
           }
+        }
+        if (!res.wall && this.scree && this.screeWall(b, c, r0, r1, (c + 1) * T - 1)) {
+          b.x = (c + 1) * T;
+          res.wall = -1;
         }
       }
       if (res.wall) b.vx = 0;
@@ -383,6 +520,7 @@ class World {
     const prevBottom = b.y + b.h;
     b.y += b.vy * dt;
     b.onGround = false;
+    const scree = !!this.scree;
     const c0 = Math.floor((b.x + 0.01) / T);
     const c1 = Math.floor((b.x + b.w - 0.01) / T);
     if (b.vy > 0) {
@@ -390,6 +528,8 @@ class World {
       let tiles = [];
       for (let c = c0; c <= c1; c++) {
         const ch = this.tileAt(c, r);
+        // (sur la pente d'éboulis, on se pose sur la pente, pas sur la terre en dessous : voir screeSnap)
+        if (scree && this.underScree(b, c, r)) continue;
         if (isSolidCh(ch) || (isLedgeCh(ch) && prevBottom <= r * T + 0.5)) tiles.push({ c, r, ch });
       }
       if (tiles.length && onFloorHit && onFloorHit(tiles)) {
@@ -414,6 +554,7 @@ class World {
         res.ceil = tiles;
       }
     }
+    if (scree) this.screeSnap(b, prevBottom, res);
     return res;
   }
 
@@ -430,8 +571,12 @@ class World {
 
   surfaceBelow(x, fromY) {
     const c = Math.floor(x / TILE);
-    // (la Crue : l'eau qui a monté)
-    const f = this.flood && this.flood.y >= fromY ? this.flood.y : Infinity;
+    // (la Crue : l'eau qui a monté ; la Grande Glissade : la pente d'éboulis)
+    let f = this.flood && this.flood.y >= fromY ? this.flood.y : Infinity;
+    if (this.scree) {
+      const sy = this.screeY(x, fromY);
+      if (sy !== null && sy >= fromY) f = Math.min(f, sy);
+    }
     for (let r = Math.max(0, Math.floor(fromY / TILE)); r < this.rows && r * TILE < f; r++) {
       const ch = this.tileAt(c, r);
       if (isSolidCh(ch) || isLedgeCh(ch)) return r * TILE;
@@ -1506,8 +1651,10 @@ class World {
   updateCamera(dt, snap) {
     const p = this.player;
     if (p.dead) return;
-    // en courant, on voit plus loin devant
-    const ahead = p.facing * (p.running ? 110 : 60);
+    // en courant, on voit plus loin devant (et encore plus loin en glissant sur les éboulis)
+    // (du côté où elle glisse : vers la gauche aussi, en remontant la pente avec un pouvoir, ou en sautant en arrière)
+    const sliding = this.scree && (p.slope || p.slideAir);
+    const ahead = sliding ? (p.vx < -40 ? -1 : 1) * SCREE_CAM.ahead : p.facing * (p.running ? 110 : 60);
     this.look = snap ? ahead : approach(this.look, ahead, dt * 140);
     let tx = p.cx - VIEW_W * 0.45 + this.look;
     let ty = p.y + p.h / 2 - VIEW_H * 0.56;
@@ -1525,7 +1672,8 @@ class World {
     // (pendant le combat contre un boss, tout en haut : l'écran reste sur le haut de l'arène, voir Boss.setup)
     const fixed = this.arena && this.arena.camY != null;
     // (pareil dans un niveau plus haut que l'écran, "haut" : la caméra suit la branche ou le chapeau où elle a les pieds)
-    const climb = (this.def.grimpe || this.def.haut) && !fixed;
+    // (et dans la Grande Glissade, qui descend bien plus bas que l'écran : la caméra suit la pente où elle glisse)
+    const climb = (this.def.grimpe || this.def.haut || !!this.scree) && !fixed;
     if (climb) {
       const feet = p.y + p.h;
       const g = p.grap && p.grap.phase === 'swing' ? p.grap : null;
@@ -1533,7 +1681,7 @@ class World {
       if (g) this.camFeet = g.anchor.y + g.len + p.h - g.hy;
       else if (snap || p.onGround || p.swim || feet > this.camFeet) this.camFeet = feet;
       // (dans la Crue, ses pieds sont un peu plus haut sur l'écran : on voit mieux l'eau qui monte derrière elle)
-      ty = this.camFeet - VIEW_H * (this.flood ? CLIMB_FEET_CRUE : CLIMB_FEET);
+      ty = this.camFeet - VIEW_H * (this.flood ? CLIMB_FEET_CRUE : this.scree ? SCREE_CAM.feet : CLIMB_FEET);
     }
     // le terrier secret : la caméra ne descend sous terre que quand Malice y est
     const under = this.terrier && p.y + p.h > (this.terrier - 1) * TILE;
@@ -1589,7 +1737,11 @@ class World {
     else if (sky > 0) {
       const lift = this.cam.y - Math.max(0, this.height - VIEW_H);
       // (autour du phare, la mer au loin : voir Scenery BG.storm ; on la voit descendre doucement quand on monte)
-      const cy = this.flood ? lift * 3 + 84 : this.def.haut ? lift + 84 : this.lighthouse ? Math.max(lift * 0.25, -LIGHTHOUSE.sea) + 84 : this.cam.y;
+      // (la Grande Glissade descend bien plus bas que l'écran : le fond monte bien moins vite que la pente, de SCREE_BG
+      // pixels sur toute la descente, pour qu'on voie toujours le ciel et le volcan au loin ; tout en bas, il est à sa
+      // place, comme dans un niveau ordinaire)
+      const cy = this.flood ? lift * 3 + 84 : this.def.haut ? lift + 84 : this.lighthouse ? Math.max(lift * 0.25, -LIGHTHOUSE.sea) + 84
+        : this.scree ? 84 + SCREE_BG * (this.cam.y / Math.max(1, this.height - VIEW_H) - 1) : this.cam.y;
       // (depuis la falaise, le phare au loin, tout petit ; il s'efface derrière le rocher, juste avant qu'on voie le vrai)
       if (this.lighthouse) {
         LIGHTHOUSE_BG.far = clamp((this.lighthouse.x0 - VIEW_W - 60 - this.cam.x) / 200, 0, 1);
@@ -1754,7 +1906,8 @@ class World {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // (le trou caché sous un bloc lutin, dans le terrier, compte comme du sol : pas de bord dessiné)
-    const isG = (c, r) => (r >= this.rows ? true : this.tileAt(c, r) === '#' || this.hiddenShaft(c, r));
+    // (les éboulis de la Grande Glissade aussi : la terre sous la pente n'a pas d'herbe, ni de bord)
+    const isG = (c, r) => (r >= this.rows ? true : this.tileAt(c, r) === '#' || this.tileAt(c, r) === SCREE || this.hiddenShaft(c, r));
     // (les grands chapeaux de champignons sont dessinés à part : voir drawCaps)
     const capped = this.caps.length > 0;
     for (let r = r0; r <= r1; r++) {
@@ -1767,7 +1920,11 @@ class World {
         // (les ponts de corde du marais sont dessinés à part : voir drawBridges)
         if (ch === '=' && this.cabins) continue;
         let img = null;
-        if (ch === '#') {
+        if (ch === '#' && this.scree && this.scree.rock[r * this.cols + c]) {
+          // un rocher sur la pente d'éboulis (la Grande Glissade) : une grosse pierre grise
+          const rk = (cc, rr) => rr >= 0 && cc >= 0 && cc < this.cols && this.scree.rock[rr * this.cols + cc] === 1;
+          img = Scenery.boulderSprite(!rk(c, r - 1), !rk(c - 1, r), !rk(c + 1, r), Math.floor(hash2(c, r) * 3));
+        } else if (ch === '#') {
           // (pas d'herbe au fond de la rivière ; sous terre, dans le terrier, de la terre toute nue)
           const m = { t: !isG(c, r - 1) && r > 0 && this.tileAt(c, r - 1) !== WATER, l: !isG(c - 1, r), r: !isG(c + 1, r), b: !isG(c, r + 1) };
           img = Scenery.groundSprite(this.tileTheme(c, r), m, Math.floor(hash2(c, r) * 4));
@@ -1786,6 +1943,16 @@ class World {
           img = Scenery.platformSprite('treetops', this.tileAt(c - 1, r) !== '=', this.tileAt(c + 1, r) !== '=', Math.floor(hash2(c, r) * 3));
         } else if (ch === '=') {
           img = Scenery.rainbowSprite(this.tileAt(c - 1, r) !== '=', this.tileAt(c + 1, r) !== '=');
+        } else if (ch === SCREE) {
+          // la pente d'éboulis (la Grande Glissade) : la terre sous la pente, et les cailloux dessus
+          const ls = this.scree && this.scree.lines[c];
+          if (!ls) continue;
+          // (la pente qui passe le plus près du milieu de la case)
+          const mid = (l) => Math.abs(l.y0 + l.k * (c * T + T / 2 - l.x0) - (r + 0.5) * T);
+          const L = ls.reduce((a, l) => (mid(l) < mid(a) ? l : a));
+          const yl = Math.round(L.y0 + L.k * (c * T - L.x0) - r * T);
+          const yr = Math.round(L.y0 + L.k * ((c + 1) * T - L.x0) - r * T);
+          img = Scenery.screeSprite(this.tileTheme(c, r), yl, yr, !isG(c - 1, r), !isG(c + 1, r), Math.floor(hash2(c, r) * 3));
         } else if (ch === 'M') {
           img = Scenery.bounceSprite(th);
         } else if (ch === '^' || ch === 'v') {
@@ -1867,6 +2034,8 @@ class World {
     for (let c = c0; c <= c1; c++) {
       for (let r = r0; r <= r1; r++) {
         if (this.tiles[r][c] !== '#') continue;
+        // (pas de fleur sur un rocher de la Grande Glissade)
+        if (this.scree && this.scree.rock[r * this.cols + c]) break;
         // sous un plafond (grotte), on cherche le vrai sol plus bas
         if (this.tiles[r - 1][c] === '#') continue;
         // (un bloc magique du Lutin posé par terre ne fait pas disparaître l'herbe)

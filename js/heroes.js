@@ -178,6 +178,13 @@ const Heroes = (() => {
       case 'hold': Object.assign(R, { armF: -1.0, armB: -0.8 }); break;
       case 'crouch': Object.assign(R, { crouch: 7, legF: -1.25, legB: -0.85, armF: -0.6, armB: 0.3 }); break;
       case 'hang': Object.assign(R, { armF: 0.25, armB: -0.25, legF: 0.25, legB: -0.2 }); break;
+      // il glisse sur les éboulis (la Grande Glissade) comme sur une planche de surf : un pied devant, un pied
+      // derrière, les genoux pliés, les bras écartés qui tanguent pour garder l'équilibre
+      case 'surf': {
+        const s = Math.sin(t * 5) * 0.18;
+        Object.assign(R, { legF: -0.55, legB: 0.5, armF: -1.45 + s, armB: 1.5 + s, crouch: 4, lean: 0.04, bob: Math.sin(t * 23) * 0.6 });
+        break;
+      }
       // il glisse sur la bave : les bras qui moulinent, penché en arrière
       case 'slip': Object.assign(R, { armF: -2.3 + Math.sin(t * 18) * 0.6, armB: 1.9 + Math.cos(t * 18) * 0.6, legF: -0.6, legB: 0.5, lean: -0.2 }); break;
       case 'vine': {
@@ -267,6 +274,8 @@ const Heroes = (() => {
       case 'dirt': return { color: '#7a4a24', a: 0.38 * clamp(left / 0.5, 0, 1) };
       // tout vert (la grenouille), puis il reprend sa couleur après avoir coassé deux fois
       case 'croak': return { color: '#3ed03a', a: 0.6 * clamp(k.t / 0.12, 0, 1) * clamp(left / 0.5, 0, 1) };
+      // plein de poussière de cailloux (le hérisson de roche), jusqu'à ce qu'il se regonfle
+      case 'crepe': return { color: '#8a7a74', a: 0.35 * clamp((Art.CREPE.flat + 0.2 - k.t) / 0.3, 0, 1) };
       // tout rouge d'avoir été piqué, au début
       // (ensuite plus rien : inutile de redessiner le personnage à part)
       case 'pins': return k.t < 0.6 ? { color: '#ff5a6a', a: 0.22 * (1 - k.t / 0.6) } : null;
@@ -309,6 +318,34 @@ const Heroes = (() => {
       draw(ctx, id, x, y, Object.assign({}, o, { spun: true }));
       ctx.restore();
       if (turn.whirl > 0) Art.spinWhirl(ctx, x, cy, (-top / 2 + 10) * sc, o.ouch.t, turn.whirl);
+      return;
+    }
+    // roulé par un hérisson de roche : d'abord tout petit dans une boule de cailloux qui roule (autour du milieu de la
+    // boule), puis aplati comme une crêpe (depuis ses pieds), puis il se regonfle d'un coup (pop !), voir Art.crepeShape
+    const crepe = o.ouch && o.ouch.kind === 'crepe' && !o.crepeDone ? Art.crepeShape(o.ouch) : null;
+    if (crepe) {
+      const top = id === 'malice' || !HERO_BY_ID[id] ? -62 : HERO_BY_ID[id].headY - 16;
+      const sc = o.scale || 1;
+      const f = o.facing || 1;
+      const inner = Object.assign({}, o, { crepeDone: true });
+      ctx.save();
+      if (crepe.ball > 0) {
+        const r = 25 * sc;
+        const cy = y - r;
+        ctx.translate(x, cy);
+        ctx.rotate(crepe.a * f);
+        ctx.scale(0.5, 0.5);
+        ctx.translate(-x, -(y + (top / 2) * sc));
+        draw(ctx, id, x, y, inner);
+        ctx.restore();
+        Art.pebbleBall(ctx, x, cy, r * 0.82, crepe.a * f, crepe.ball);
+        return;
+      }
+      ctx.translate(x, y);
+      ctx.scale(crepe.sx, crepe.sy);
+      ctx.translate(-x, -y);
+      draw(ctx, id, x, y, inner);
+      ctx.restore();
       return;
     }
     // trempé par la pluie d'un petit nuage, il s'ébroue comme un chien : tout son corps se tortille de gauche à droite

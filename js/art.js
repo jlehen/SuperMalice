@@ -1200,6 +1200,29 @@ const Art = (() => {
     const u = (k.t - SHAKE.t0) / (SHAKE.t1 - SHAKE.t0);
     return Math.sin(u * (SHAKE.t1 - SHAKE.t0) * SHAKE.n * TAU) * SHAKE.a * Math.sin(u * Math.PI);
   }
+  // Le hérisson de roche : roulée dans une boule de cailloux (jusqu'à ball secondes : on la voit toute petite qui tourne
+  // dedans), elle en ressort aplatie comme une crêpe (sx fois plus large, sy fois moins haute, jusqu'à flat), puis elle
+  // se regonfle d'un coup : « Pop ! » (pendant pop secondes, elle dépasse un peu, puis reprend sa forme).
+  const CREPE = { ball: 0.5, flat: 1.1, pop: 0.3, sx: 1.6, sy: 0.24 };
+  // Comment la dessiner : ball (de 1, dans la boule, à 0), a (de combien la boule a tourné), sx / sy (aplatie)
+  function crepeShape(k) {
+    const t = k.t;
+    const C = CREPE;
+    if (t < C.ball) return { ball: 1, a: t * 15, sx: 1, sy: 1 };
+    if (t < C.flat) {
+      // aplatie : d'un coup, puis elle tremblote un peu
+      const u = clamp((t - C.ball) / 0.08, 0, 1);
+      const w = Math.sin((t - C.ball) * 30) * 0.06 * clamp(1 - (t - C.ball) / 0.4, 0, 1);
+      return { ball: 0, a: 0, sx: lerp(1, C.sx, u) + w, sy: lerp(0.5, C.sy, u) - w * 0.3 };
+    }
+    if (t < C.flat + C.pop) {
+      // pop ! elle se regonfle (un peu trop), puis reprend sa forme
+      const u = (t - C.flat) / C.pop;
+      const s = u < 0.35 ? lerp(C.sy, 1.18, u / 0.35) : 1 + 0.18 * Math.cos(((u - 0.35) / 0.65) * Math.PI * 1.5) * (1 - u);
+      return { ball: 0, a: 0, sx: u < 0.35 ? lerp(C.sx, 0.88, u / 0.35) : 2 - s, sy: s };
+    }
+    return null;
+  }
   // les moments où elle enlève chaque piquant (aïe !)
   const PIN_PULLS = PINS.map((_, i) => 0.55 + i * 0.24);
   // head : [x, y] du haut de la tête (Malice : [0, -62])
@@ -1278,6 +1301,12 @@ const Art = (() => {
   PRICKED.mustache = MALICE.mustache;
   PRICKED.eye = MALICE.eye;
 
+  // Toute poussiéreuse (roulée dans les cailloux).
+  const DUSTY = {};
+  for (const key in MALICE) DUSTY[key] = mixColor(MALICE[key], '#9a8a84', 0.4);
+  DUSTY.mustache = MALICE.mustache;
+  DUSTY.eye = MALICE.eye;
+
   // Toute noire de suie (seuls les yeux restent blancs).
   const SOOT = {};
   for (const key in MALICE) SOOT[key] = mixColor(MALICE[key], '#2a2422', 0.8);
@@ -1318,6 +1347,8 @@ const Art = (() => {
       case 'croak': return mixPalette(C, FROGGY, clamp(k.t / 0.12, 0, 1) * clamp(left / 0.5, 0, 1));
       // (comme les autres personnages : rouge au début, voir Heroes)
       case 'pins': return mixPalette(C, PRICKED, clamp(1 - k.t / 0.6, 0, 1));
+      // pleine de poussière de cailloux, qui s'en va quand elle se regonfle
+      case 'crepe': return mixPalette(C, DUSTY, clamp((CREPE.flat + 0.2 - k.t) / 0.3, 0, 1));
       default: return C;
     }
   }
@@ -1416,6 +1447,16 @@ const Art = (() => {
       }
       // splash ! les deux mains sur la tête, sous la pluie
       return { legF: 0.12, legB: -0.12, armF: -2.55, armB: 2.45, lean: 0.06 };
+    }
+    if (k.kind === 'crepe') {
+      // dans la boule de cailloux : toute pelotonnée ; aplatie : les bras et les jambes écartés comme une étoile de mer
+      // (qui gigotent un peu) ; pop ! les bras en l'air
+      if (ot < CREPE.ball) return { legF: -1.9, legB: -1.6, armF: -1.05, armB: -0.8, lean: 0.3, crouch: 9 };
+      if (ot < CREPE.flat) {
+        const s = Math.sin(ot * 18) * 0.15;
+        return { legF: -1.05 + s, legB: 1.05 - s, armF: -2.2 - s, armB: 2.15 + s, lean: 0 };
+      }
+      return { legF: -0.3, legB: 0.3, armF: -2.7, armB: 2.6, lean: 0 };
     }
     if (k.kind === 'wet') {
       // elle se serre dans ses bras, les genoux qui s'entrechoquent
@@ -1517,6 +1558,20 @@ const Art = (() => {
           fx.mouth = 'wide';
         } else {
           fx.mouth = 'o';
+        }
+        break;
+      case 'crepe':
+        // la tête qui tourne dans la boule ; aplatie, tout étonnée (elle cligne des yeux) ; pop ! la bouche grande
+        // ouverte
+        if (t < CREPE.ball) {
+          fx.eye = 'spiral';
+          fx.mouth = 'wide';
+        } else if (t < CREPE.flat) {
+          fx.eye = (t - CREPE.ball) % 0.45 > 0.38 ? 'blink' : 'wide';
+          fx.mouth = 'o';
+        } else if (t < CREPE.flat + CREPE.pop) {
+          fx.eye = 'wide';
+          fx.mouth = 'wide';
         }
         break;
       case 'croak':
@@ -1935,6 +1990,13 @@ const Art = (() => {
       // en boule (la roulade) : les genoux contre le ventre, les bras autour, la tête rentrée
       case 'roll': crouch = 9; legF = -1.95; legB = -1.7; legLen = 7; armF = -1.05; armB = -0.8; lean = 0.32; break;
       case 'hang': armF = 0.25; armB = -0.25; legF = 0.25; legB = -0.2; break;
+      // elle glisse sur les éboulis comme sur une planche de surf : un pied devant, un pied derrière, les genoux pliés,
+      // les bras écartés qui tanguent
+      case 'surf': {
+        const s = Math.sin(t * 5) * 0.18;
+        legF = -0.55; legB = 0.5; armF = -1.45 + s; armB = 1.5 + s; crouch = 4; lean = 0.04; bob = Math.sin(t * 23) * 0.6;
+        break;
+      }
       // elle glisse sur la bave : les bras qui moulinent, penchée en arrière
       case 'slip':
         armF = -2.3 + Math.sin(t * 18) * 0.6; armB = 1.9 + Math.cos(t * 18) * 0.6;
@@ -5511,6 +5573,248 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // Hérisson de roche (la Grande Glissade), les pieds en (x, y) : un hérisson tout en pierre, ses piquants sont des
+  // éclats de roche, avec des petits cailloux collés dessus. En boule, c'est une grosse boule de cailloux qui roule.
+  // o : t, dir, curl (0 : déroulé, 1 : en boule), spin (de combien la boule a tourné, en radians), eyes ('sleep' : il
+  // dort en boule, le bout du nez et les yeux fermés qui dépassent ; 'open' : « ! », ses yeux tout ronds ; 'dizzy' :
+  // les yeux qui tournent et des étoiles ; 'nap' : il fait la sieste, tout gentil ; '' : rien), look, moving, phase,
+  // fat, rest (essoufflé)
+  function rockHog(ctx, x, y, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const dir = o.dir || 1;
+    const k = clamp(o.curl || 0, 0, 1);
+    const fat = !!o.fat;
+    const eyes = o.eyes || '';
+    const line = '#2e2422';
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    // les petites pattes (elles rentrent quand il se met en boule)
+    if (k < 0.75) {
+      const ph = o.moving ? o.phase || 0 : 0;
+      ctx.fillStyle = '#4e4240';
+      for (const [fx, s] of [[-12, 0], [-5, Math.PI], [6, Math.PI * 0.5], [13, Math.PI * 1.5]]) {
+        const lift = o.moving ? Math.max(0, Math.sin(ph + s)) * 2.5 : 0;
+        ellipsePath(ctx, fx + Math.cos(ph + s) * 1.6, -2.4 - lift - k * 4, 4, 2.6);
+        ctx.fill();
+      }
+    }
+    // le manteau d'éclats de roche : sur le dos quand il est déroulé, tout autour quand il est en boule (et il tourne
+    // avec la boule qui roule)
+    const cx = lerp(-3, 0, k);
+    const cy = lerp(-14, -18, k);
+    const rx = lerp(fat ? 24 : 20, 17.5, k);
+    const ry = lerp(fat ? 16 : 13.5, 17.5, k);
+    const spin = (o.spin || 0) * k;
+    const a0 = lerp(-Math.PI - 0.25, -Math.PI * 1.5, k) + spin;
+    const a1 = lerp(-0.3, Math.PI * 0.5, k) + spin;
+    const n = Math.max(8, Math.round((a1 - a0) / 0.42));
+    const spike = lerp(7.5, 8, k);
+    const P = (a, r) => [cx + Math.cos(a) * (rx + r), cy + Math.sin(a) * (ry + r)];
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      // (des éclats de roche : pointus, de travers, pas tous pareils)
+      const [ox, oy] = P(a + 0.06, spike + hash(i * 3.3) * 2.5);
+      const [ix, iy] = P(a + (a1 - a0) / n / 2, -1);
+      if (i === 0) ctx.moveTo(...P(a, -2));
+      ctx.lineTo(ox, oy);
+      if (i < n) ctx.lineTo(ix, iy);
+    }
+    if (k < 0.98) ctx.lineTo(cx + 4, cy + ry * 0.4);
+    ctx.closePath();
+    paint(ctx, '#6e605c', line, 1.4);
+    // la lumière sur un côté de chaque éclat
+    ctx.fillStyle = 'rgba(232,222,214,0.55)';
+    for (let i = 0; i < n; i += 1) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      const [ox, oy] = P(a + 0.06, spike * 0.8 + hash(i * 3.3) * 2);
+      const [bx, by] = P(a - 0.05, 0);
+      const [b2x, b2y] = P(a + 0.12, 0);
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(ox, oy);
+      ctx.lineTo((bx + b2x) / 2, (by + b2y) / 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // le corps de pierre
+    ellipsePath(ctx, cx, cy, rx - 2, ry - 2);
+    const g = ctx.createLinearGradient(0, cy - ry, 0, cy + ry);
+    g.addColorStop(0, '#b5a7a0');
+    g.addColorStop(1, '#7a6a66');
+    ctx.fillStyle = g;
+    ctx.fill();
+    // des petits cailloux collés dessus (ils tournent avec la boule)
+    for (let i = 0; i < 5; i++) {
+      const a = lerp(a0, a1, (i + 0.5) / 5) + 0.2;
+      const d = 0.45 + hash(i * 5.7) * 0.35;
+      const px = cx + Math.cos(a) * (rx - 2) * d;
+      const py = cy + Math.sin(a) * (ry - 2) * d;
+      const r = 2 + hash(i * 2.9) * 1.6;
+      ellipsePath(ctx, px, py + 0.6, r + 0.5, r * 0.75 + 0.5);
+      ctx.fillStyle = '#5a4c48';
+      ctx.fill();
+      ellipsePath(ctx, px, py, r, r * 0.72);
+      ctx.fillStyle = i % 2 ? '#d8ccc4' : '#9d8f88';
+      ctx.fill();
+    }
+    const face = clamp(1 - k * 1.6, 0, 1);
+    if (face > 0) {
+      ctx.save();
+      ctx.globalAlpha *= face;
+      // le museau, couleur sable, et le gros nez rose
+      const fx = fat ? 3 : 0;
+      ctx.beginPath();
+      ctx.moveTo(3 + fx, -22);
+      ctx.quadraticCurveTo(13 + fx, -20, 22 + fx, -11);
+      ctx.quadraticCurveTo(14 + fx, -3, 3 + fx, -3);
+      ctx.quadraticCurveTo(-2, -12, 3 + fx, -22);
+      paint(ctx, '#ead8c2', line, 1.2);
+      ctx.fillStyle = 'rgba(255,120,140,0.45)';
+      ellipsePath(ctx, 10 + fx, -8, 3, 2);
+      ctx.fill();
+      circlePath(ctx, 22 + fx, -11, 2.9);
+      paint(ctx, '#e0687c', line, 0.8);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      circlePath(ctx, 21.3 + fx, -12.1, 0.9);
+      ctx.fill();
+      circlePath(ctx, 4 + fx, -22, 2.6);
+      paint(ctx, '#c9b49c', line, 1);
+      // l'œil
+      const ex = 12 + fx;
+      const ey = -15;
+      if (eyes === 'dizzy') {
+        circlePath(ctx, ex, ey, 3.2);
+        paint(ctx, '#ffffff', line, 0.9);
+        ctx.strokeStyle = '#3a2a28';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < 14; i++) {
+          const a = t * 9 + i * 0.7;
+          const r = i * 0.19;
+          if (i === 0) ctx.moveTo(ex, ey); else ctx.lineTo(ex + Math.cos(a) * r, ey + Math.sin(a) * r);
+        }
+        ctx.stroke();
+      } else if (eyes === 'nap' || (fat && o.rest)) {
+        // les yeux fermés, tout content (un petit arc)
+        ctx.strokeStyle = '#1a1010';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.arc(ex, ey - 1, 2.2, 0.3, Math.PI - 0.3);
+        ctx.stroke();
+      } else {
+        const look = o.look || { x: 1, y: 0 };
+        const lx = clamp(look.x * dir, -1, 1);
+        circlePath(ctx, ex + lx * 0.8, ey, 2.2);
+        ctx.fillStyle = '#1a1010';
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        circlePath(ctx, ex - 0.6 + lx * 0.8, ey - 0.8, 0.8);
+        ctx.fill();
+      }
+      // la bouche : un sourire (il est gentil, au fond)
+      ctx.strokeStyle = '#5a2a20';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(16 + fx, -8, 2.2, 0.3, Math.PI - 0.6);
+      ctx.stroke();
+      if (fat) chubbyCheeks(ctx, 9 + fx, -9, 3.6, 2.8, '#ead8c2', line);
+      ctx.restore();
+    }
+    if (k > 0.6 && (eyes === 'sleep' || eyes === 'open')) {
+      // en boule, sur le devant : le bout de son nez, et ses yeux (fermés quand il dort, tout ronds quand il a vu Malice)
+      ctx.save();
+      ctx.globalAlpha *= clamp((k - 0.6) / 0.3, 0, 1);
+      ellipsePath(ctx, 10.5, -9, 6.5, 5);
+      ctx.fillStyle = '#ead8c2';
+      ctx.fill();
+      circlePath(ctx, 14.5, -8.5, 2.4);
+      paint(ctx, '#e0687c', line, 0.8);
+      if (eyes === 'open') {
+        for (const ex of [6.5, 11.5]) {
+          circlePath(ctx, ex, -14.5, 2.6);
+          paint(ctx, '#ffffff', line, 0.8);
+          circlePath(ctx, ex + 0.7, -14.3, 1.3);
+          ctx.fillStyle = '#1a1010';
+          ctx.fill();
+        }
+      } else {
+        ctx.strokeStyle = '#1a1010';
+        ctx.lineWidth = 1.2;
+        for (const ex of [6.5, 11.5]) {
+          ctx.beginPath();
+          ctx.arc(ex, -15, 1.8, 0.2, Math.PI - 0.2);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+    // étourdi : des étoiles tournent au-dessus de sa tête
+    if (eyes === 'dizzy') {
+      for (let i = 0; i < 3; i++) {
+        const a = t * 6 + (i * TAU) / 3;
+        ctx.save();
+        ctx.translate(8 + Math.cos(a) * 13, -34 + Math.sin(a) * 3.5);
+        ctx.rotate(t * 4 + i);
+        starShape(ctx, 3.6, 0.45);
+        paint(ctx, '#ffe94a', '#b07800', 0.9);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+    // il dort (ou fait la sieste) : des petits « z » qui montent
+    if (eyes === 'sleep' || eyes === 'nap') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.strokeStyle = 'rgba(60,40,40,0.6)';
+      ctx.lineWidth = 2;
+      ctx.font = 'bold 13px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      for (let i = 0; i < 2; i++) {
+        const ph = (t * 0.5 + i * 0.5) % 1;
+        const zx = x + dir * (8 + ph * 12);
+        const zy = y - 38 - ph * 22;
+        ctx.globalAlpha = Math.sin(ph * Math.PI);
+        ctx.strokeText('z', zx, zy);
+        ctx.fillText('z', zx, zy);
+      }
+      ctx.restore();
+    }
+  }
+
+  // La boule de cailloux où Malice est roulée par un hérisson de roche (OUCH.crepe) : centrée en (x, y), de rayon r,
+  // tournée de a (elle roule). k : de 1 (toute la boule) à 0 (les cailloux sont tous partis).
+  function pebbleBall(ctx, x, y, r, a, k) {
+    if (k <= 0) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    for (let i = 0; i < 18; i++) {
+      // (sur deux tours : tout autour, et quelques-uns par-dessus elle ; on la voit encore, toute petite, au milieu)
+      const ring = i < 13 ? 1 : 0.62;
+      const ang = hash(i * 7.31) * TAU + i * 0.9;
+      const d = r * ring * (0.9 + hash(i * 3.7) * 0.18) * (1 + (1 - k) * 0.6);
+      const px = Math.cos(ang) * d;
+      const py = Math.sin(ang) * d;
+      const s = (4.2 + hash(i * 1.9) * 3.6) * (0.6 + 0.4 * k);
+      ctx.globalAlpha = clamp(k * 1.6 - hash(i * 2.3) * 0.6, 0, 1);
+      ellipsePath(ctx, px, py + 0.8, s + 0.8, s * 0.78 + 0.8, ang);
+      ctx.fillStyle = '#4e4240';
+      ctx.fill();
+      ellipsePath(ctx, px, py, s, s * 0.78, ang);
+      ctx.fillStyle = ['#a8918c', '#c9bbb5', '#8a7470', '#d8ccc4'][i % 4];
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ellipsePath(ctx, px - s * 0.3, py - s * 0.3, s * 0.35, s * 0.2, ang);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // Sanglier maléfique, les pieds en (x, y) : tout hirsute, une crête de poils noirs sur le dos, de petites
   // défenses blanches, un groin rose, et des yeux rouges qui brillent (sous un gros sourcil tout froncé).
   // o : dir, t, phase (les pattes), moving, scratch (il gratte le sol de la patte avant, la tête baissée),
@@ -6480,7 +6784,7 @@ const Art = (() => {
   }
 
   return {
-    grumpyCloud, cloudRain, SHAKE, shaking, shakeTilt,
+    grumpyCloud, cloudRain, SHAKE, shaking, shakeTilt, rockHog, pebbleBall, CREPE, crepeShape,
     MALICE, MIMIC_DUR, CUBE_COLORS, COUGHS, SCRAMBLE_BACK, MALICE_SPOTS, spotPop, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,

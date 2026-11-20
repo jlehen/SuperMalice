@@ -56,6 +56,16 @@ const PHYS = {
   swimDepth: 18,
 };
 
+// La Grande Glissade (les éboulis, voir World.findScree) : sur la pente de cailloux, Malice glisse sans pouvoir
+// s'arrêter. Elle va à speed × (grade + la pente) pixels par seconde (un peu plus vite où c'est plus raide) ; en tenant
+// → elle va fast fois plus vite, en tenant ← slow fois moins vite (elle freine, mais ne s'arrête jamais) ; acc : comment
+// elle y arrive. En l'air, après avoir glissé, elle garde son élan (air : comment → et ← le changent un peu) ; en
+// arrivant sur un sol ordinaire, elle dérape (skid : comment elle freine). La même vitesse dans toutes les difficultés
+// (plus lente, les trous seraient plus durs à sauter en Bébé ; plus rapide en Classique, ils y seraient plus faciles,
+// car on saute plus loin). sound : un petit « chhh » de cailloux toutes les sound
+// secondes.
+const SLIDE = { speed: 370, grade: 0.7, fast: 1.4, slow: 0.62, acc: 900, air: 320, skid: 1100, sound: 0.17 };
+
 // Moustache-grappin : portée, vitesse de la moustache, vitesse de traction, longueur de la corde.
 const GRAPPLE = { range: 340, shoot: 2600, pull: 820, len: 58 };
 // Les lianes du Vieux Chêne (J) : on s'y balance comme à la moustache-grappin (voir Player.updateHanging), avec
@@ -117,6 +127,10 @@ const OUCH = {
   // un grêlon de Bourrasque (le boss de la Vallée des Orages) : toc ! sonnée, des étoiles et des flocons de neige
   // tournent autour de sa tête, et elle grelotte, toute bleue de froid (voir Art.hailStars)
   hail: { dur: 1.7, pose: 0.5, lock: 0.25, vx: 200, vy: -340, hold: 0.45, text: 'Brrr, un grêlon !', color: '#bfe6ff' },
+  // le hérisson de roche qui roule : roulée dans une boule de cailloux (on la voit toute petite tourner dedans), elle
+  // en ressort aplatie comme une crêpe, puis se regonfle d'un coup : « Pop ! » (voir Art.CREPE et Art.crepeShape ;
+  // elle peut rebouger dès qu'elle sort de la boule, toute plate)
+  crepe: { dur: 1.55, pose: 1.4, lock: 0.5, vx: 160, vy: -300, hold: 0.7, text: 'Badaboum !', color: '#d8ccc4', textY: -70 },
   // n'importe quoi d'autre
   hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
 };
@@ -219,6 +233,14 @@ class Player {
     this.dripT = 0;
     // emportée par quelque chose qui la déplace lui-même (la toupie de Bourrasque) : { move(p, dt) }, voir update
     this.carry = null;
+    // la Grande Glissade : la pente d'éboulis où elle glisse (slope, voir World.screeSnap), en l'air après avoir glissé
+    // (slideAir : elle garde son élan ; lastSlope : la dernière pente), en train de déraper sur un sol ordinaire (skid),
+    // et le prochain « chhh » (screeT)
+    this.slope = null;
+    this.lastSlope = null;
+    this.slideAir = false;
+    this.skid = false;
+    this.screeT = 0;
     // le personnage choisi et son pouvoir (voir heroes.js et pouvoirs.js)
     this.hero = world.game.hero || 'malice';
     this.pow = POWERS[this.hero] || {};
@@ -397,6 +419,14 @@ class Player {
       // projetée par le sanglier : elle garde son élan jusqu'à retomber
     } else if (pow.move && pow.move(this, dt, dir)) {
       // le pouvoir s'occupe de la vitesse (charge, glissade…)
+    } else if (this.slope && this.onGround) {
+      // sur les éboulis : elle glisse, toujours vers le bas de la pente (→ plus vite, ← moins vite)
+      this.vx = approach(this.vx, this.slideSpeed(dir), SLIDE.acc * dt);
+      this.facing = 1;
+    } else if (this.slideAir && !this.onGround && Math.abs(this.vx) > PHYS.run * 0.7) {
+      // en l'air après avoir glissé : elle garde son élan (→ et ← le changent un peu ; arrêtée contre un rocher, elle
+      // saute comme d'habitude)
+      if (dir) this.vx = approach(this.vx, this.slideSpeed(dir), SLIDE.air * dt);
     } else if (this.boostT > 0 && Math.abs(this.vx) > top && (dir === 0 || dir === Math.sign(this.vx))) {
       // garde l'élan pris en se balançant au grappin
       this.boostT -= dt;
@@ -410,6 +440,11 @@ class Player {
       if (dir && Math.sign(this.vx) === -dir) acc *= 1.6;
       // sur la bave, on n'accroche plus : on démarre doucement, et on a du mal à s'arrêter
       if (this.slick) acc = dir ? PHYS.slimeAcc : PHYS.slimeDec;
+      // au bas de la glissade, elle dérape un peu avant de s'arrêter (ou de reprendre sa vitesse)
+      if (this.skid && this.onGround) {
+        if (Math.abs(this.vx) <= top + 10 || this.hurtT > 0) this.skid = false;
+        else acc = Math.min(acc, SLIDE.skid);
+      }
       this.vx = approach(this.vx, target, acc * dt);
       if (dir) this.facing = dir;
     }
@@ -509,6 +544,7 @@ class Player {
     const push = this.onGround && !dir ? 0 : w.windPush(this);
     this.vx += push;
     const pounded = this.pound === 2;
+    const vx0 = this.vx;
     const res = w.moveBody(this, dt, this.pound === 2 ? (tiles) => w.poundTiles(this, tiles) : null);
     if (!res.wall) this.vx -= push;
     if (res.wall && this.ball) this.rollBump(res.wall);
@@ -518,6 +554,7 @@ class Player {
       if (pow.ceil) pow.ceil(this);
     }
     if (!res.landed) this.checkPlatforms();
+    this.updateSlide(dt, res.wall ? vx0 : 0);
     // on lâche le pissenlit en atterrissant
     if (this.puff && this.onGround) this.dropPuff();
     if (res.landed) this.springTile();
@@ -575,6 +612,55 @@ class Player {
     this.checkWater();
     this.updateSafe();
     this.updateBird(dt);
+  }
+
+  // ---------- La Grande Glissade : sur les éboulis ----------
+  // La vitesse où elle glisse (dir : → 1, ← -1) : un peu plus vite où la pente est plus raide (la dernière pente, en
+  // l'air).
+  slideSpeed(dir) {
+    const L = this.slope || this.lastSlope;
+    const v = SLIDE.speed * (SLIDE.grade + (L ? L.k : 0.3));
+    return dir > 0 ? v * SLIDE.fast : dir < 0 ? v * SLIDE.slow : v;
+  }
+
+  // Après avoir bougé : sur la pente, elle glisse (des cailloux qui roulent derrière elle, chhh) ; en l'air, elle
+  // garde son élan ; sur un sol ordinaire, elle dérape (ou elle reprend sa marche). bump : sa vitesse si elle vient de
+  // se cogner contre un rocher (toc !).
+  updateSlide(dt, bump) {
+    const w = this.world;
+    if (!w.scree) return;
+    if (bump > 200 && (this.slope || this.slideAir)) {
+      Sound.sfx.bump();
+      w.spawn({ type: 'ring', x: this.x + this.w, y: this.cy, life: 0.25, size: 26, color: 'rgba(255,255,255,0.8)' });
+      for (let i = 0; i < 4; i++) {
+        w.spawn({ type: 'dot', x: this.x + this.w, y: this.y + this.h - rand(4, 20), vx: rand(-120, -30), vy: rand(-200, -60), g: 1200, life: 0.45, size: rand(2, 3.4), color: choose(['#8a7470', '#a8918c']) });
+      }
+    }
+    if (this.grap || this.puff || this.ball || this.dive > 0 || this.swim) this.slideAir = false;
+    if (this.slope) {
+      this.lastSlope = this.slope;
+      this.slideAir = true;
+      this.skid = false;
+      this.screeT -= dt;
+      if (this.screeT <= 0) {
+        this.screeT = SLIDE.sound;
+        Sound.sfx.scree(Math.abs(this.vx) / SLIDE.speed);
+      }
+      const fx = this.x + 4;
+      if (Math.random() < dt * 26) {
+        w.spawn({ type: 'dot', x: fx, y: this.y + this.h - 2, vx: rand(-60, 40) - this.vx * 0.15, vy: rand(-200, -80), g: 1200, life: 0.5, size: rand(2, 3.6), color: choose(['#8a7470', '#a8918c', '#5f4c49', '#c9bbb5']) });
+      }
+      if (Math.random() < dt * 9) {
+        w.spawn({ type: 'dust', x: fx, y: this.y + this.h, vx: -rand(20, 80), vy: rand(-50, -10), life: 0.4, size: rand(4, 7) });
+      }
+    } else if (this.onGround) {
+      // arrivée sur un sol ordinaire avec tout son élan : elle dérape
+      if (this.slideAir && Math.abs(this.vx) > PHYS.run + 20) this.skid = true;
+      this.slideAir = false;
+    }
+    if (this.skid && this.onGround && Math.random() < dt * 30) {
+      w.spawn({ type: 'dust', x: this.cx - Math.sign(this.vx) * 10, y: this.y + this.h, vx: -Math.sign(this.vx) * rand(30, 120), vy: rand(-60, -10), life: 0.35, size: rand(4, 7) });
+    }
   }
 
   // ---------- La rivière (la Rivière aux Nénuphars) ----------
@@ -692,7 +778,8 @@ class Player {
 
   // Le dernier endroit bien solide où elle se tenait (le sol, une planche, un nénuphar qui ne coule pas).
   updateSafe() {
-    if (!this.onGround || this.dive > 0 || this.swim || this.dead || this.won) return;
+    // (pas sur la pente d'éboulis : la case sous ses pieds y est la terre, sous la pente)
+    if (!this.onGround || this.slope || this.dive > 0 || this.swim || this.dead || this.won) return;
     const pl = this.platform;
     if (pl) {
       if (pl.solid) this.safe = { pad: pl, x: 0, y: 0 };
@@ -1667,6 +1754,26 @@ class Player {
           w.spawn({ type: 'dot', x: p.x, y: p.y, vx: rand(-20, 20), vy: rand(20, 90), g: 900, life: 0.5, size: rand(1.8, 2.8), color: '#8fd8ff' });
         }
         break;
+      case 'crepe': {
+        // roulée dans la boule de cailloux (de la poussière), puis les cailloux s'envolent de partout, et pop !
+        const C = Art.CREPE;
+        if (t < C.ball && Math.random() < dt * 9) {
+          w.spawn({ type: 'dust', x: this.cx + rand(-14, 14), y: this.y + this.h, vx: rand(-60, 60), vy: rand(-60, -10), life: 0.35, size: rand(4, 7) });
+        }
+        if (passed(C.ball)) {
+          Sound.sfx.crumble();
+          for (let i = 0; i < 14; i++) {
+            const a = rand(Math.PI * 1.05, Math.PI * 1.95);
+            w.spawn({ type: 'dot', x: this.cx + rand(-10, 10), y: this.y + this.h - rand(10, 30), vx: Math.cos(a) * rand(120, 300), vy: Math.sin(a) * rand(160, 360), g: 1300, life: 0.6, size: rand(2.5, 4.5), color: choose(['#a8918c', '#c9bbb5', '#8a7470', '#5f4c49']) });
+          }
+        }
+        if (passed(C.flat)) {
+          Sound.sfx.crepePop();
+          w.popText(this.cx, this.y - 26, 'Pop !', '#ffffff', 26);
+          w.spawn({ type: 'ring', x: this.cx, y: this.y + this.h - 26, life: 0.3, size: 44, color: 'rgba(255,255,255,0.85)' });
+        }
+        break;
+      }
       case 'spots':
         Art.MALICE_SPOTS.forEach(([x, y], i) => {
           if (!passed(Art.spotPop(i))) return;
@@ -1725,6 +1832,8 @@ class Player {
     else if (!this.onGround) pose = this.vy < 0 ? 'jump' : 'fall';
     else if (this.throwAnim > 0) pose = 'throw';
     else if (this.slipping) pose = 'slip';
+    // sur les éboulis : elle glisse comme sur une planche de surf (et au bas de la pente, elle dérape pareil)
+    else if (this.slope || this.skid) pose = 'surf';
     else if (Math.abs(this.vx) > 15) pose = Math.abs(this.vx) > PHYS.run + 20 ? 'run' : 'walk';
     if (this.throwAnim > 0 && !this.onGround && !this.pound) pose = 'throw';
     // les poses des pouvoirs
@@ -1806,6 +1915,11 @@ class Player {
       ctx.translate(this.cx, this.y + this.h / 2);
       ctx.rotate(a);
       ctx.translate(-this.cx, -(this.y + this.h / 2));
+    } else if (pose === 'surf' && this.slope) {
+      // sur les éboulis, elle se penche avec la pente (autour de ses pieds)
+      ctx.translate(this.cx, feetY);
+      ctx.rotate(Math.atan(this.slope.k) * 0.6);
+      ctx.translate(-this.cx, -feetY);
     }
     // moustache-grappin : la corde part de la moustache jusqu'à l'anneau
     // (à une liane, elle tourne autour de ses mains, et ses mains sont sur la liane : voir Vine.draw)
@@ -3285,6 +3399,284 @@ class Hedgehog extends Enemy {
   }
 
   mouth() { return { x: this.dir * (this.fat ? 21 : 19), y: -9 }; }
+}
+
+// Hérisson de roche (la Grande Glissade) : un hérisson tout en pierre, qui dort en boule sur la pente d'éboulis.
+// Quand Malice arrive derrière lui (plus haut sur la pente, à moins de rockSee cases), il se réveille : « ! » (ses yeux
+// tout ronds, il tremble pendant rockWarn secondes), puis il dévale la pente en roulant, moins vite que Malice ne glisse
+// (rockSpeed ; plus lentement en Bébé, où il se réveille plus tôt : on a plus de temps, et on saute plus facilement
+// par-dessus) : elle le rattrape. On saute par-dessus, ou dessus (on rebondit sur la boule, sans rien lui faire) ; on
+// peut aussi freiner (←) pour rester derrière lui. Ce qui fait mal : toucher la boule de côté (Malice est roulée dans
+// une boule de cailloux, voir OUCH.crepe). Il saute les petits trous (hopGap cases au plus) ; devant un plus grand trou,
+// il freine et s'arrête au bord. Quand il se cogne contre un rocher, qu'il arrive en bas de la pente (sur un sol
+// ordinaire, il ralentit), qu'il s'arrête au bord d'un trou, ou qu'on l'écrase (↓ en l'air) : il est tout étourdi
+// (rockDizzy secondes, des étoiles), puis il fait la sieste. Étourdi ou endormi, il ne fait plus mal : on lui saute
+// dessus, et il redevient tout gentil (des petits cœurs). Le caramel le colle, avec les chips il est trop gros pour
+// rouler ; les pouvoirs qui renversent les ennemis marchent, et en roulade on passe à travers lui.
+// Il ne se réveille pas pendant qu'on lit une fleur à moins de 9 cases, et en bas de la pente, près d'une fleur qu'on
+// lit, il s'arrête tout de suite. (w.diff : rockSee, rockWarn, rockSpeed, rockDizzy, voir DIFFS dans game.js)
+// acc : comment il prend sa vitesse sur la pente ; slow : comment il ralentit sur un sol ordinaire ; brake : comment il
+// freine devant un grand trou ; hop : la plus grande force de son saut (il saute juste assez fort pour passer le trou,
+// à sa vitesse ; s'il faudrait plus, il freine) ; r : le rayon de la boule (pour la faire tourner) ; rumble : toutes les
+// combien de secondes on l'entend rouler.
+const ROCK = { acc: 650, slow: 520, brake: 1600, hop: 950, hopGap: 3, r: 18, rumble: 0.28 };
+
+class RockHog extends Enemy {
+  constructor(world, cx, by) {
+    super(world, cx - 20, by - 36, 40, 36);
+    this.ouch = 'crepe';
+    this.state = 'wait';
+    this.timer = 0;
+    this.dir = 1;
+    this.spin = 0;
+    this.rumbleT = 0;
+    this.look = { x: -1, y: 0 };
+    // posé sur la pente d'éboulis (sa case est celle où passe la pente)
+    const sy = world.screeY(cx, by);
+    if (sy !== null) {
+      this.y = sy - this.h;
+      this.slope = world.screeHit;
+      this.onGround = true;
+    }
+  }
+
+  // Encore en boule (il dort, il a vu Malice, il roule) : la boule fait mal, et on rebondit dessus.
+  balled() {
+    return this.state === 'wait' || this.state === 'alert' || this.state === 'roll';
+  }
+
+  harmful() {
+    return this.balled() && !this.dying && this.stuck <= 0 && !this.fat;
+  }
+
+  // On lui saute dessus : en boule, on rebondit sans rien lui faire (sauf en l'écrasant, ↓ en l'air : il s'arrête,
+  // tout étourdi) ; étourdi, endormi, collé ou trop gros : il redevient gentil.
+  stompable() {
+    return !this.balled() || this.stuck > 0 || this.fat || this.world.player.pound === 2;
+  }
+
+  // Une fleur qu'on lit (ou que Malice va lire : elle est juste à côté), tout près (9 cases) ?
+  hush() {
+    const p = this.world.player;
+    return this.world.flowers.some((f) => (f.show > 0.05 || Math.abs(p.cx - f.x) < 170) && Math.abs(f.x - this.cx) < 9 * TILE &&
+      Math.abs(f.y - (this.y + this.h)) < 4 * TILE);
+  }
+
+  // Malice arrive derrière lui, plus haut sur la pente ?
+  sees(p) {
+    if (p.dead || p.won) return false;
+    const dx = this.cx - p.cx;
+    return dx > -10 && dx < this.world.diff.rockSee * TILE && Math.abs(p.y + p.h - (this.y + this.h)) < 6 * TILE;
+  }
+
+  // Du sol (la pente, ou une case solide) à x, à peu près à la hauteur des pieds (feet) ?
+  groundAt(x, feet) {
+    const w = this.world;
+    const sy = w.screeY(x, feet);
+    if (sy !== null && Math.abs(sy - feet) < TILE) return true;
+    const c = Math.floor(x / TILE);
+    for (let r = Math.floor((feet - 6) / TILE); r <= Math.floor((feet + TILE * 0.8) / TILE); r++) {
+      if (isSolidCh(w.tileAt(c, r))) return true;
+    }
+    return false;
+  }
+
+  // Un trou devant lui (à look pixels devant) ? Renvoie sa largeur en cases (0 : pas de trou, 99 : très grand).
+  gapAhead(look) {
+    const feet = this.y + this.h;
+    const k = this.slope ? this.slope.k : 0;
+    const x0 = this.x + this.w + look;
+    if (this.groundAt(x0, feet + k * look)) return 0;
+    for (let n = 1; n <= ROCK.hopGap + 1; n++) {
+      if (this.groundAt(x0 + n * TILE, feet + k * (look + n * TILE))) return n;
+    }
+    return 99;
+  }
+
+  // La force du saut pour passer un trou de gap cases à sa vitesse (en retombant un peu au-delà).
+  hopSpeed(gap) {
+    const t = (gap * TILE + this.w * 0.8) / Math.max(this.vx, 40);
+    return (PHYS.gravity * t) / 2;
+  }
+
+  // Un trou qu'il ne pourra pas sauter, à look pixels devant lui ?
+  blocked(look) {
+    const gap = this.gapAhead(look);
+    return gap > ROCK.hopGap || (gap > 0 && this.hopSpeed(gap) > ROCK.hop);
+  }
+
+  ai(dt) {
+    const w = this.world;
+    const p = w.player;
+    const D = w.diff;
+    this.timer -= dt;
+    switch (this.state) {
+      case 'wait':
+        this.vx = 0;
+        this.physics(dt);
+        if (this.sees(p) && !this.hush()) {
+          this.state = 'alert';
+          this.timer = D.rockWarn;
+          w.popText(this.cx, this.y - 16, '!', '#ff4040', 28);
+          if (w.onScreen(this)) Sound.sfx.rockAlert();
+        }
+        break;
+      case 'alert':
+        this.vx = 0;
+        this.physics(dt);
+        if (this.timer <= 0) {
+          this.state = 'roll';
+          this.rumbleT = 0;
+        }
+        break;
+      case 'roll': {
+        if (this.onGround && this.slope) {
+          this.vx = approach(this.vx, D.rockSpeed, ROCK.acc * dt);
+        } else if (this.onGround) {
+          // en bas de la pente : il ralentit (tout de suite, près d'une fleur qu'on lit), puis il est tout étourdi
+          this.vx = approach(this.vx, 0, (this.hush() ? ROCK.brake : ROCK.slow) * dt);
+          if (this.vx < 30) this.dizzy(false);
+        }
+        // un trou devant : il le saute s'il est petit (et s'il va assez vite), sinon il freine pour s'arrêter au bord
+        if (this.onGround && this.state === 'roll' && this.vx > 40) {
+          const gap = this.gapAhead(4);
+          const hop = gap > 0 ? this.hopSpeed(gap) : 0;
+          if (gap > 0 && gap <= ROCK.hopGap && hop <= ROCK.hop) {
+            this.vy = -hop;
+            this.onGround = false;
+            this.slope = null;
+            if (w.onScreen(this)) Sound.sfx.rockHop();
+          } else if (gap > 0 || this.blocked((this.vx * this.vx) / (2 * ROCK.brake) + 6)) {
+            this.vx = approach(this.vx, 0, ROCK.brake * dt);
+            if (this.vx <= 40) {
+              this.vx = 0;
+              this.dizzy(false);
+              w.popText(this.cx, this.y - 20, 'Ouf !', '#ffffff', 20);
+            }
+          }
+        }
+        this.spin += (this.vx * dt) / ROCK.r;
+        const res = this.physics(dt);
+        if (res.wall && this.state === 'roll') {
+          // bonk ! contre un rocher
+          this.vx = -60;
+          this.dizzy(true);
+        }
+        this.rumbleT -= dt;
+        if (this.rumbleT <= 0 && this.state === 'roll') {
+          this.rumbleT = ROCK.rumble;
+          if (this.onGround && w.onScreen(this, 120)) Sound.sfx.rockRumble();
+        }
+        if (this.onGround && Math.random() < dt * 22) {
+          w.spawn({ type: 'dot', x: this.x + 6, y: this.y + this.h - 2, vx: rand(-80, 20), vy: rand(-180, -60), g: 1200, life: 0.45, size: rand(2, 3.4), color: choose(['#8a7470', '#a8918c', '#5f4c49']) });
+        }
+        break;
+      }
+      case 'dizzy':
+        this.vx = approach(this.vx, 0, ROCK.slow * dt);
+        this.physics(dt);
+        if (this.timer <= 0) this.state = 'nap';
+        break;
+      default:
+        // la sieste
+        this.vx = 0;
+        this.physics(dt);
+        break;
+    }
+    const dx = p.cx - this.cx;
+    const dy = p.cy - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    this.look.x += (dx / d - this.look.x) * Math.min(1, dt * 6);
+    this.look.y += (dy / d - this.look.y) * Math.min(1, dt * 6);
+  }
+
+  // Tomber, et glisser sur la pente (ou se poser dessus).
+  physics(dt) {
+    this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
+    return this.world.moveBody(this, dt);
+  }
+
+  // Il s'arrête, tout étourdi (bonk : il s'est cogné).
+  dizzy(bonk) {
+    const w = this.world;
+    this.state = 'dizzy';
+    this.timer = w.diff.rockDizzy;
+    if (bonk) {
+      w.popText(this.cx, this.y - 20, 'Bonk !', '#ffe0b0', 22);
+      if (w.onScreen(this)) Sound.sfx.rockBonk();
+    } else if (w.onScreen(this)) {
+      Sound.sfx.rockDizzy();
+    }
+  }
+
+  // Le caramel le colle sur place ; les chips le rendent trop gros pour rouler : il s'arrête.
+  onStuck() {
+    this.vx = 0;
+    if (this.balled()) this.state = 'nap';
+  }
+
+  onFat() {
+    this.vx = 0;
+    if (this.balled()) this.state = 'nap';
+  }
+
+  onUnstuck() { this.dizzy(false); }
+
+  // Trop gros (les chips) : il ne bouge plus, il souffle.
+  updateFat(dt) {
+    this.fatT -= dt;
+    if (this.fatRest) {
+      this.restT += dt;
+      if (this.fatT <= 0) {
+        this.fatRest = false;
+        this.fatT = rand(1.3, 1.9);
+      }
+    } else if (this.fatT <= 0) {
+      this.fatRest = true;
+      this.fatT = rand(2.2, 3);
+      this.restT = 0;
+    }
+    this.vx = 0;
+    this.physics(dt);
+  }
+
+  // Après avoir fait mal : Malice est roulée avec lui, puis elle file devant (sans retomber sur son dos, comme sur un
+  // trampoline) ; lui s'arrête, tout étourdi par le choc (sauf en l'air, au-dessus d'un trou : il finit son saut).
+  tossed(p) {
+    if (this.state !== 'roll' || p.dead) return;
+    p.vx = this.vx + 160;
+    if (!this.onGround) return;
+    this.vx = 0;
+    this.dizzy(false);
+  }
+
+  stomp() {
+    const w = this.world;
+    if (this.balled() && this.stuck <= 0 && !this.fat) {
+      // écrasé en boule (↓ en l'air) : il s'arrête net, tout étourdi
+      this.vx = 0;
+      this.dizzy(true);
+      return;
+    }
+    // étourdi, endormi, collé ou trop gros : pouic ! Il redevient tout gentil (des petits cœurs)
+    this.kill('stomp');
+    w.popText(this.cx, this.y - 24, 'Pouic !', '#ffe0b0', 20);
+    for (let i = 0; i < 3; i++) {
+      w.spawn({ type: 'heart', x: this.cx + rand(-12, 12), y: this.y, vx: rand(-40, 40), vy: rand(-140, -80), life: 0.9, size: 1 });
+    }
+  }
+
+  drawBody(ctx, x, y) {
+    const st = this.state;
+    const eyes = st === 'wait' ? 'sleep' : st === 'alert' ? 'open' : st === 'dizzy' ? 'dizzy' : st === 'nap' ? 'nap' : '';
+    // (il se réveille : il tremble)
+    const shake = st === 'alert' ? Math.sin(this.t * 50) * 1.4 : 0;
+    Art.rockHog(ctx, x + shake, y, {
+      t: this.t, dir: 1, curl: this.balled() ? 1 : 0, spin: this.spin, eyes, look: this.look, fat: this.fat, rest: this.fatRest,
+    });
+  }
+
+  mouth() { return { x: this.fat ? 19 : 16, y: -9 }; }
 }
 
 // Sanglier maléfique (le Marais aux Cabanes) : ses yeux rouges brillent, et de la fumée sort de ses naseaux.

@@ -178,6 +178,11 @@ const Sound = (() => {
           noise({ filter: 'bandpass', f: 1600, f2: 600, d: 0.35, v: 0.32, q: 0.8 });
           tone({ type: 'sine', f: 900, f2: 380, d: 0.2, v: 0.1 });
           break;
+        case 'crepe': // badaboum ! roulée dans les cailloux : un gros roulement de pierres, et un petit cri qui tourne
+          noise({ filter: 'lowpass', f: 900, f2: 200, d: 0.45, v: 0.38 });
+          for (let i = 0; i < 5; i++) noise({ filter: 'bandpass', f: 700 + (i % 2) * 500, d: 0.05, v: 0.2, q: 2, delay: 0.04 + i * 0.07 });
+          tone({ type: 'triangle', f: 700, f2: 300, d: 0.35, v: 0.1, vib: 14, vibDepth: 120 });
+          break;
         case 'hail': // tic ! un grêlon sur la tête, et des petites clochettes de glace qui tournent
           tone({ type: 'sine', f: 2600, f2: 1900, d: 0.08, v: 0.25 });
           noise({ filter: 'highpass', f: 5000, d: 0.05, v: 0.18 });
@@ -606,6 +611,51 @@ const Sound = (() => {
     squish() {
       noise({ filter: 'lowpass', f: 800, f2: 300, d: 0.07, v: 0.09 });
       tone({ type: 'sine', f: 520, f2: 320, d: 0.05, v: 0.035 });
+    },
+
+    // ---- La Grande Glissade ----
+    // Malice glisse sur les éboulis : chhh, des petits cailloux qui roulent (k : sa vitesse, un peu plus fort quand elle
+    // va vite)
+    scree(k) {
+      const v = 0.035 + 0.025 * clamp((k || 1) - 0.8, 0, 1);
+      noise({ filter: 'bandpass', f: rand(1300, 1900), d: 0.16, v, q: 0.9, a: 0.03 });
+      if (Math.random() < 0.5) noise({ filter: 'highpass', f: 3800, d: 0.03, v: 0.04, delay: rand(0, 0.1) });
+    },
+    // un hérisson de roche se réveille : « ! » un petit grognement de pierre (grrr-oc)
+    rockAlert() {
+      tone({ type: 'sawtooth', f: 140, f2: 230, d: 0.2, v: 0.07, vib: 30, vibDepth: 20 });
+      noise({ filter: 'bandpass', f: 900, d: 0.06, v: 0.12, q: 2, delay: 0.18 });
+    },
+    // il roule : un grondement de cailloux (toutes les ROCK.rumble secondes)
+    rockRumble() {
+      noise({ filter: 'lowpass', f: 420, f2: 260, d: 0.3, v: 0.16, a: 0.04 });
+      noise({ filter: 'bandpass', f: 1100, d: 0.04, v: 0.06, q: 3, delay: rand(0.05, 0.2) });
+    },
+    // hop ! il saute un petit trou
+    rockHop() {
+      tone({ type: 'sine', f: 180, f2: 520, d: 0.16, v: 0.14 });
+      noise({ filter: 'lowpass', f: 600, d: 0.08, v: 0.12 });
+    },
+    // bonk ! il se cogne contre un rocher (et des petites étoiles qui tintent)
+    rockBonk() {
+      tone({ type: 'sine', f: 140, f2: 70, d: 0.3, v: 0.35 });
+      noise({ filter: 'lowpass', f: 1200, f2: 300, d: 0.2, v: 0.25 });
+      for (let i = 0; i < 3; i++) tone({ type: 'sine', f: 1800 + i * 300, d: 0.08, v: 0.04, delay: 0.2 + i * 0.1 });
+    },
+    // il s'arrête tout étourdi (en bas de la pente, au bord d'un trou) : ouiii-ouiii
+    rockDizzy() {
+      tone({ type: 'sine', f: 900, f2: 500, d: 0.5, v: 0.06, vib: 9, vibDepth: 120 });
+    },
+    // les cailloux de la boule s'envolent : crrratch
+    crumble() {
+      for (let i = 0; i < 6; i++) noise({ filter: 'bandpass', f: 900 + i * 260, d: 0.05, v: 0.16, q: 2.5, delay: i * 0.03 });
+      noise({ filter: 'lowpass', f: 700, f2: 200, d: 0.25, v: 0.18 });
+    },
+    // aplatie comme une crêpe, elle se regonfle d'un coup : POP !
+    crepePop() {
+      tone({ type: 'sine', f: 260, f2: 1500, d: 0.12, v: 0.3 });
+      noise({ filter: 'highpass', f: 2500, d: 0.04, v: 0.25 });
+      tone({ type: 'triangle', f: 1500, f2: 1900, d: 0.1, v: 0.08, delay: 0.1 });
     },
 
     // ---- Le Phare sur la Falaise ----

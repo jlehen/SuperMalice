@@ -384,6 +384,32 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
 4. **Les Pentes du Volcan** — 4-1 **Les Pentes du Volcan** : plateformes qui bougent et coccinelles volantes
    (aucune coccinelle ne tire quand Malice est au-dessus de la lave, même debout sur une planche : elles attendent qu'elle soit
    retombée sur le sol)
+   - 4-2 **La Grande Glissade** : de longues pentes de cailloux (les **éboulis**), où Malice glisse sans pouvoir
+     s'arrêter, debout comme sur une planche de surf : avec → elle va plus vite (et saute plus loin), avec ← elle freine un
+     peu, mais elle ne s'arrête jamais. Il faut sauter au bon moment : par-dessus les crevasses pleines de lave, sur les
+     rochers (de grosses pierres grises : contre un rocher, toc, elle s'arrête ; on saute par-dessus en tenant →), et pour
+     attraper les bonbons en l'air. Pour les très grands trous (4 et 5 cases), il faut garder → et le saut appuyés : les
+     fleurs le disent juste avant. Au bas de chaque pente, elle dérape, et c'est un **passage calme** : un drapeau, une
+     fleur, puis un, deux ou trois champignons, ou des plateformes qui montent, pour remonter en haut de la pente
+     suivante. Nouvel ennemi : les **hérissons de roche**. Ils
+     dorment en boule sur la pente ; quand Malice arrive derrière eux, « ! », ils dévalent la pente en roulant, moins vite
+     qu'elle : on saute par-dessus, ou on rebondit dessus (sans rien leur faire), ou on freine pour rester derrière. Ce
+     qui fait mal, c'est de toucher la boule de côté : Malice est roulée dedans, puis elle file devant, et le hérisson
+     s'arrête, tout étourdi par le choc. Contre un rocher (bonk !), au bas de la pente, ou écrasés (↓ en
+     l'air au-dessus d'eux), ils ont la tête qui tourne, puis ils font la sieste : ils ne font plus mal, et quand on leur
+     saute dessus, ils redeviennent tout gentils (des petits cœurs). Le caramel les colle, les chips les rendent trop gros
+     pour rouler. Devant un très grand trou, ils freinent au bord (« Ouf ! ») ; ils ne se réveillent pas pendant qu'on
+     lit une fleur. En Bébé, ils se réveillent plus tôt et roulent moins vite. Onze parties, de plus en plus dures, plus
+     de 650 cases de glissade en tout (le robot met près de 3 minutes) : les premières apprennent une chose à la fois
+     (glisser, les trous, les hérissons, les écraser, le premier très grand trou, la pente raide, deux pentes à la suite),
+     les suivantes enchaînent (deux hérissons avec un trou entre les deux, un hérisson juste après un très grand trou, une
+     pente toute raide qui finit sur un très grand trou suivi d'un autre, un rocher juste après l'atterrissage, un
+     hérisson qui roule vers un très grand trou), puis la plus grande glissade de toutes, en trois pentes, jusqu'au trou
+     de 5 cases. Un drapeau toutes les 70 cases au plus (aussi sur des paliers au milieu des longues pentes), un bloc
+     étoile (Super Malice y trouve l'étoile, pour foncer à travers les hérissons), et des sucettes tout en haut pour qui
+     rebondit très haut ou saute très loin. Le niveau descend bien plus bas que l'écran : la caméra suit la pente, et
+     regarde loin devant pendant la glissade ; le fond monte doucement, pour qu'on voie toujours le volcan. Le Lutin ne
+     peut pas poser son bloc sur la pente (seulement en l'air, au-dessus d'un trou).
    - ⭐ **Stage d'entraînement : le Défi de la Moustache-Grappin** → on gagne le badge *Moustache-Grappin*
 5. **Le Cœur du Volcan** — 5-1 **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (avec Malice, il faut utiliser les deux badges)
 
@@ -535,6 +561,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Grenouille sauteuse | toute verte d'un coup ! Accroupie comme une grenouille, la gorge qui se gonfle, elle fait « Croa ! » deux fois, puis elle reprend sa couleur |
 | Grêlon de Bourrasque | « Brrr, un grêlon ! » Toc ! sonnée, la tête qui dodeline, **des étoiles et des flocons de neige tournent autour de sa tête**, et elle grelotte en se serrant dans ses bras, toute bleue de froid (son éclair au chocolat éternué, c'est l'électrocution des éclairs) |
 | Petit nuage grognon | « Splash ! » toute trempée par sa pluie, les mains sur la tête, puis elle **s'ébroue comme un chien** : tout son corps se tortille, et les gouttes volent tout autour d'elle ! Encore mouillée, elle avance moins vite un moment (des gouttes tombent d'elle, et ses pas font « flic, floc ») |
+| Hérisson de roche qui roule | « Badaboum ! » roulée dans une **boule de cailloux** (on la voit toute petite qui tourne dedans), elle en ressort **aplatie comme une crêpe**, les bras et les jambes écartés comme une étoile de mer, toute grise de poussière ; puis elle se regonfle d'un coup : « **Pop !** » (elle peut rebouger dès qu'elle est sortie de la boule, toute plate) |
 | Sanglier qui fonce | projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe la tête en bas, les jambes en l'air ; une taupe sort de terre à côté d'elle, toute interloquée (« ? »), et replonge aussitôt. Dans la boue, plof : elle s'y enfonce tout de suite (vite, il faut sauter !) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre) |
 
 ## Commandes
@@ -612,7 +639,8 @@ La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `
 `O` = escargot, `l` = lapin, `m` = taupe, `h` = hérisson, `s` = sanglier, `f` = grenouille sauteuse,
 `x` = l'axe des ailes d'un moulin à vent (tout autour, rien de solide), `a` = petit nuage grognon,
 `z` = paratonnerre (une plaque de métal qu'on traverse par dessous, et qui grésille de temps en temps), `%` = bouchon en
-chocolat (seul un éclair lancé avec le bocal le fait fondre), `i` = lucioles, `j` = fleur-lanterne,
+chocolat (seul un éclair lancé avec le bocal le fait fondre), `>` = éboulis (la pente de cailloux où l'on glisse),
+`0` = hérisson de roche, `i` = lucioles, `j` = fleur-lanterne,
 `J` = liane, `q` = écureuil, `k` = nid, `p` = le nid secret de l'oisillon qui donne une vie…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
 par la lune : `clairDeLune`), monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne),
@@ -621,7 +649,9 @@ qu'on grimpe (`crue`, avec `grimpe` : voir la Crue ; ses orages peuvent n'être 
 fin, rangée]]`), grimper autour d'un phare (`phare`, avec `grimpe` : voir le Phare sur la Falaise ; la tour et sa
 lanterne sont dans le décor), ou être bien plus haut que l'écran, avec un coin secret caché dans un gros feuillage (`haut`, `cachette` : voir le
 Défi du Super Saut, dont le décor `sousbois` a des branches `=` sur les troncs `|`, et des feuillages de décor d'où
-pendent les lianes : `feuillage`).
+pendent les lianes : `feuillage`), ou avoir de longues pentes de cailloux où l'on glisse (`glissades` : chaque pente
+est une ligne droite, `[première colonne, rangée du haut, dernière colonne, rangée du bas]`, et dans la carte, des `>`
+là où elle passe, de la terre `#` dessous ; voir la Grande Glissade).
 Il suffit de modifier les lettres et de recharger la page.
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
@@ -702,7 +732,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Le Phare sur la Falaise | la même, un peu moins vite : la mélodie aux cuivres comme une corne de brume, une cloche de bouée qui répond en écho (glockenspiel), des cordes en tenue qui roulent comme la mer |
   | Le combat contre Bourrasque | une tarentelle, qui tourne comme sa toupie : do mineur en 12/8 à toute allure, la mélodie à l'accordéon, la guitare qui gratte « oum-pa-pa », la contrebasse qui sautille, le tambourin et ses grelots ; au refrain, les cordes tourbillonnent avec un grand coup de vent, et à la fin le glockenspiel tombe comme des grêlons |
   | Stage du Bocal à éclairs | funk, tout électrique : basse « slap » qui saute d'octave, clavinet sur les contretemps (accords de neuvième), la mélodie aux cuivres tout en staccato, le saxophone au milieu, charleston en doubles croches et caisse claire avec des notes fantômes |
-  | Les Pentes du Volcan | valse à 3/4 en mode lydien, accordéon et tuba |
+  | Les Pentes du Volcan (les Pentes du Volcan, la Grande Glissade) | valse à 3/4 en mode lydien, accordéon et tuba |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |
   | La Grotte aux Cristaux | do mineur, lent et mystérieux : la mélodie au célesta revient en écho, bourdon d'orgue, gouttes d'eau |

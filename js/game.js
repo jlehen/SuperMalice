@@ -39,6 +39,9 @@
 // manche, depuis sa toupie) ; gustTickles : combien de chatouilles avec la plume pour que sa toupie éclate de rire (la
 // deuxième) ; gustBells : combien de temps une cloche sonne (la dernière : l'arc-en-ciel n'apparaît que si les trois
 // sonnent en même temps ; Infinity : elle sonne jusqu'au bout).
+// La Grande Glissade : rockSee, rockWarn, rockSpeed, rockDizzy (les hérissons de roche, voir RockHog : en Bébé, ils se
+// réveillent plus tôt, mais ne tremblent pas plus longtemps, sinon ils se mettraient à rouler juste sous Malice qui
+// saute par-dessus).
 const DIFFS = {
   bebe: {
     name: 'Bébé', lives: Infinity, eyeChase: 90, cubeFuse: 2.5, shootMin: 3.6, shootMax: 5,
@@ -51,6 +54,7 @@ const DIFFS = {
     floodSpeed: 12, floodWarn: 2.5, floodBack: 4.5, floodPause: 3,
     cloudSpeed: 60, cloudWarn: 1.4, cloudRest: [3.5, 4.5], soakTime: 2.6, soakSlow: 0.75,
     rodRest: 5, rodWarn: 3, rodZap: 1,
+    rockSee: 10, rockWarn: 0.55, rockSpeed: 140, rockDizzy: 4,
     vineReach: 46,
     gustHops: 2, gustTickles: 2, gustBells: Infinity,
   },
@@ -65,6 +69,7 @@ const DIFFS = {
     floodSpeed: 24, floodWarn: 1.6, floodBack: 3.5, floodPause: 2,
     cloudSpeed: 100, cloudWarn: 0.95, cloudRest: [2.2, 3], soakTime: 3.4, soakSlow: 0.65,
     rodRest: 3.5, rodWarn: 2.1, rodZap: 1.2,
+    rockSee: 8.5, rockWarn: 0.55, rockSpeed: 165, rockDizzy: 3.2,
     vineReach: 40,
     gustHops: 3, gustTickles: 4, gustBells: 11,
   },
@@ -79,6 +84,7 @@ const DIFFS = {
     floodSpeed: 30, floodWarn: 1.2, floodBack: 3, floodPause: 1.5,
     cloudSpeed: 120, cloudWarn: 0.8, cloudRest: [1.6, 2.4], soakTime: 3.8, soakSlow: 0.6,
     rodRest: 2.9, rodWarn: 1.7, rodZap: 1.3,
+    rockSee: 7.5, rockWarn: 0.55, rockSpeed: 185, rockDizzy: 2.6,
     vineReach: 36,
     gustHops: 4, gustTickles: 5, gustBells: 8,
   },
@@ -93,6 +99,7 @@ const DIFFS = {
     floodSpeed: 36, floodWarn: 1.0, floodBack: 2.5, floodPause: 1.2,
     cloudSpeed: 140, cloudWarn: 0.7, cloudRest: [1.3, 2.0], soakTime: 4.2, soakSlow: 0.55,
     rodRest: 2.5, rodWarn: 1.4, rodZap: 1.4,
+    rockSee: 6.5, rockWarn: 0.45, rockSpeed: 200, rockDizzy: 2.2,
     vineReach: 34,
     gustHops: 5, gustTickles: 6, gustBells: 6,
   },

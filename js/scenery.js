@@ -518,6 +518,191 @@ const Scenery = (() => {
     return sprite(key, TILE + PAD * 2, TILE + PAD * 2, (g) => drawGround(g, THEMES[theme], m, v));
   }
 
+  // ---------- Les éboulis de la Grande Glissade ----------
+  // Une case où passe la pente de cailloux : la pente entre dans la case à yl (à gauche) et en sort à yr (à droite),
+  // en pixels depuis le haut de la case (elle peut entrer au-dessus : yl < 0) ; dessous, la terre, comme le sol ; dessus,
+  // une couche de gravier qui roule, avec de gros cailloux posés dessus. l / r : un trou à gauche / à droite (un bord).
+  function screeSprite(theme, yl, yr, l, r, v) {
+    return sprite(`sc:${theme}:${yl}:${yr}:${l | 0}${r | 0}:${v}`, TILE + PAD * 2, TILE + PAD * 2, (g) => {
+      const th = THEMES[theme];
+      const T = TILE;
+      const yAt = (x) => yl + ((yr - yl) * x) / T;
+      g.translate(PAD, PAD);
+      g.save();
+      g.beginPath();
+      g.rect(0, -PAD, T, T + PAD);
+      g.clip();
+      // la terre sous la pente
+      g.beginPath();
+      g.moveTo(0, yl);
+      g.lineTo(T, yr);
+      g.lineTo(T, T);
+      g.lineTo(0, T);
+      g.closePath();
+      g.save();
+      g.clip();
+      g.fillStyle = th.dirt;
+      g.fillRect(0, -PAD, T, T + PAD);
+      g.fillStyle = th.stripe;
+      for (const sy of [12, 36]) {
+        g.beginPath();
+        g.moveTo(0, sy);
+        for (let x = 0; x <= T; x += 8) g.lineTo(x, sy + Math.sin((x / T) * TAU) * 2.5);
+        for (let x = T; x >= 0; x -= 8) g.lineTo(x, sy + 7 + Math.sin((x / T) * TAU + 1) * 2.5);
+        g.closePath();
+        g.fill();
+      }
+      for (let i = 0; i < 3; i++) {
+        const px = 7 + hash(v * 5.3 + i) * 34;
+        const py = Math.max(yAt(px) + 16, 6 + hash(v * 9.7 + i * 2) * 36);
+        if (py > T - 3) continue;
+        const rr = 2.5 + hash(v * 3.1 + i * 5) * 2.5;
+        g.fillStyle = th.dirtDark;
+        ellipsePath(g, px, py + 1.2, rr + 0.6, rr * 0.75 + 0.6);
+        g.fill();
+        g.fillStyle = th.dirtLight;
+        ellipsePath(g, px, py, rr, rr * 0.72);
+        g.fill();
+      }
+      // le gravier : une bande plus claire sous la pente, qui s'assombrit vers le bas
+      const ang = Math.atan2(yr - yl, T);
+      g.save();
+      g.translate(0, yl);
+      g.rotate(ang);
+      const len = T / Math.cos(ang) + 2;
+      const gr = g.createLinearGradient(0, 0, 0, 13);
+      gr.addColorStop(0, '#d8cbc2');
+      gr.addColorStop(0.35, '#b3a29a');
+      gr.addColorStop(1, 'rgba(120,98,92,0)');
+      g.fillStyle = gr;
+      g.fillRect(-2, 0, len + 2, 13);
+      // de petits graviers bien serrés dans la bande
+      for (let i = 0; i < 9; i++) {
+        const px = (i + hash(v * 2.3 + i * 1.7)) * (len / 9);
+        const py = 2 + hash(v * 4.1 + i * 3.3) * 7;
+        g.fillStyle = i % 3 === 0 ? '#7d6964' : i % 3 === 1 ? '#efe6df' : '#9a8680';
+        ellipsePath(g, px, py, 1.6 + hash(v + i) * 1.2, 1.2 + hash(v * 2 + i) * 0.8);
+        g.fill();
+      }
+      g.restore();
+      // ombre sur les bords, au-dessus d'un trou
+      const edge = (x0, x1) => {
+        const eg = g.createLinearGradient(x0, 0, x1, 0);
+        eg.addColorStop(0, 'rgba(0,0,0,0.3)');
+        eg.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = eg;
+        g.fillRect(0, -PAD, T, T + PAD);
+      };
+      if (l) edge(0, 9);
+      if (r) edge(T, T - 9);
+      g.restore();
+      // de gros cailloux posés sur la pente (ils dépassent un peu)
+      for (let i = 0; i < 2; i++) {
+        const px = 8 + i * 22 + hash(v * 6.7 + i * 2.9) * 12;
+        const py = yAt(px);
+        const rr = 3.2 + hash(v * 8.3 + i * 4.1) * 2.6;
+        g.fillStyle = '#5f4c49';
+        ellipsePath(g, px, py + 0.8, rr + 0.8, rr * 0.7 + 0.8);
+        g.fill();
+        g.fillStyle = i ? '#a8918c' : '#c9bbb5';
+        ellipsePath(g, px, py - 0.4, rr, rr * 0.68);
+        g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.45)';
+        ellipsePath(g, px - rr * 0.3, py - rr * 0.35, rr * 0.35, rr * 0.2);
+        g.fill();
+      }
+      // le bord du dessus de la pente, bien net
+      g.strokeStyle = 'rgba(70,50,48,0.55)';
+      g.lineWidth = 1.6;
+      g.beginPath();
+      g.moveTo(0, yl);
+      g.lineTo(T, yr);
+      g.stroke();
+      g.restore();
+    });
+  }
+
+  // Un rocher posé sur la pente d'éboulis (une case # au-dessus de la pente, voir World.findScree) : une grosse pierre
+  // grise, sans herbe, pour qu'on ne la prenne pas pour une marche. t / l / r : le haut, le bord gauche, le bord droit
+  // de la pierre (arrondis).
+  function boulderSprite(t, l, r, v) {
+    return sprite(`bo:${t | 0}${l | 0}${r | 0}:${v}`, TILE + PAD * 2, TILE + PAD * 2, (g) => {
+      const T = TILE;
+      g.translate(PAD, PAD);
+      const x0 = l ? 2 : 0;
+      const x1 = r ? T - 2 : T;
+      const y0 = t ? 3 : 0;
+      const rad = 13;
+      const outline = () => {
+        g.beginPath();
+        g.moveTo(x0, T);
+        if (t && l) g.arcTo(x0, y0, x0 + rad, y0, rad); else g.lineTo(x0, y0);
+        if (t && r) g.arcTo(x1, y0, x1, y0 + rad, rad); else g.lineTo(x1, y0);
+        g.lineTo(x1, T);
+      };
+      outline();
+      g.closePath();
+      // (la même couleur d'une case à l'autre : seul le haut de la pierre est plus clair)
+      if (t) {
+        const gr = g.createLinearGradient(0, y0, 0, T);
+        gr.addColorStop(0, '#bdb5b0');
+        gr.addColorStop(1, '#9c948f');
+        g.fillStyle = gr;
+      } else {
+        g.fillStyle = '#9c948f';
+      }
+      g.fill();
+      g.save();
+      g.clip();
+      // la lumière vient d'en haut à gauche ; l'ombre à droite
+      if (t) {
+        g.fillStyle = 'rgba(255,255,255,0.4)';
+        ellipsePath(g, l ? 16 : 22, y0 + 7, 13, 4);
+        g.fill();
+      }
+      if (l) {
+        g.fillStyle = 'rgba(255,255,255,0.12)';
+        g.fillRect(0, 0, 7, T);
+      }
+      if (r) {
+        g.fillStyle = 'rgba(40,30,30,0.25)';
+        g.fillRect(T - 10, 0, 10, T);
+      }
+      // une fissure et des taches de lichen
+      g.strokeStyle = 'rgba(60,50,50,0.45)';
+      g.lineWidth = 1.5;
+      g.beginPath();
+      const fx = 10 + hash(v * 3.7) * 24;
+      g.moveTo(fx, Math.max(y0, 0) + 10 + hash(v * 1.3) * 8);
+      g.lineTo(fx + 5, 22);
+      g.lineTo(fx + 2, 32);
+      g.stroke();
+      for (let i = 0; i < 2; i++) {
+        g.fillStyle = i ? 'rgba(170,190,120,0.55)' : 'rgba(90,80,78,0.4)';
+        ellipsePath(g, 8 + hash(v * 5.1 + i * 3) * 30, 14 + hash(v * 2.9 + i * 7) * 26, 3 + hash(v + i) * 2, 2 + hash(v * 2 + i));
+        g.fill();
+      }
+      g.restore();
+      // le bord de la pierre, bien net (seulement le tour, pas entre deux cases)
+      g.strokeStyle = 'rgba(55,45,45,0.65)';
+      g.lineWidth = 2;
+      g.beginPath();
+      if (l) {
+        g.moveTo(x0, T);
+        g.lineTo(x0, t ? y0 + rad : 0);
+      }
+      if (t) {
+        if (l) g.arcTo(x0, y0, x0 + rad, y0, rad); else g.moveTo(x0, y0);
+        if (r) g.arcTo(x1, y0, x1, y0 + rad, rad); else g.lineTo(x1, y0);
+      }
+      if (r) {
+        if (!t) g.moveTo(x1, 0);
+        g.lineTo(x1, T);
+      }
+      g.stroke();
+    });
+  }
+
   // ---------- Briques ----------
   function brickSprite(theme) {
     return sprite(`b:${theme}`, TILE + PAD * 2, TILE + PAD * 2, (g) => {
@@ -5311,7 +5496,7 @@ const Scenery = (() => {
     floodBack, floodFront, floodEdge,
     windmill, millPlank, rain,
     lightningRod, lightningRodSky, lighthouse,
-    THEMES, PAD, setScale, groundSprite, brickSprite, lutinSprite, plugSprite, platformSprite, thornSprite,
+    THEMES, PAD, setScale, groundSprite, screeSprite, boulderSprite, brickSprite, lutinSprite, plugSprite, platformSprite, thornSprite,
     rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
     drawMudRun, mudMist, stilt, cabinSprite, CABIN_H, ropeBridge,
     trunkSprite, crown, riverBed, drawWaterRun, reeds, burrowCell, burrowSunbeam, burrowLantern,
