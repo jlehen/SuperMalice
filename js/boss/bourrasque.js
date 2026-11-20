@@ -10,17 +10,17 @@
 //  d'une autre façon :
 //   1. Sauter sur le nuage : la toupie aspire tout (on voit le vent qui arrive vers elle) ; elle emporte Malice
 //      tout là-haut, et la lance au-dessus de Bourrasque : elle lui retombe sur la tête. Pouf ! Il en faut plusieurs
-//      (diff.gustHops : 2 en Bébé… 4 en Difficile) ; en Bébé, il plane juste au-dessus de sa toupie (on lui retombe
+//      (diff.gustHops : 2 en Bébé… 5 en Difficile) ; en Bébé, il plane juste au-dessus de sa toupie (on lui retombe
 //      dessus sans rien faire) ; sinon, juste à côté : en l'air, on se dirige un peu vers lui avec les flèches (un peu
 //      plus quand c'est plus difficile).
 //   2. Chatouiller la toupie : une grande plume tombe du ciel. Malice l'attrape et chatouille la toupie avec
-//      (« Hi hi ! »), qui se sauve un peu plus loin… Au bout de quelques chatouilles (diff.gustTickles : 2… 5), elle
+//      (« Hi hi ! »), qui se sauve un peu plus loin… Au bout de quelques chatouilles (diff.gustTickles : 2… 6), elle
 //      éclate de rire et s'arrête de tourner : Bourrasque dégringole tout près du sol, tout étourdi. On lui saute
 //      dessus. (En Bébé, il reste par terre jusqu'à ce qu'on lui saute dessus ; sinon, il remonte au bout d'un moment,
 //      et la toupie se relève : il faut la rechatouiller.)
 //   3. L'arc-en-ciel : Bourrasque pleure toute une averse ; puis trois cloches apparaissent (sur un poteau à chaque bout
 //      de la galerie, et sous le dôme de la lanterne). On les sonne en sautant dedans ; chacune sonne un moment
-//      (diff.gustBells : jusqu'au bout en Bébé, 8 s en Difficile), et quand les trois sonnent ensemble, un arc-en-ciel
+//      (diff.gustBells : jusqu'au bout en Bébé, 6 s en Difficile), et quand les trois sonnent ensemble, un arc-en-ciel
 //      apparaît : Bourrasque l'admire (il ne fait plus rien), et c'est un pont pour monter jusqu'à lui et lui sauter
 //      sur la tête.
 //  Tout est annoncé : l'éternuement (« Aaa… aaah… », et l'endroit où l'éclair va tomber), les grêlons (le petit nuage
@@ -348,9 +348,9 @@ class Bourrasque extends Boss {
   }
 
   // À côté de sa toupie. Lancée tout droit, Malice retombe pile sur lui en Bébé, sans toucher aux flèches ; sinon,
-  // elle doit se diriger un peu vers lui (avec 99 px, elle retombe juste sur le bord de sa boîte) : en Gentil, une
-  // flèche avant 0,55 s de vol suffit ; en Classique, avant 0,5 s ; en Difficile (26 px), avant 0,45 s. (Les flèches
-  // gardées appuyées pendant la montée comptent dès qu'elle est lancée.)
+  // elle doit se diriger un peu vers lui (avec 99 px, elle retombe juste sur le bord de sa boîte) : à 100 px, une
+  // flèche avant 0,55 s de vol suffit ; à 112 px (Gentil), avant 0,5 s ; à 125 px (Classique et Difficile), avant
+  // 0,45 s. (Les flèches gardées appuyées pendant la montée comptent dès qu'elle est lancée.)
   offset() {
     const K = this.k;
     return K < 0.9 ? 0 : K < 1.1 ? 100 : K < 1.25 ? 112 : 125;
@@ -673,7 +673,8 @@ class Bourrasque extends Boss {
   }
 
   // « Aaa… aaah… » : il se gonfle, et l'endroit où l'éclair va tomber est marqué par terre (là où est Malice ; en
-  // Difficile, à partir de la 2e manche, un deuxième un peu plus loin)… puis ATCHOUM ! (voir BourrasqueEclair)
+  // Classique et en Difficile, à partir de la 2e manche, un deuxième un peu plus loin)… puis ATCHOUM ! (voir
+  // BourrasqueEclair)
   startSneeze() {
     const w = this.world;
     const p = w.player;

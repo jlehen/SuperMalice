@@ -15,7 +15,7 @@
 //      toujours, et se cogne sans mal (« Tonk ! Même pas mal ! »).
 //   3. Ronchon, tout nu, se cache derrière Pépé Chêne, qui se fâche : il fait tomber de gros glands. On saute dessus
 //      pour les renvoyer : ils repartent sur son nez en nœud de bois. Toc ! Il en faut plusieurs (diff.acornHits :
-//      2 en Bébé… 5 en Difficile) ; son nez rougit un peu plus à chaque gland.
+//      2 en Bébé… 6 en Difficile) ; son nez rougit un peu plus à chaque gland.
 //  Pendant tout le combat, Pépé Chêne fait tomber des glands (un gland tremble là-haut, son ombre grandit par terre)
 //  et sortir ses racines du sol (la terre se soulève et tremble avant). Le caramel colle les piquants de Ronchon
 //  (il ne peut plus se mettre en boule : on lui saute dessus), et les pouvoirs qui renversent le font tomber
@@ -267,7 +267,7 @@ class PepeChene extends Boss {
     const R = this.ronchon;
     const p = this.world.player;
     if (p.dead || this.grace > 0 || this.threats() > 0) return false;
-    // pas pendant que Ronchon gratte le sol ou fonce (en Difficile, à partir de la deuxième manche, si)
+    // pas pendant que Ronchon gratte le sol ou fonce (en Classique et en Difficile, à partir de la deuxième manche, si)
     if (this.phase < 2 && R.charging() && !(this.k > 1.2 && this.phase >= 1)) return false;
     return true;
   }
@@ -315,7 +315,7 @@ class PepeChene extends Boss {
     Sound.sfx.acornShake();
   }
 
-  // La terre se soulève là où est Malice (et, en Difficile, un peu plus loin aussi).
+  // La terre se soulève là où est Malice (et, en Classique et en Difficile, un peu plus loin aussi).
   raiseRoots() {
     const w = this.world;
     const p = w.player;
