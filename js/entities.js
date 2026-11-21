@@ -5949,7 +5949,8 @@ class Stalactite {
     this.dead = false;
     this.v = Math.floor(Math.random() * 3);
     this.ouch = 'head'; // elle tombe sur la tête de Malice (voir OUCH)
-    this.ice = world.theme === 'glacier';
+    // (de glace dans le Glacier Fumant, et sous la neige du Bord du Cratère : "glacons")
+    this.ice = world.theme === 'glacier' || !!world.def.glacons;
     this.drip = rand(0, 3);
     if (this.ice) {
       // le temps qu'elle met à tomber jusqu'à la tête de Malice debout sur le sol du dessous
@@ -6236,6 +6237,159 @@ class Eclair {
       ctx.stroke();
       ctx.fill();
       ctx.fillStyle = '#7a2a00';
+      ctx.font = '700 17px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('!', this.x, y + 3);
+    }
+  }
+}
+
+// Le Bord du Cratère : une pierre de lave crachée par le volcan quand il gronde (voir World.updateVolcano). Elle
+// s'annonce par son ombre par terre, qui grandit pendant diff.lavaWarn secondes (avec un « ! » qui clignote) ; à la fin,
+// elle tombe du haut de l'écran, toute rouge, en fumant (LAVA_BOMB.fall secondes, toujours pareil) ; elle fait mal en
+// tombant, et en arrivant par terre, sur toute son ombre (LAVA_BOMB.r pixels de chaque côté). Ensuite, ce n'est plus
+// qu'une pierre chaude qui fume et refroidit par terre (elle ne fait plus mal), puis s'effrite.
+// Elle rend gentils les ennemis qu'elle touche en arrivant, comme une stalactite.
+const LAVA_BOMB = { fall: 0.42, r: 34, land: 0.1, cool: 2.4 };
+// Où le volcan vise (voir World.lavaTargets) : ahead, jamais plus loin devant Malice (pixels) ; edge, toujours à
+// l'écran, à au moins edge pixels de ses bords ; pass, au premier grondement d'une zone, combien de pixels au-delà de
+// l'endroit où elle arriverait (la pierre, plus elle, plus un peu de marge) ; minWarn, la plus courte annonce de cette
+// pierre-là (secondes).
+const LAVA_AIM = { ahead: 360, edge: 60, pass: 110, minWarn: 0.8 };
+class LavaBomb {
+  constructor(world, x, groundY, warn) {
+    this.world = world;
+    this.x = x;
+    this.groundY = groundY;
+    this.warn = warn;
+    this.timer = warn - LAVA_BOMB.fall;
+    this.phase = 'warn';
+    this.y = groundY - 600;
+    this.y0 = this.y;
+    this.t = 0;
+    this.dead = false;
+    this.seed = Math.random() * 100;
+    this.rot = rand(0, 6);
+    this.spin = rand(-7, 7);
+  }
+
+  // de 0 à 1 : l'ombre grandit pendant toute l'annonce, chute comprise
+  progress() {
+    if (this.phase === 'warn') return (this.warn - LAVA_BOMB.fall - this.timer) / this.warn;
+    if (this.phase === 'fall') return 1 - this.timer / this.warn;
+    return 1;
+  }
+
+  box() {
+    if (this.phase === 'fall') return { x: this.x - 20, y: this.y - 20, w: 40, h: 40 };
+    if (this.phase === 'land') return { x: this.x - LAVA_BOMB.r, y: this.groundY - 44, w: LAVA_BOMB.r * 2, h: 44 };
+    return null;
+  }
+
+  update(dt) {
+    const w = this.world;
+    this.t += dt;
+    this.timer -= dt;
+    if (this.phase === 'warn') {
+      if (this.timer <= 0) {
+        this.phase = 'fall';
+        this.timer = LAVA_BOMB.fall;
+        // (du haut de l'écran, ou d'un peu plus haut si l'écran est déjà tout près du sol)
+        this.y0 = Math.min(w.cam.y - 50, this.groundY - 420);
+        this.y = this.y0;
+        if (w.onScreen({ x: this.x - 40, y: this.groundY - 200, w: 80, h: 200 }, 80)) Sound.sfx.lavaWhistle();
+      }
+    } else if (this.phase === 'fall') {
+      const k = clamp(1 - this.timer / LAVA_BOMB.fall, 0, 1);
+      this.y = this.y0 + (this.groundY - 16 - this.y0) * k * k;
+      this.rot += this.spin * dt;
+      if (Math.random() < dt * 40 && w.onScreen({ x: this.x, y: this.y, w: 1, h: 1 }, 60)) {
+        w.spawn({ type: 'smoke', x: this.x + rand(-8, 8), y: this.y - 10, vx: rand(-20, 20), vy: rand(-40, -10), life: 0.5, size: rand(6, 10), color: '#6a5a5c' });
+      }
+      if (this.timer <= 0) {
+        this.phase = 'land';
+        this.timer = LAVA_BOMB.land;
+        this.y = this.groundY - 16;
+        if (w.onScreen({ x: this.x - 40, y: this.y - 40, w: 80, h: 80 })) {
+          Sound.sfx.lavaThud();
+          w.shake(4);
+        }
+        // (les étincelles et la poussière, seulement à l'écran ou tout près)
+        if (w.onScreen({ x: this.x - 40, y: this.y - 40, w: 80, h: 80 }, 120)) {
+          for (let i = 0; i < 12; i++) {
+            w.spawn({ type: 'spark', x: this.x + rand(-10, 10), y: this.groundY - 8, vx: rand(-260, 260), vy: rand(-380, -90), g: 1100, life: rand(0.4, 0.7), size: rand(3, 6), color: i % 3 ? '#ffb13a' : '#ff5a1f' });
+          }
+          w.puff(this.x, this.groundY - 6, '#8a7a7c');
+        }
+        const b = this.box();
+        for (const e of w.enemies) {
+          if (!e.dying && !e.dead && e !== w.boss && boxOverlap(e, b.x, b.y, b.w, b.h)) e.kill('bump');
+        }
+      }
+    } else if (this.phase === 'land') {
+      if (this.timer <= 0) {
+        this.phase = 'cool';
+        this.timer = LAVA_BOMB.cool;
+      }
+    } else {
+      // (la pierre chaude fume en refroidissant)
+      if (Math.random() < dt * 5 * (this.timer / LAVA_BOMB.cool) && w.onScreen({ x: this.x, y: this.y, w: 1, h: 1 })) {
+        w.spawn({ type: 'smoke', x: this.x + rand(-8, 8), y: this.y - 14, vx: rand(-10, 10), vy: rand(-50, -25), life: 0.9, size: rand(5, 8), color: '#9a8c8e' });
+      }
+      if (this.timer <= 0) {
+        this.dead = true;
+        if (w.onScreen({ x: this.x, y: this.y, w: 1, h: 1 })) {
+          for (let i = 0; i < 5; i++) {
+            w.spawn({ type: 'debris', x: this.x + rand(-10, 10), y: this.y + rand(-6, 6), vx: rand(-90, 90), vy: rand(-180, -60), g: 1200, life: 0.5, size: rand(4, 7), color: '#4e4044', vr: rand(-10, 10) });
+          }
+        }
+      }
+    }
+  }
+
+  draw(ctx) {
+    if (this.phase === 'warn') return;
+    // la chaleur : 1 quand elle tombe, puis elle refroidit par terre
+    const heat = this.phase === 'cool' ? this.timer / LAVA_BOMB.cool : 1;
+    const a = this.phase === 'cool' ? Math.min(1, this.timer / 0.3) : 1;
+    ctx.save();
+    ctx.globalAlpha = a;
+    if (heat > 0.05) Art.glow(ctx, this.x, this.y, 30 + heat * 18, '255,110,30', 0.55 * heat);
+    Art.lavaRock(ctx, this.x, this.y, 20, this.rot, heat, this.seed);
+    ctx.restore();
+  }
+
+  // L'ombre qui grandit par terre, et le « ! » au-dessus (dessinés par-dessus Malice pour qu'on les voie bien).
+  drawWarning(ctx) {
+    if (this.phase !== 'warn' && this.phase !== 'fall') return;
+    const k = clamp(this.progress(), 0, 1);
+    const r = 12 + (LAVA_BOMB.r - 12) * k;
+    const pulse = Math.abs(Math.sin(this.t * 9));
+    // (une lueur orange, pour qu'on la voie bien sur la roche sombre, et l'ombre de la pierre au milieu)
+    ctx.fillStyle = `rgba(255,120,30,${0.3 + 0.25 * k + 0.1 * pulse})`;
+    ellipsePath(ctx, this.x, this.groundY - 2, r + 4, 6 + 4 * k);
+    ctx.fill();
+    ctx.fillStyle = `rgba(60,8,0,${0.35 + 0.35 * k})`;
+    ellipsePath(ctx, this.x, this.groundY - 2, r * 0.75, 3 + 4 * k);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,220,90,${0.55 + 0.4 * pulse})`;
+    ctx.lineWidth = 2.5;
+    ellipsePath(ctx, this.x, this.groundY - 2, r + 4, 6 + 4 * k);
+    ctx.stroke();
+    if (this.phase === 'warn' && Math.floor(this.t * 8) % 2 === 0) {
+      const y = this.groundY - 92;
+      ctx.fillStyle = '#ffb13a';
+      ctx.strokeStyle = '#6a1a00';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(this.x, y - 16);
+      ctx.lineTo(this.x + 15, y + 11);
+      ctx.lineTo(this.x - 15, y + 11);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fill();
+      ctx.fillStyle = '#6a1a00';
       ctx.font = '700 17px Fredoka, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

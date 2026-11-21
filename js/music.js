@@ -629,6 +629,33 @@ const Music = (() => {
     return S.out({ drumV: 0.6 });
   }
 
+  // 4-4. Le Bord du Cratère : la même valse lydienne, mais plus vite, et qui gronde comme le volcan : la mélodie aux
+  // cuivres, le tuba doublé par la basse électrique sur le « oum », l'orgue sur les « pah-pah », et les timbales (les
+  // toms) qui roulent à chaque fin de phrase ; des cordes en tenue tout du long, comme la fumée. Au refrain, la mélodie
+  // passe à l'accordéon, avec le glockenspiel en écho (les braises qui crépitent).
+  function mountainCrater() {
+    const S = new Song({ bpm: 184, meter: 3, warp: waltz, mode: LYD, modeChords: false, chordMap: { F: 'D', G7: 'Gmaj7', Bb: 'Bb', Db: 'Db' } });
+    const OOM = [[[0, 0.9, 'R']], [[0, 0.9, '5L']]];
+    const PAH = [[[1, 0.35, 'C'], [2, 0.35, 'C']]];
+    const PAD = [[[0, 2.9, 'C']]];
+    const D = [[[0, 'k', 0.7], [1, 'h', 0.4], [2, 'h', 0.4]]];
+    const FILL = [[0, 'k'], [1, 't', 0.7], [1.5, 't', 0.8], [2, 't', 0.9], [2.5, 't']];
+    const base = (p) => {
+      p.pattern('bass', 'tuba', 0.22, OOM);
+      p.pattern('low', 'synbass', 0.07, OOM);
+      p.pattern('pah', 'organ', 0.045, PAH, { low: 57 });
+      p.pattern('pad', 'strings', 0.03, PAD, { low: 55 });
+      p.drums(D, { fill: FILL });
+    };
+    const echo = (p) => p.melody('echo', 'glock', 0.045, { delay: 0.5, oct: 1, top: true });
+    S.part(SECT.I, (p) => { p.melody('lead', 'brass', 0.15); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.15); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.15); echo(p); base(p); });
+    S.part(SECT.C, (p) => { p.melody('lead', 'accordion', 0.2); echo(p); base(p); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'brass', 0.15); p.melody('oct', 'accordion', 0.08, { oct: -1, top: true }); base(p); });
+    return S.out({ drumV: 0.8 });
+  }
+
   // Stage de la Moustache-Grappin : jazz swing (on se balance !), walking bass, ride, trompette bouchée,
   // accords de jazz avec substitution de triton (sol7 → ré♭7).
   function swingJazz() {
@@ -883,6 +910,7 @@ const Music = (() => {
     'badge-bocal': funk(),
     mountain: mountain(),
     'mountain-glace': mountainIce(),
+    'mountain-cratere': mountainCrater(),
     'badge-grappin': swingJazz(),
     volcano: volcano(),
     victory: victory(),

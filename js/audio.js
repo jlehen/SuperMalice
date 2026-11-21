@@ -681,6 +681,26 @@ const Sound = (() => {
       tone({ type: 'triangle', f: 1320, f2: 1760, d: 0.12, v: 0.08, delay: 0.2 });
     },
 
+    // ---- Le Bord du Cratère ----
+    // le volcan gronde : un long grondement sourd qui roule, et un « boum » tout au fond (il va cracher des pierres)
+    volcanoRumble() {
+      noise({ filter: 'lowpass', f: 160, f2: 90, d: 1.3, v: 0.45, a: 0.15 });
+      noise({ filter: 'lowpass', f: 320, f2: 120, d: 0.9, v: 0.18, a: 0.05, delay: 0.25 });
+      tone({ type: 'sine', f: 48, f2: 36, d: 1.1, v: 0.22, a: 0.1, vib: 7, vibDepth: 6 });
+      tone({ type: 'sine', f: 70, f2: 40, d: 0.35, v: 0.2, delay: 0.75 });
+    },
+    // une pierre de lave tombe : un sifflement qui descend, et ça crépite
+    lavaWhistle() {
+      tone({ type: 'sine', f: 1100, f2: 380, d: 0.42, v: 0.05 });
+      noise({ filter: 'bandpass', f: 2400, d: 0.4, v: 0.04, q: 1.5, a: 0.1 });
+    },
+    // elle s'écrase par terre : boum, puis pschhh (la roche chaude qui fume)
+    lavaThud() {
+      tone({ type: 'sine', f: 140, f2: 50, d: 0.3, v: 0.35 });
+      noise({ filter: 'lowpass', f: 900, f2: 200, d: 0.3, v: 0.3 });
+      noise({ filter: 'bandpass', f: 1800, f2: 2600, d: 0.6, v: 0.06, q: 0.6, a: 0.06, delay: 0.1 });
+    },
+
     // ---- La Grande Glissade ----
     // Malice glisse sur les éboulis : chhh, des petits cailloux qui roulent (k : sa vitesse, un peu plus fort quand elle
     // va vite)

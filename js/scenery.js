@@ -136,6 +136,15 @@ const Scenery = (() => {
       plat: '#5b4650', platDark: '#2f2329', platLight: '#86707b', ember: true,
       bramble: '#4a2030', brambleDark: '#12060a', thorn: '#ffd27a',
     },
+    // le Bord du Cratère : de la roche de volcan brune, couverte de cendre grise, fendillée de lave (crust), un peu
+    // chaude en dessous (glow)
+    cratere: {
+      dirt: '#5e474b', dirtDark: '#3c2c30', dirtLight: '#7a5f63', stripe: 'rgba(255,90,20,0.10)',
+      top: '#8a7b7d', topDark: '#55474b', topLight: '#b3a4a6', blades: false, crust: true, glow: true,
+      brick: '#6e5a5e', brickDark: '#3e2e32', brickLight: '#9a8488',
+      plat: '#a5764a', platDark: '#6a4a2a', platLight: '#d4a26c',
+      bramble: '#5a2a3a', brambleDark: '#1a0a10', thorn: '#ffd27a',
+    },
     // la grotte : roche violette, petits cristaux qui brillent sur le dessus
     cave: {
       dirt: '#4b4062', dirtDark: '#30283f', dirtLight: '#66597f', stripe: 'rgba(20,10,40,0.25)',
@@ -4417,6 +4426,109 @@ const Scenery = (() => {
       }
     },
 
+    // Le Bord du Cratère : tout en haut du volcan, au crépuscule. Un ciel rouge de fumée ; tout au fond à droite, le
+    // cratère et sa grande colonne de fumée (quand il gronde, belch : il crache des pierres de lave, et sa lueur
+    // s'allume) ; loin en dessous, une mer de nuages roses et des sommets qui la percent (ils descendent quand on monte) ;
+    // devant, une crête de roche avec ses coulées de lave qui descendent ; des braises qui montent, de la cendre qui
+    // tombe.
+    cratere(ctx, cx, cy, t, belch) {
+      sky(ctx, [[0, '#4a2242'], [0.35, '#b44c36'], [0.62, '#ff9a5a'], [1, '#ffd09a']]);
+      // (cy : de 84, tout en bas du niveau, à 84 - SCREE_BG, tout en haut : quand on monte, le fond descend)
+      // les sommets lointains, et la mer de nuages
+      const off1 = cx * 0.08;
+      hillPath(ctx, off1, 330 - cy * 0.7, 80, 0.004, 3.1, 30);
+      ctx.fillStyle = '#a8647a';
+      ctx.fill();
+      forEachItem(cx * 0.12 - t * 6, 150, 61, (x, i, h) => fluffyCloud(ctx, x, 370 - cy * 0.6 + h * 30, 1.2 + h * 0.8, '#ffd2be', '#eaa49e'));
+      // le cratère, tout au fond (on s'en approche : il arrive par la droite), et sa colonne de fumée
+      const vx = 860 - cx * 0.009;
+      const vy = 210 - cy * 0.25;
+      ctx.fillStyle = '#6a3242';
+      ctx.beginPath();
+      ctx.moveTo(vx - 520, vy + 330);
+      ctx.lineTo(vx - 110, vy);
+      ctx.quadraticCurveTo(vx, vy + 14, vx + 110, vy);
+      ctx.lineTo(vx + 520, vy + 330);
+      ctx.closePath();
+      ctx.fill();
+      Art.glow(ctx, vx, vy, 120 + belch * 80, '255,130,50', 0.5 + belch * 0.5);
+      ctx.fillStyle = '#ff7a2a';
+      ellipsePath(ctx, vx, vy + 2, 105, 9);
+      ctx.fill();
+      // (ses coulées de lave, sur ses flancs)
+      ctx.strokeStyle = `rgba(255,${130 + Math.floor(40 * Math.sin(t * 2))},40,0.85)`;
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      for (const [dx, k] of [[-70, -1], [40, 1], [90, 1]]) {
+        ctx.beginPath();
+        ctx.moveTo(vx + dx, vy + 4);
+        ctx.quadraticCurveTo(vx + dx + k * 40, vy + 70, vx + dx + k * 110, vy + 150 + Math.abs(dx));
+        ctx.stroke();
+      }
+      for (let i = 0; i < 7; i++) {
+        const ph = (t * 0.08 + i / 7) % 1;
+        ctx.fillStyle = `rgba(${96 + Math.floor(50 * ph)},${76 + Math.floor(40 * ph)},${84 + Math.floor(30 * ph)},${0.55 * (1 - ph)})`;
+        circlePath(ctx, vx + Math.sin(i * 2.3 + t * 0.4) * 20 + ph * 140, vy - 20 - ph * 300, 28 + ph * 70);
+        ctx.fill();
+      }
+      // (quand il gronde : il crache des pierres de lave, au loin)
+      if (belch > 0) {
+        for (let i = 0; i < 7; i++) {
+          const k = 1 - belch;
+          const ang = -Math.PI / 2 + (hash(i * 3.3) - 0.5) * 1.5;
+          const sp = 260 + hash(i * 7.1) * 180;
+          const x = vx + Math.cos(ang) * sp * k;
+          const y = vy - Math.sin(-ang) * sp * k + 300 * k * k;
+          ctx.fillStyle = `rgba(255,${150 + i * 10},60,${Math.min(1, belch * 2)})`;
+          circlePath(ctx, x, y, 4 + hash(i) * 3);
+          ctx.fill();
+        }
+      }
+      // la crête de roche, devant, avec ses coulées de lave qui descendent
+      const off3 = cx * 0.35;
+      const base = 300 - cy * 0.35;
+      hillPath(ctx, off3, base, 70, 0.006, 1.7, 24);
+      ctx.fillStyle = '#4a2a34';
+      ctx.fill();
+      forEachItem(off3, 420, 67, (x, i, h) => {
+        const top = hillY(off3, x, base, 70, 0.006, 1.7) + 6;
+        ctx.strokeStyle = 'rgba(255,110,30,0.85)';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.bezierCurveTo(x + 18, top + 60, x - 22, top + 120, x + 8 + h * 20, VIEW_H + 10);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,220,110,0.8)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // (des gouttes plus claires qui descendent la coulée)
+        for (let k = 0; k < 2; k++) {
+          const u = (t * 0.25 + k * 0.5 + h) % 1;
+          const a = 1 - u;
+          const bx = a * a * a * x + 3 * a * a * u * (x + 18) + 3 * a * u * u * (x - 22) + u * u * u * (x + 8 + h * 20);
+          const by = a * a * a * top + 3 * a * a * u * (top + 60) + 3 * a * u * u * (top + 120) + u * u * u * (VIEW_H + 10);
+          ctx.fillStyle = 'rgba(255,240,160,0.9)';
+          circlePath(ctx, bx, by, 3);
+          ctx.fill();
+        }
+      });
+      // des braises qui montent, de la cendre qui tombe
+      for (let i = 0; i < 18; i++) {
+        const x = ((hash(i * 1.9) * 1300 - cx * 0.6 + Math.sin(t * 1.3 + i) * 24) % 1000 + 1000) % 1000 - 20;
+        const y = VIEW_H + 20 - ((hash(i * 4.3) * 600 + t * (35 + hash(i) * 40)) % 620);
+        ctx.fillStyle = i % 3 ? 'rgba(255,160,60,0.85)' : 'rgba(255,230,140,0.9)';
+        circlePath(ctx, x, y, 1.5 + hash(i * 2.2) * 1.5);
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(70,60,66,0.55)';
+      for (let i = 0; i < 16; i++) {
+        const x = ((hash(i * 2.9) * 1200 - cx * 0.4 + Math.sin(t * 0.6 + i) * 30) % 1000 + 1000) % 1000 - 20;
+        const y = ((hash(i * 5.1) * 600 + t * (18 + hash(i * 3) * 14)) % 600) - 30;
+        circlePath(ctx, x, y, 1.6 + hash(i * 6.1) * 1.4);
+        ctx.fill();
+      }
+    },
+
     // Monde des badges : nuit violette, étoiles et grandes médailles qui flottent.
     badge(ctx, cx, cy, t) {
       sky(ctx, [[0, '#140c42'], [0.55, '#33197a'], [1, '#7a3aa8']]);
@@ -5235,6 +5347,39 @@ const Scenery = (() => {
       ctx.lineTo(-5, -6);
       ctx.closePath();
       ctx.fill();
+    } else if (theme === 'cratere') {
+      if (v < 0.35) {
+        // un petit caillou de lave encore chaud (ses fissures brillent doucement)
+        Art.lavaRock(ctx, 0, -6, 7, v * 20, 0.35 + 0.25 * Math.sin(t * 2 + v * 30), v * 50);
+      } else if (v < 0.65) {
+        // une touffe d'herbe toute sèche
+        ctx.rotate(sway * 0.6);
+        ctx.strokeStyle = '#b08a5a';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        for (let k = -2; k <= 2; k++) {
+          ctx.beginPath();
+          ctx.moveTo(k * 2, 0);
+          ctx.quadraticCurveTo(k * 3, -7, k * 5, -11 + Math.abs(k) * 2);
+          ctx.stroke();
+        }
+      } else {
+        // une petite fente qui fume
+        ctx.strokeStyle = '#ff7a1f';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-7, -1);
+        ctx.lineTo(-2, -2);
+        ctx.lineTo(3, -1);
+        ctx.lineTo(7, -2);
+        ctx.stroke();
+        for (let k = 0; k < 3; k++) {
+          const ph = (t * 0.5 + k / 3 + v * 7) % 1;
+          ctx.fillStyle = `rgba(200,190,192,${0.45 * (1 - ph)})`;
+          circlePath(ctx, Math.sin(t * 2 + k) * 3, -4 - ph * 26, 3 + ph * 6);
+          ctx.fill();
+        }
+      }
     } else if (theme === 'volcano') {
       // cristal qui brille
       const a = 0.6 + 0.4 * Math.sin(t * 3 + v * 20);
@@ -5742,7 +5887,62 @@ const Scenery = (() => {
     }
   }
 
+  // ---------- Le Bord du Cratère ----------
+  // Le grand nid de Maman Aigle (x : son milieu, y : le sol où il est posé, en haut de son pic) : de grosses branches
+  // tressées, de la paille au fond, et deux grandes plumes. Vide pour l'instant. (Dessiné une fois, puis un peu plus
+  // petit : 255 pixels de large.)
+  function eagleNest(ctx, x, y) {
+    const img = sprite('nid-aigle', 300, 130, (g) => {
+      g.translate(150, 112);
+      // les grosses branches, dessous et sur les côtés
+      g.lineCap = 'round';
+      for (const [x0, y0, x1, y1, w] of [[-130, -18, 120, -6, 9], [-118, -4, 132, -24, 8], [-96, -44, 140, -34, 6], [-140, -40, 100, -48, 6]]) {
+        g.strokeStyle = '#4a2a12';
+        g.lineWidth = w + 3;
+        g.beginPath();
+        g.moveTo(x0, y0);
+        g.lineTo(x1, y1);
+        g.stroke();
+        g.strokeStyle = '#8a5a2a';
+        g.lineWidth = w;
+        g.stroke();
+      }
+      Art.birdNest(g, 0, 0, 240);
+      // de la paille et un peu de duvet, tout au fond du creux (bien à plat)
+      g.fillStyle = '#d8b47a';
+      ellipsePath(g, 0, -62, 86, 9);
+      g.fill();
+      g.strokeStyle = '#f4e6c8';
+      g.lineWidth = 2;
+      for (let i = 0; i < 9; i++) {
+        const dx = -70 + i * 17;
+        g.beginPath();
+        g.moveTo(dx, -60 + (i % 2) * 3);
+        g.quadraticCurveTo(dx + 6, -66, dx + 12, -61);
+        g.stroke();
+      }
+      // deux grandes plumes brunes, plantées dans le bord
+      for (const [dx, a] of [[-92, -0.5], [84, 0.6]]) {
+        g.save();
+        g.translate(dx, -60);
+        g.rotate(a);
+        g.fillStyle = '#7a4a26';
+        ellipsePath(g, 0, -18, 7, 20);
+        g.fill();
+        g.strokeStyle = '#f0e0c8';
+        g.lineWidth = 1.5;
+        g.beginPath();
+        g.moveTo(0, 2);
+        g.lineTo(0, -36);
+        g.stroke();
+        g.restore();
+      }
+    });
+    ctx.drawImage(img, x - 127.5, y - 95.2, 255, 110.5);
+  }
+
   return {
+    eagleNest,
     floodBack, floodFront, floodEdge,
     windmill, millPlank, rain,
     lightningRod, lightningRodSky, lighthouse,

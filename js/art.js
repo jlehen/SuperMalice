@@ -5610,6 +5610,48 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // ---------- Le Bord du Cratère ----------
+  // Une pierre de lave (centrée en x, y, de rayon r), toute bosselée (seed : sa forme), qui tourne (rot). heat : de 1,
+  // toute chaude (rouge, avec des fissures de lave qui brillent), à 0, refroidie (grise).
+  function lavaRock(ctx, x, y, r, rot, heat, seed) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.beginPath();
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const rr = r * (0.8 + 0.28 * hash(seed + i * 1.37));
+      if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle = mixColor('#4a3c40', '#a8341c', heat * 0.8);
+    ctx.fill();
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = '#231a1c';
+    ctx.stroke();
+    // (un reflet sur le dessus)
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ellipsePath(ctx, -r * 0.3, -r * 0.35, r * 0.4, r * 0.22, -0.4);
+    ctx.fill();
+    // les fissures de lave
+    if (heat > 0.02) {
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = `rgba(255,${150 + Math.floor(heat * 70)},60,${Math.min(1, heat * 1.4)})`;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.55, -r * 0.1);
+      ctx.lineTo(-r * 0.1, r * 0.05);
+      ctx.lineTo(r * 0.15, -r * 0.4);
+      ctx.moveTo(-r * 0.1, r * 0.05);
+      ctx.lineTo(r * 0.05, r * 0.55);
+      ctx.moveTo(r * 0.2, r * 0.2);
+      ctx.lineTo(r * 0.6, r * 0.1);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // ---------- Le Glacier Fumant ----------
   // Une stalactite de glace (centrée en x, accrochée au plafond en y, w de large et h de long) : de la glace bleutée et
   // transparente, un reflet tout du long, et une goutte qui grossit au bout. shaking : elle tremble (une fissure
@@ -7244,7 +7286,7 @@ const Art = (() => {
 
   return {
     grumpyCloud, cloudRain, SHAKE, shaking, shakeTilt, rockHog, pebbleBall, CREPE, crepeShape,
-    icicle, steamPuffs, LUGE, lugeShape, redNose, grumpyPenguin,
+    icicle, steamPuffs, LUGE, lugeShape, redNose, grumpyPenguin, lavaRock,
     MALICE, MIMIC_DUR, CUBE_COLORS, COUGHS, SCRAMBLE_BACK, MALICE_SPOTS, spotPop, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,

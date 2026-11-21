@@ -116,6 +116,18 @@ class World {
     this.goal = null;
     this.storms = def.storms || [];
     this.stormT = 1.5;
+    // le Bord du Cratère : les colonnes où le volcan gronde et crache des pierres de lave ("volcan" : [début, fin]), les
+    // pierres qui tombent ou refroidissent par terre (voir LavaBomb), le grondement (rumble : combien de temps la terre
+    // tremble encore), et le volcan du fond qui crache (belch, de 1 à 0) ; pas de grondement juste après une reprise
+    this.volcan = def.volcan || [];
+    this.bombs = [];
+    // (les zones où le volcan a déjà grondé une fois : voir lavaTargets)
+    this.volcanSeen = new Set();
+    this.volcanT = 3;
+    this.rumble = 0;
+    this.belch = 0;
+    // le grand nid de Maman Aigle, sur son pic ("nid" : [colonne, rangée du sol où il est posé]), dans le décor
+    this.nest = def.nid ? { x: (def.nid[0] + 0.5) * TILE, y: def.nid[1] * TILE } : null;
     this.flash = 0;
     this.flashT = 3;
     this.shakeMag = 0;
@@ -1323,6 +1335,7 @@ class World {
     if (this.def.sequel) p.birdTalk = this.flowers.reduce((m, f) => Math.max(m, f.show), 0);
     this.updateMagic(dt);
     this.updateStorms(dt);
+    if (this.volcan.length || this.bombs.length) this.updateVolcano(dt);
     this.updateWinds(dt);
     this.updateUpdrafts(dt);
     this.updateSlime(dt);
@@ -1458,6 +1471,11 @@ class World {
       }
       const b = ec.box();
       if (b && boxOverlap(pb, b.x, b.y, b.w, b.h)) p.hurt(b, 'zap');
+    }
+    // une pierre de lave qui tombe, ou qui arrive par terre : Malice est toute noircie de suie (« Kof kof ! »)
+    for (const lb of this.bombs) {
+      const b = lb.box();
+      if (b && boxOverlap(pb, b.x, b.y, b.w, b.h)) p.hurt(b, 'soot');
     }
     // les pieds sur un paratonnerre qui grésille : électrocutée, comme par un éclair au chocolat
     for (const rod of this.rods) {
@@ -1598,6 +1616,131 @@ class World {
       x = clamp(x, z[0] * TILE + 24, (z[1] + 1) * TILE - 24);
       this.eclairs.push(new Eclair(this, x));
     }
+  }
+
+  // Le Bord du Cratère ("volcan" : les colonnes [début, fin] où le volcan gronde, et s'il en crache plus : [début, fin,
+  // pierres en plus], ou plus souvent : [début, fin, pierres en plus, combien de fois diff.lavaEvery]) : de temps en temps (diff.lavaEvery), la terre tremble un tout petit peu, le volcan gronde (au
+  // loin, dans le fond, il crache), et des pierres de lave tombent autour de Malice (diff.lavaStones, plus celles de la
+  // zone), chacune annoncée par son ombre par terre (voir LavaBomb). Jamais pendant
+  // qu'une fleur parle, ni quand Malice est en l'air, sur une plateforme qui bouge, sur la pente, ou tout près d'un trou :
+  // elle peut toujours s'écarter (en avançant ou en reculant).
+  updateVolcano(dt) {
+    const p = this.player;
+    this.belch = Math.max(0, this.belch - dt * 0.7);
+    if (this.rumble > 0) {
+      this.rumble -= dt;
+      this.shake(1.6);
+    }
+    for (const b of this.bombs) b.update(dt);
+    this.bombs = this.bombs.filter((b) => !b.dead);
+    if (p.dead || p.won) return;
+    const col = p.cx / TILE;
+    const z = this.volcan.find(([a, b]) => col >= a && col <= b + 1);
+    if (!z) {
+      this.volcanT = Math.max(this.volcanT, 1.2);
+      return;
+    }
+    this.volcanT -= dt;
+    if (this.volcanT > 0) return;
+    // (pas tout de suite : on réessaie un peu plus tard)
+    this.volcanT = 0.3;
+    // (les pierres qui refroidissent par terre ne comptent pas : elles ne font plus mal)
+    if (!p.onGround || p.platform || p.slope || p.hurtT > 0 || p.tumbling() || this.bombs.some((b) => b.phase !== 'cool')) return;
+    if (this.flowers.some((f) => f.show > 0.2) || this.nearPit(p)) return;
+    const spots = this.lavaTargets(p, z);
+    if (!spots.length) return;
+    this.volcanSeen.add(z[0]);
+    this.volcanT = rand(this.diff.lavaEvery[0], this.diff.lavaEvery[1]) * (z[3] || 1);
+    this.rumble = 0.9;
+    this.belch = 1;
+    Sound.sfx.volcanoRumble();
+    // (les pierres tombent l'une après l'autre)
+    spots.forEach(([x, gy, wn], i) => this.bombs.push(new LavaBomb(this, x, gy, (wn || this.diff.lavaWarn) + i * 0.3)));
+  }
+
+  // Un trou (ou de la lave) à moins d'une case et demie devant ou derrière Malice, sur son sol ?
+  nearPit(p) {
+    const feet = p.y + p.h;
+    for (const dx of [-1.5, -0.75, 0.75, 1.5]) {
+      const x = p.cx + dx * TILE;
+      const gy = this.surfaceBelow(x, feet - TILE * 0.5);
+      if (gy > feet + TILE * 1.5 || this.tileAt(Math.floor(x / TILE), Math.floor(gy / TILE)) === '~') return true;
+    }
+    return false;
+  }
+
+  // Où tombent les pierres de lave : la première là où Malice arriverait si elle continuait d'avancer comme maintenant
+  // (tout près d'elle si elle ne bouge pas : il faut bouger), les autres de part et d'autre, à 160 pixels au moins
+  // l'une de l'autre (assez de place entre deux ombres pour s'y mettre). Seulement sur un sol bien plat et solide (pas
+  // sur la lave, ni la pente, ni une plateforme qui bouge), à peu près à sa hauteur, dans la zone, et toujours à
+  // l'écran (l'ombre se voit dès qu'elle apparaît), jamais plus loin que LAVA_AIM.ahead pixels devant elle ; sur la
+  // glace, jamais avant l'endroit où elle peut s'arrêter. Au premier grondement d'une zone (celui qui apprend), une
+  // seule pierre, juste au-delà de l'endroit où elle arriverait : si elle avance sans s'arrêter, elle la voit tomber
+  // devant elle, et passe quand ce n'est plus qu'une pierre chaude (si l'écran est trop court pour ça, la pierre
+  // s'annonce un peu moins longtemps, jamais moins de LAVA_AIM.minWarn secondes). [x, sol, annonce (0 : diff.lavaWarn)]
+  lavaTargets(p, z) {
+    const n = this.diff.lavaStones + (z[2] || 0);
+    const feet = p.y + p.h;
+    const warn = this.diff.lavaWarn;
+    const lo = Math.max(z[0] * TILE + 30, this.cam.x + LAVA_AIM.edge);
+    const hi = Math.min((z[1] + 1) * TILE - 30, this.cam.x + VIEW_W - LAVA_AIM.edge);
+    const out = [];
+    // (sur la glace : la distance qu'il lui faut pour s'arrêter en lâchant tout, plus la pierre, plus un peu ; aucune
+    // pierre entre elle et ce point-là)
+    const icy = p.icy && Math.abs(p.vx) > 60 ? (p.vx * p.vx) / (2 * ICE_PHYS.dec) + LAVA_BOMB.r + 40 : 0;
+    const tryAt = (x, wn) => {
+      if (x < lo || x > hi || out.some(([ox]) => Math.abs(ox - x) < 160)) return;
+      if (icy && Math.sign(p.vx) * (x - p.cx) > -LAVA_BOMB.r - 30 && Math.sign(p.vx) * (x - p.cx) < icy) return;
+      const gy = this.lavaGround(x, feet);
+      if (gy !== null) out.push([x, gy, wn || 0]);
+    };
+    if (!this.volcanSeen.has(z[0])) {
+      const v = Math.abs(p.vx);
+      const dir = v > 30 ? Math.sign(p.vx) : p.facing;
+      const room = (dir > 0 ? hi - p.cx : p.cx - lo) - 10;
+      for (let k = 0; k < 8 && !out.length; k++) {
+        let d = Math.max(v * warn + LAVA_AIM.pass, icy) * rand(1, 1.15);
+        let wn = warn;
+        if (d > room) {
+          d = room - rand(0, 40);
+          if (v > 30) wn = Math.min(warn, (d - LAVA_AIM.pass) / v);
+        }
+        if (wn >= LAVA_AIM.minWarn) tryAt(p.cx + dir * d, wn);
+      }
+      // (les autres pierres : plus loin encore, ou derrière elle, jamais sur son chemin avant que la première tombe ;
+      // dans la première zone du niveau, celle où l'on découvre le volcan, une seule)
+      for (let k = 0; k < 12 && out.length && out.length < n && z !== this.volcan[0]; k++) {
+        tryAt(k % 2 ? out[0][0] + dir * rand(160, 260) : p.cx - dir * rand(90, 220), out[0][2]);
+      }
+      return out;
+    }
+    const ahead = p.vx * warn;
+    for (let k = 0; k < 8 && !out.length; k++) {
+      let dx = clamp(ahead * rand(0.7, 1) * (k < 4 ? 1 : 0.4) + p.facing * rand(-20, 60), -LAVA_AIM.ahead, LAVA_AIM.ahead);
+      if (icy) dx = Math.sign(p.vx) * Math.max(Math.sign(p.vx) * dx, icy);
+      tryAt(p.cx + dx);
+    }
+    for (let k = 0; k < 12 && out.length && out.length < n; k++) {
+      const side = (out.length % 2 ? 1 : -1) * p.facing * (Math.random() < 0.3 ? -1 : 1);
+      tryAt(out[0][0] + side * rand(160, 260));
+    }
+    return out;
+  }
+
+  // Le sol où peut tomber une pierre de lave en x (entre deux cases plus haut et trois plus bas que les pieds de Malice),
+  // ou null : un sol plat et solide sous la pierre, et une case de plus de chaque côté (jamais au bord d'une marche ou
+  // d'un trou, là où l'on prend son élan ou retombe d'un saut : le coup de la pierre y pousserait Malice dans la lave).
+  lavaGround(x, feet) {
+    const gy = this.surfaceBelow(x, feet - TILE * 2.2);
+    if (gy > feet + TILE * 3) return null;
+    for (const dx of [-84, -56, -28, 0, 28, 56, 84]) {
+      const g2 = this.surfaceBelow(x + dx, gy - TILE * 0.5);
+      if (Math.abs(g2 - gy) > 1) return null;
+      const ch = this.tileAt(Math.floor((x + dx) / TILE), Math.floor(gy / TILE));
+      if (!isSolidCh(ch) && !isLedgeCh(ch)) return null;
+    }
+    if (this.scree && this.screeCell(Math.floor(x / TILE), Math.floor(gy / TILE) - 1)) return null;
+    return gy;
   }
 
   // La pluie (le Moulin à Vent) : des gouttes qui éclaboussent le sol, partout à l'écran (dessin : Scenery.rain).
@@ -1808,7 +1951,8 @@ class World {
         LIGHTHOUSE_BG.far = clamp((this.lighthouse.x0 - VIEW_W - 60 - this.cam.x) / 200, 0, 1);
         LIGHTHOUSE_BG.ang = this.beamAngle();
       }
-      Scenery.drawBackground(ctx, this.theme, this.cam.x, cy, this.t, this.flash, this.lighthouse ? LIGHTHOUSE_BG : null);
+      // (au Bord du Cratère, le volcan du fond crache quand il gronde : belch)
+      Scenery.drawBackground(ctx, this.theme, this.cam.x, cy, this.t, this.volcan.length ? this.belch : this.flash, this.lighthouse ? LIGHTHOUSE_BG : null);
     }
     if (sky < VIEW_H) ctx.restore();
     // le Phare sur la Falaise : quand sa grande lumière tourne vers nous, elle éclaire tout le fond (seulement le fond :
@@ -1887,6 +2031,8 @@ class World {
     for (const d of this.decos) {
       if (this.onScreen(d, 80)) d.draw(ctx);
     }
+    // le grand nid de Maman Aigle, sur son pic
+    if (this.nest && this.onScreen({ x: this.nest.x - 130, y: this.nest.y - 100, w: 260, h: 120 })) Scenery.eagleNest(ctx, this.nest.x, this.nest.y);
     if (this.goal) this.goal.draw(ctx);
     // (les nénuphars qui flottent sont dessinés par-dessus l'eau, plus loin)
     for (const pl of this.platforms) {
@@ -1915,6 +2061,9 @@ class World {
         (e === this.boss || this.arena || (e.y + e.h > camY - 240 && e.y < camY + VIEW_H + 240))) e.draw(ctx);
     }
     for (const ec of this.eclairs) ec.draw(ctx);
+    for (const lb of this.bombs) {
+      if (this.onScreen({ x: lb.x - 60, y: Math.min(lb.y, lb.groundY) - 60, w: 120, h: 120 })) lb.draw(ctx);
+    }
     for (const h of this.hazards) {
       if (!(h instanceof Stalactite) || this.onScreen(h, 120)) h.draw(ctx);
     }
@@ -1928,6 +2077,9 @@ class World {
     this.player.draw(ctx);
     if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);
+    for (const lb of this.bombs) {
+      if (this.onScreen({ x: lb.x - 40, y: lb.groundY - 110, w: 80, h: 120 })) lb.drawWarning(ctx);
+    }
     for (const rod of this.rods) rod.drawWarning(ctx);
     // (l'ombre des grenouilles sauteuses, là où elles vont retomber)
     for (const e of this.enemies) {

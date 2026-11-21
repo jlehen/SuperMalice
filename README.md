@@ -445,6 +445,41 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      pingouin sur la glace de chaque palier ; tout en haut, un saut de 5 cases avec élan, deux marches plus bas, sous
      une stalactite), et le grand pont de glace (cinq travées, quatre pingouins, six stalactites). Un drapeau toutes les
      70 cases environ.
+   - 4-4 **Le Bord du Cratère** : on monte jusqu'au sommet du volcan, en biais vers la droite (la caméra suit la
+     montée ; le fond descend doucement, et le cratère, au loin, se rapproche). Le volcan fume, ses coulées de lave
+     descendent dans le fond, des braises montent et de la cendre tombe. **La surprise : le volcan gronde.** Dans
+     certaines parties, de temps en temps, la terre tremble un tout petit peu, on entend un grand grondement, et au
+     loin le cratère crache : des **pierres de lave** vont tomber. Chacune s'annonce par **son ombre par terre**, qui
+     grandit, toute orange, avec un « ! » au-dessus ; puis la pierre tombe du ciel, toute rouge et fumante, et
+     s'écrase sur l'ombre. Il ne faut pas être dessous : la première tombe juste là où Malice arriverait si elle
+     continuait d'avancer pareil (ou tout près d'elle si elle ne bouge pas), les autres de part et d'autre, avec
+     toujours assez de place entre deux ombres. On s'arrête avant, ou on se dépêche de passer. La toute première
+     fois, dans chaque partie qui gronde, la pierre tombe un peu plus loin : si l'on continue d'avancer, on la voit
+     tomber devant soi, et on arrive quand ce n'est plus qu'une pierre chaude. Une pierre qui touche Malice la
+     noircit de suie (« Kof kof ! », comme les morceaux du cube) ; par terre, ce n'est plus qu'une pierre chaude qui
+     fume en refroidissant, puis s'effrite (elle ne fait plus mal). Les pierres rendent gentils les ennemis qu'elles
+     écrasent. Elles tombent toujours à l'écran, jamais au bord d'un trou ou d'une marche (là où l'on prend son
+     élan), ni sur une plateforme qui bouge ou sur une pente, ni pendant qu'on lit une fleur, ni juste après être
+     reparti d'un drapeau ; sur la glace, assez loin pour qu'on ait la place de freiner. Plus la difficulté est
+     grande, plus il y en a, plus souvent, et moins leur ombre prévient longtemps (Bébé : une pierre toutes les 8 à
+     9 s, annoncée 1,7 s avant ; Difficile : trois toutes les 4 s, annoncées 1 s avant) ; plus haut sur le volcan, il
+     en crache une de plus, et tout en haut, deux de plus, et plus souvent. Le niveau réunit tout le monde 4, en onze
+     parties de plus en plus dures (le robot met un peu plus de 3 minutes) : le premier grondement, les marches de
+     lave (des piliers et deux plateformes qui bougent), la crête sous un petit orage (éclairs au chocolat) et son
+     ascenseur, la pente de cendres (deux glissades : des crevasses, des rochers, un hérisson de roche, et un
+     champignon pour remonter entre les deux), la glace du sommet (glaçons sous les rochers, un petit trou de lave
+     sur la glace, un pingouin), le **rocher creux** (la cachette : on écrase un bloc lutin de son toit ; dedans, des
+     bonbons et un gros œil bonbon ; on ressort par la droite) et le deuxième grondement (une coccinelle s'y
+     promène), le **raccourci des planches** (une planche et un champignon au-dessus du chemin, qui font rebondir
+     tout là-haut sur une suite de planches, avec des sucettes : plus court, mais il ne faut pas tomber ; en bas,
+     deux ascenseurs et un pingouin sur un palier de glace), les pierres sur la glace (on y freine mal : il faut
+     voir les ombres de loin), les wagons de feu (un grand lac de lave et **deux wagons à la suite**, qui vont et
+     viennent ensemble : on saute de l'un à l'autre au-dessus de la lave, avec des sucettes au milieu ; puis une
+     **île de glace** sous deux glaçons, où un pingouin attend, et il faut freiner avant le trou), la dernière pente
+     (deux crevasses de 4 cases, un hérisson de roche et un rocher), et la grotte de glace (quatre glaçons, un
+     pingouin) avant la dernière montée sous les pierres. Tout en haut, au bord du cratère, un grand espace plat : le
+     grand **nid de Maman Aigle**, sur son pic de roche, vide pour l'instant (une fleur dit qu'on entend un grand
+     oiseau crier là-haut). Un drapeau toutes les 70 cases environ, et des fleurs pour rire.
    - ⭐ **Stage d'entraînement : le Défi de la Moustache-Grappin** → on gagne le badge *Moustache-Grappin*
 5. **Le Cœur du Volcan** — 5-1 **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (avec Malice, il faut utiliser les deux badges)
 
@@ -598,6 +633,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Petit nuage grognon | « Splash ! » toute trempée par sa pluie, les mains sur la tête, puis elle **s'ébroue comme un chien** : tout son corps se tortille, et les gouttes volent tout autour d'elle ! Encore mouillée, elle avance moins vite un moment (des gouttes tombent d'elle, et ses pas font « flic, floc ») |
 | Pingouin grincheux qui glisse | « Wiiii ! » elle part en **toboggan sur le ventre**, les bras tendus devant elle, toute blanche de neige, jusqu'à s'arrêter (sur la glace, elle va bien plus loin ; au bord d'un trou, elle s'arrête toujours) ; elle se relève, et son **nez devient tout rouge**, qui brille un peu… « Ah… ah… **Atchoum !** » : elle **éternue des flocons de neige**, deux fois (elle peut rebouger dès qu'elle est relevée) |
 | Stalactite de glace | une grosse bosse soulève sa casquette, comme les ronces qui pendent |
+| Pierre de lave (le Bord du Cratère) | toute noire de suie, cheveux en pétard, elle tousse des petits nuages : « Kof kof ! » (comme les morceaux du cube) |
 | Hérisson de roche qui roule | « Badaboum ! » roulée dans une **boule de cailloux** (on la voit toute petite qui tourne dedans), elle en ressort **aplatie comme une crêpe**, les bras et les jambes écartés comme une étoile de mer, toute grise de poussière ; puis elle se regonfle d'un coup : « **Pop !** » (elle peut rebouger dès qu'elle est sortie de la boule, toute plate) |
 | Sanglier qui fonce | projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe la tête en bas, les jambes en l'air ; une taupe sort de terre à côté d'elle, toute interloquée (« ? »), et replonge aussitôt. Dans la boue, plof : elle s'y enfonce tout de suite (vite, il faut sauter !) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre) |
 
@@ -689,7 +725,11 @@ Défi du Super Saut, dont le décor `sousbois` a des branches `=` sur les troncs
 pendent les lianes : `feuillage`), ou avoir de longues pentes de cailloux où l'on glisse (`glissades` : chaque pente
 est une ligne droite, `[première colonne, rangée du haut, dernière colonne, rangée du bas]`, et dans la carte, des `>`
 là où elle passe, de la terre `#` dessous ; voir la Grande Glissade), ou être tout en glace (`theme: "glacier"` : de la
-roche de volcan sous la neige, des plaques de glace `+`, et les stalactites `A` sont en glace ; voir le Glacier Fumant).
+roche de volcan sous la neige, des plaques de glace `+`, et les stalactites `A` sont en glace ; voir le Glacier Fumant),
+ou monter au bord d'un cratère qui gronde (`theme: "cratere"`, et `volcan` : les colonnes `[début, fin]` où il crache
+des pierres de lave, `[début, fin, n]` pour en cracher `n` de plus, `[début, fin, n, k]` pour gronder plus souvent
+(`k` fois l'écart habituel) ; `glacons` : les stalactites en glace ; `nid` : le grand nid de Maman Aigle dans le décor ;
+voir le Bord du Cratère).
 Il suffit de modifier les lettres et de recharger la page.
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
@@ -772,6 +812,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Stage du Bocal à éclairs | funk, tout électrique : basse « slap » qui saute d'octave, clavinet sur les contretemps (accords de neuvième), la mélodie aux cuivres tout en staccato, le saxophone au milieu, charleston en doubles croches et caisse claire avec des notes fantômes |
   | Les Pentes du Volcan (les Pentes du Volcan, la Grande Glissade) | valse à 3/4 en mode lydien, accordéon et tuba |
   | Le Glacier Fumant | la même valse, un peu plus lente et toute givrée : la mélodie au célesta, le glockenspiel en écho une octave plus haut (des glaçons qui tintent), la contrebasse en pizzicati, la harpe sur les « pah-pah » ; au refrain, l'accordéon revient tout doucement en dessous |
+  | Le Bord du Cratère | la même valse, plus vite, et qui gronde comme le volcan : la mélodie aux cuivres, le tuba doublé par la basse électrique, l'orgue sur les « pah-pah », les timbales qui roulent à chaque fin de phrase, des cordes en tenue comme la fumée ; au refrain, l'accordéon, avec le glockenspiel en écho (les braises qui crépitent) |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |
   | La Grotte aux Cristaux | do mineur, lent et mystérieux : la mélodie au célesta revient en écho, bourdon d'orgue, gouttes d'eau |

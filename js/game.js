@@ -48,6 +48,10 @@
 // plus longtemps : quand elle marche vers lui, il plonge alors qu'elle est encore loin (sinon, en se préparant plus
 // longtemps, il plongerait juste devant elle, et ce serait plus dur), et il glisse moins vite. icicleWarn : combien de temps une stalactite de glace tremble
 // avant de tomber (plus longtemps, elle se met à trembler de plus loin d'autant : voir ICICLE dans entities.js).
+// Le Bord du Cratère : lavaEvery : tous les combien de temps le volcan gronde et crache des pierres de lave [au moins, au
+// plus] (secondes, voir World.updateVolcano) ; lavaStones : combien de pierres à chaque fois ; lavaWarn : combien de
+// temps l'ombre d'une pierre grandit par terre avant qu'elle y tombe (c'est l'annonce : plus longue, on a plus de temps
+// pour s'écarter ; les pierres visent toujours autour de l'endroit où est Malice quand le volcan gronde).
 const DIFFS = {
   bebe: {
     name: 'Bébé', lives: Infinity, eyeChase: 90, cubeFuse: 2.5, shootMin: 3.6, shootMax: 5,
@@ -62,6 +66,7 @@ const DIFFS = {
     rodRest: 5, rodWarn: 3, rodZap: 1,
     rockSee: 10, rockWarn: 0.55, rockSpeed: 140, rockDizzy: 4,
     penSee: 10.5, penWarn: 0.7, penSpeed: 260, penRest: 2.6, icicleWarn: 0.65,
+    lavaEvery: [7.5, 9.5], lavaStones: 1, lavaWarn: 1.7,
     vineReach: 46,
     gustHops: 2, gustTickles: 2, gustBells: Infinity,
   },
@@ -78,6 +83,7 @@ const DIFFS = {
     rodRest: 3.5, rodWarn: 2.1, rodZap: 1.2,
     rockSee: 8.5, rockWarn: 0.55, rockSpeed: 165, rockDizzy: 3.2,
     penSee: 9.5, penWarn: 0.65, penSpeed: 350, penRest: 2, icicleWarn: 0.55,
+    lavaEvery: [5.5, 7], lavaStones: 2, lavaWarn: 1.4,
     vineReach: 40,
     gustHops: 3, gustTickles: 4, gustBells: 11,
   },
@@ -94,6 +100,7 @@ const DIFFS = {
     rodRest: 2.9, rodWarn: 1.7, rodZap: 1.3,
     rockSee: 7.5, rockWarn: 0.55, rockSpeed: 185, rockDizzy: 2.6,
     penSee: 8.5, penWarn: 0.6, penSpeed: 400, penRest: 1.6, icicleWarn: 0.5,
+    lavaEvery: [4.2, 5.5], lavaStones: 2, lavaWarn: 1.2,
     vineReach: 36,
     gustHops: 4, gustTickles: 5, gustBells: 8,
   },
@@ -110,6 +117,7 @@ const DIFFS = {
     rodRest: 2.5, rodWarn: 1.4, rodZap: 1.4,
     rockSee: 6.5, rockWarn: 0.45, rockSpeed: 200, rockDizzy: 2.2,
     penSee: 8, penWarn: 0.55, penSpeed: 440, penRest: 1.3, icicleWarn: 0.45,
+    lavaEvery: [3.4, 4.4], lavaStones: 3, lavaWarn: 1.05,
     vineReach: 34,
     gustHops: 5, gustTickles: 6, gustBells: 6,
   },
