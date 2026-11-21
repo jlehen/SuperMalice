@@ -913,9 +913,14 @@ comptent alors aussi depuis sa première ligne ; au-dessus, la roche et la glace
 jusqu'en haut du niveau, et en dessous, la roche, la glace et la lave de sa dernière ligne descendent jusqu'en bas.
 Pour vérifier qu'on peut toujours aller jusqu'au bout : `node outils/franchissable.js 0` (0 = le premier
 niveau de `LEVELS`, 1 le suivant…). L'outil essaie tous les sauts de Malice en marchant (et les vols en pissenlit),
-et dit si l'arrivée est atteinte, quels bonbons sont hors d'atteinte, et s'il y a des culs-de-sac. Il ne connaît que
-le sol, les plateformes, la lave, les ronces, l'eau, les nénuphars, les pissenlits et les courants d'air (ni les
-ennemis, ni les plateformes qui bougent, ni les champignons).
+et dit si l'arrivée est atteinte, quels bonbons sont hors d'atteinte, et s'il y a des culs-de-sac. Il connaît le
+sol, les plateformes, la lave, les ronces, l'eau, les nénuphars, les pissenlits et les courants d'air, et tout ce
+qu'on rencontre dans les mondes 2 à 4 : les champignons qui font rebondir, les plateformes qui bougent et les
+planches des moulins (on suppose qu'on attend le bon moment pour y monter), les lianes, la glace et les éboulis.
+Il ne connaît pas les ennemis, ni ce qui dépend du moment (les éclairs, le vent, l'eau qui monte, les pierres de
+lave, les paratonnerres qui grésillent), ni les badges : à chaque fois, il rappelle sur une ligne « non modélisé
+dans ce niveau » ce dont son verdict ne tient pas compte. `easy` (par défaut) garde de la marge, `full` saute comme
+en vrai, `kid` comme une enfant qui débute ; les autres réglages sont expliqués en haut du fichier.
 Un niveau où l'on grimpe (`grimpe` : le Vieux Chêne, la Crue, le Phare) s'écrit de même en `etages`, empilés du
 bas vers le haut (voir « LES ÉTAGES » dans `js/levels.js`) : le premier de la liste est celui du départ, tout en
 bas ; chaque étage a son nom et sa carte, qui finit par son plancher, et tous ont la même largeur. Les rangées
