@@ -21,15 +21,23 @@ un raccourci ou une cachette, avec un drapeau tous les 60 à 70 cases environ, e
 boss) tout au bout. Chaque niveau garde sa découverte : les parties ajoutées n'utilisent que ce qu'on a déjà
 rencontré avant (pas de hérisson dans le 2-1, ni de grenouille dans le 3-1). Les stages d'entraînement ne changent
 pas. Ce qu'on trouve dans les parties ajoutées :
-- 1-1 : un raccourci en planches plein de bonbons, un lac de lave, une colline creuse avec sa cachette (on casse le
-  bloc lutin du toit), l'escalier des gros yeux, une grande course (en courant, on attrape les sucettes au-dessus des
-  trous), et un dernier défi au-dessus de la lave.
-- 1-2 : des pissenlits en relais, des escargots dans les branches, un courant d'air qui mène au chemin du haut (ou
-  celui du bas, gardé), et deux très longs vols.
-- 1-3 : des nénuphars grignotés, des pissenlits au-dessus de la rivière, une deuxième galerie souterraine (un bloc
-  lutin caché sur la berge, un lapin qui parle, des sucettes), deux chemins au choix, et les rapides.
-- 1-4 : la colline aux taupes, la grande rivière, le grand vol (s'arrêter dans le courant d'air pour se poser sur le
-  pilier ; tout en haut, le chemin des étoiles), les planches au-dessus des taupes, le marais des lucioles.
+- 1-1 : les grands sauts (en courant, on attrape les sucettes), des collines qui font le dos rond, un pont de planches
+  à deux étages au-dessus de la lave, une colline creuse (on casse le bloc lutin du toit, on ressort de l'autre côté),
+  un grand cœur dessiné en bonbons, le lac de lave et ses îles, le château de briques des gros yeux (par les remparts
+  ou par en dessous), la ronde des gros yeux entre deux murets, l'escalier du géant (et le grand plongeon dans la
+  flaque), et l'arrivée en haut d'une colline.
+- 1-2 : un arbre géant qu'on grimpe en colimaçon, une cabane perchée en caisses (avec ses blocs lutin sous le toit),
+  trois courants d'air à la suite et des ronds de bonbons, la farandole des gros yeux (on saute de tête en tête), le
+  puits de bonbons entre deux troncs géants, la cheminée de feuilles (le courant d'air monte entre les caisses), des
+  brindilles toutes petites, et un dernier grand vol jusqu'à la grande souche.
+- 1-3 : un vieux pont cassé (par-dessus ou par-dessous), des bassins en escalier, le grand rondin baveux des
+  escargots, l'île au trésor et ses vieilles colonnes, les rapides et le tunnel secret des lapins qui passe sous toute
+  la rivière (un bloc lutin sur la berge, à côté d'un lapin), un grand vol sans un seul nénuphar, et trois îles qui
+  glissent, de plus en plus petites.
+- 1-4 : le chemin des lanternes au-dessus du vide (là où ça brille, il y a de la terre), le potager des taupes (elles
+  ne creusent pas sous les dalles de briques), la Grande Casserole dessinée en bonbons dans le ciel, une vieille
+  maison de briques toute noire (on monte à l'étage par les trous du plafond), la colline aux lucioles et son vol de
+  nuit, la mare aux lucioles (elles dansent au-dessus des nénuphars solides), les ronces et la bave.
 - 2-1 : escargots, gros yeux, coccinelles, pissenlits et courants d'air, deux ruisseaux à nénuphars, un raccourci en
   briques et une branche secrète.
 - 2-2 : des chapeaux au-dessus des ronces, des plateformes qui bougent, un gouffre qu'on traverse en pissenlit, des
@@ -844,6 +852,16 @@ des pierres de lave, `[début, fin, n]` pour en cracher `n` de plus, `[début, f
 (`k` fois l'écart habituel) ; `glacons` : les stalactites en glace ; `nid` : le grand nid de Maman Aigle dans le décor ;
 voir le Bord du Cratère).
 Il suffit de modifier les lettres et de recharger la page.
+
+**Les tableaux.** Un long niveau peut s'écrire en petits morceaux, les `tableaux`, posés bout à bout de gauche à
+droite (à la place de `map`) : chaque tableau a un nom, une idée, et sa petite carte. C'est comme ça que sont écrits
+les niveaux de la Prairie : pour inventer un passage, on glisse un tableau de plus entre deux autres. Les colonnes
+écrites dans un tableau (`updrafts`, `storms`, `winds`, `galeries`, `clairDeLune`, `arene`) se comptent depuis son
+bord gauche. Pour vérifier qu'on peut toujours aller jusqu'au bout : `node outils/franchissable.js 0` (0 = le premier
+niveau de `LEVELS`, 1 le suivant…). L'outil essaie tous les sauts de Malice en marchant (et les vols en pissenlit),
+et dit si l'arrivée est atteinte, quels bonbons sont hors d'atteinte, et s'il y a des culs-de-sac. Il ne connaît que
+le sol, les plateformes, la lave, les ronces, l'eau, les nénuphars et les pissenlits (pas les plateformes qui
+bougent, ni les champignons).
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
 au-dessus des niveaux). Pour **ajouter un niveau à un monde**, il suffit d'écrire un niveau de plus avec son `world` :

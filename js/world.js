@@ -2535,7 +2535,10 @@ class World {
   // solides, dessus et dessous, comme les tunnels du Défi de la Roulade) sont des galeries de terre, comme
   // celles du terrier : une butte se lit comme une colline percée d'un tunnel. (Le terrier, c'est drawBurrow.)
   drawTunnels(ctx, camX, camY) {
-    if (!this.def.galeries) return;
+    const zones = this.def.galeries;
+    if (!zones) return;
+    // (true : partout ; ou seulement dans quelques colonnes : [[première, dernière], …])
+    const here = (c) => zones === true || zones.some(([a, b]) => c >= a && c <= b);
     const T = TILE;
     const solid = (c, r) => isSolidCh(this.tileAt(c, r));
     const open = (c, r) => !solid(c, r) && this.tileAt(c, r) !== WATER;
@@ -2547,7 +2550,7 @@ class World {
     for (let r = r0; r <= r1; r++) {
       if (this.terrier && r >= this.terrier - 2) break;
       for (let c = c0; c <= c1; c++) {
-        if (!open(c, r)) continue;
+        if (!open(c, r) || !here(c)) continue;
         const low = solid(c, r - 1) && solid(c, r + 1);
         const tall = (solid(c, r - 1) && open(c, r + 1) && solid(c, r + 2)) || (solid(c, r - 2) && open(c, r - 1) && solid(c, r + 1));
         if (low || tall) cells.push({ c, r, ceil: solid(c, r - 1) });
