@@ -14,13 +14,15 @@ Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2,
 du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux, son boss (Pépé Chêne et Ronchon) et son stage d'entraînement (le Super Saut, refait dans le sous-bois), la Vallée des Orages ses quatre niveaux, son boss (Bourrasque, le nuage enrhumé) et son stage d'entraînement (le Bocal à éclairs), les Pentes du Volcan leurs quatre niveaux, leur boss (Maman Aigle) et leur stage d'entraînement (la Moustache-Grappin, refait dans les fumerolles du volcan), et chaque autre monde son premier niveau :
 
 **Des niveaux trois fois plus longs.** Alice trouvait les niveaux trop courts : depuis novembre 2026, les douze
-niveaux des mondes 1 à 3 sont **trois fois plus longs** (environ 600 à 700 colonnes au lieu de 200 à 235 ; trois fois
-plus hauts pour ceux où l'on grimpe : Dans le Vieux Chêne, la Crue, le Phare). Le début de chaque niveau est celui
-qu'on connaissait ; viennent ensuite plusieurs parties **de plus en plus dures**, chacune avec son idée et souvent
-un raccourci ou une cachette, avec un drapeau tous les 60 à 70 cases environ, et la même arrivée (ou la même arène du
-boss) tout au bout. Chaque niveau garde sa découverte : les parties ajoutées n'utilisent que ce qu'on a déjà
-rencontré avant (pas de hérisson dans le 2-1, ni de grenouille dans le 3-1). Les stages d'entraînement ne changent
-pas. Ce qu'on trouve dans les parties ajoutées :
+niveaux des mondes 1 à 3 (et le 4-1) sont **trois fois plus longs** (environ 575 à 700 colonnes au lieu de 200 à
+236 ; près de trois fois plus hauts pour ceux où l'on grimpe : Dans le Vieux Chêne, la Crue, le Phare, de 174 à 203
+rangées au lieu de 64 à 72). Le début de chaque niveau est celui qu'on connaissait ; viennent ensuite des passages
+qui ont chacun leur idée, parfois avec deux chemins ou une cachette, presque tous avec leur drapeau, et la même
+arrivée (ou la même arène du boss) tout au bout. Fin novembre 2026, ces passages ont été redessinés parce qu'ils se
+répétaient (ceux des trois autres niveaux du Volcan aussi) : chaque niveau est maintenant écrit en passages nommés,
+les tableaux (ou les étages, quand on grimpe : voir « Inventer ses propres niveaux »). Chaque niveau garde sa
+découverte : les passages ajoutés n'utilisent que ce qu'on a déjà rencontré avant (pas de hérisson dans le 2-1, ni
+de grenouille dans le 3-1). Les stages d'entraînement ne changent pas. Ce qu'on trouve dans les passages ajoutés :
 - 1-1 : les grands sauts (en courant, on attrape les sucettes), des collines qui font le dos rond, un pont de planches
   à deux étages au-dessus de la lave, une colline creuse (on casse le bloc lutin du toit, on ressort de l'autre côté),
   un grand cœur dessiné en bonbons, le lac de lave et ses îles, le château de briques des gros yeux (par les remparts
@@ -95,7 +97,8 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      les chips marchent aussi (et sur la bave, la glissade du Pingouin va encore plus loin).
      Il y a un **trou secret** : un lapin sort la tête de l'herbe à côté d'un bloc lutin posé dans le sol…
      en l'écrasant, on tombe dans le terrier des lapins, sous la rivière, plein de bonbons. On en ressort
-     plus loin en grimpant sur les racines.
+     plus loin en grimpant sur les racines. Il y en a un deuxième plus loin, aux rapides (encore un bloc lutin sur
+     la berge, à côté d'un lapin) : un tunnel qui passe sous toute la rivière.
    - 1-4 **La Prairie la Nuit** : le plus dur des quatre. Il fait nuit : on voit où l'on va, mais seulement
      un peu autour de Malice. La grosse lune, les **lucioles** et les grandes **fleurs-lanternes** éclairent
      le chemin (et tout ce qui fait mal brille un peu : on le voit toujours venir). Les lucioles volent en
@@ -267,23 +270,30 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      gaufrette, accrochée à un gros anneau doré) qui reste toujours à plat, comme les nacelles d'une grande roue : on
      saute dessus, et elle nous emporte. Elle monte à gauche, passe tout en haut vers la droite et redescend à droite
      : on saute sur une falaise, tout là-haut, ou sur l'autre bord d'un très grand trou. Les planches ne poussent
-     jamais Malice dans un mur ni dans un plafond, et si on tombe, on retombe dans l'herbe (sauf au-dessus du grand
-     trou). Les **grenouilles sauteuses** (l'idée d'Alice) adorent la pluie : elles attrapent les gouttes avec leur
-     langue et coassent de joie, la gorge toute gonflée. Elles sautent très haut… parfois sur Malice : « ! », elles se
+     jamais Malice dans un mur ni dans un plafond, et si on tombe, on retombe dans l'herbe (sauf au-dessus d'un
+     trou ou du chocolat). Les **grenouilles sauteuses** (l'idée d'Alice) adorent la pluie : elles attrapent les
+     gouttes avec leur langue et coassent de joie, la gorge toute gonflée. Elles sautent très haut… parfois sur
+     Malice : « ! », elles se
      ramassent en tremblant, et leur **ombre** apparaît déjà là où elles vont retomber (avec un cercle vert qui se
      resserre) ; il suffit de s'en écarter. On leur saute sur la tête quand elles sont assises ou ramassées (croâ !
      elles redeviennent gentilles) ; le caramel les colle par terre, et avec les chips elles sont trop lourdes pour
      sauter. Une grenouille qui monte en sautant ne fait pas mal (c'est quand elle retombe sur Malice qu'il faut
-     s'écarter). On y retrouve les éclairs au chocolat et les Rubik's cubes (pas en même temps que les grenouilles).
+     s'écarter). On y retrouve les éclairs au chocolat et les Rubik's cubes.
      En Bébé, les grenouilles visent Malice de moins loin, se ramassent plus longtemps, restent plus longtemps en
      l'air et assises, et les ailes tournent moins vite ; en Difficile, c'est le contraire. Un tour d'ailes dure 10 s
      en Bébé, 7 s en Gentil, 5,5 s en Classique et 4,5 s en Difficile.
    - 3-3 **La Crue** : il a tant plu que la rivière déborde ! On grimpe la colline, étage par étage : sur chaque
-     étage, c'est calme (l'eau reste en dessous), puis, au bout, un palier avec un drapeau et une fleur, et un
-     **escalier de nuages**. Dès qu'on monte sur la première marche, la rivière bouillonne (« L'eau monte ! Grimpe
-     vite ! »), déborde d'un coup jusqu'au pied de l'escalier, puis **l'eau monte doucement derrière Malice** :
-     il faut grimper vite jusqu'à l'étage du dessus, où elle s'arrête. Trois escaliers, de plus en plus hauts et
-     rapides. L'eau ne monte jamais plus vite que Malice ne grimpe : tout près d'elle, elle ralentit, et quand
+     étage, c'est calme (l'eau reste en dessous), puis, au bout, un palier avec un drapeau et une fleur, et la
+     **montée** (au début, un **escalier de nuages**). Dès qu'on y monte, la rivière bouillonne (« L'eau monte ! Grimpe
+     vite ! »), déborde d'un coup jusqu'au pied de la montée, puis **l'eau monte doucement derrière Malice** :
+     il faut grimper vite jusqu'à l'étage du dessus, où elle s'arrête. D'abord trois escaliers de nuages, de plus en
+     plus rapides ; puis neuf étages qui ont chacun leur façon de monter, et leur vitesse d'eau : des îles, une
+     pyramide (une île de plus en plus petite), le grand zigzag (l'eau monte tout doucement, mais sans s'arrêter), une
+     cheminée de pierre, l'escalier qui fait boing (trois champignons bleus), une maison inondée (la porte, le grenier,
+     la fenêtre, le toit), un moulin qui fait l'ascenseur, les nuages-bus (sous l'orage, un nuage-ascenseur et trois
+     nuages qui font l'aller-retour ; l'eau y monte tout doucement) et la grande échelle de nuages (là, très vite).
+     Tout en haut, le sommet de la colline. L'eau ne monte jamais plus vite que Malice ne grimpe : tout près d'elle,
+     elle ralentit, et quand
      Malice grimpe vite, elle la suit de loin, jamais à plus de 4 cases et demie sous ses pieds (juste sous le bas
      de l'écran, qui devient tout bleu) : dès qu'on hésite, on la voit arriver en bas de l'écran. Si on tombe dedans, plouf : un cœur en moins, on ressort sur la dernière marche
      où l'on était, et l'eau est redescendue bien en dessous (elle attend un peu avant de remonter) : on ne
@@ -304,7 +314,7 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
    - 3-4 **Le Phare sur la Falaise** : sous la tempête, on longe la falaise au bord de la mer (un orage, un Rubik's
      cube, une grenouille, un grand rocher ; tout au bout, on voit le phare au loin, avec sa lumière qui tourne), on
      passe par un tunnel sous le rocher… et on arrive au pied du **vieux
-     phare**, rayé blanc et rouge. On grimpe autour de lui, de palier en palier (trois paliers de pierre, puis la
+     phare**, rayé blanc et rouge. On grimpe autour de lui, de palier en palier (neuf paliers de pierre, puis la
      galerie tout en haut), par des escaliers de vieilles planches et de **paratonnerres** (l'idée d'Alice) : des
      plaques de métal avec leur pointe, que l'orage **électrise de temps en temps**. Ça s'annonce longtemps : un petit
      nuage en chocolat se forme au-dessus de la pointe et gronde en grossissant, des étincelles sautent sur la pointe
@@ -315,8 +325,14 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      toujours le même rythme (on peut le guetter depuis la planche d'en dessous), et deux paratonnerres qui se
      suivent dans un escalier ne grésillent jamais en même temps. Les ennemis posés dessus s'envolent aussi. Debout
      sur le **bloc magique du Lutin** posé sur un paratonnerre, on est à l'abri : il ne laisse pas passer
-     l'électricité. Sur les paliers : un petit nuage grognon et un Rubik's cube, puis, tout en haut, un Rubik's cube
-     sous l'orage et un dernier petit nuage avant le dernier escalier. Tout en haut,
+     l'électricité. Sur le premier palier : un petit nuage grognon et un Rubik's cube ; le deuxième est tout calme.
+     Puis six étages ont chacun leur idée : le pont des paratonnerres (quatre plaques à la suite), le monte-charge du
+     gardien (deux plateformes qui montent toutes seules, et on attend la deuxième sur un paratonnerre), la chambre
+     du gardien (dedans, à l'abri de l'orage ; sur son toit, un Rubik's cube sous les éclairs), une ancre dessinée en
+     bonbons, deux escaliers au choix (à gauche les paratonnerres, tout droit ; à droite les planches, plus long mais
+     tranquille) et deux paratonnerres géants (on attend sur la petite planche du milieu) ; des gros yeux se
+     promènent sur trois de ces paliers. Puis un Rubik's cube sous l'orage et un dernier petit nuage avant le dernier
+     escalier. Tout en haut,
      sous la lanterne, la **grande lumière du phare tourne** : ses deux faisceaux balaient le ciel, et quand l'un
      d'eux passe vers nous, il éclaire tout le fond (seulement le fond : ce qui est devant, et surtout les dangers, se
      voit toujours aussi bien). La galerie, sous la lanterne, est l'arène de Bourrasque, le boss du monde.
@@ -418,9 +434,9 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      peu, mais elle ne s'arrête jamais. Il faut sauter au bon moment : par-dessus les crevasses pleines de lave, sur les
      rochers (de grosses pierres grises : contre un rocher, toc, elle s'arrête ; on saute par-dessus en tenant →), et pour
      attraper les bonbons en l'air. Pour les très grands trous (4 et 5 cases), il faut garder → et le saut appuyés : les
-     fleurs le disent juste avant. Au bas de chaque pente, elle dérape, et c'est un **passage calme** : un drapeau, une
-     fleur, puis un, deux ou trois champignons, ou des plateformes qui montent, pour remonter en haut de la pente
-     suivante. Nouvel ennemi : les **hérissons de roche**. Ils
+     fleurs le disent juste avant. Au bas de chaque pente, elle dérape, et c'est souvent un **passage calme** : un
+     drapeau, une fleur, puis un champignon, une plateforme qui monte ou un moulin pour remonter en haut de la pente suivante
+     (quand elle ne part pas de là). Nouvel ennemi : les **hérissons de roche**. Ils
      dorment en boule sur la pente ; quand Malice arrive derrière eux, « ! », ils dévalent la pente en roulant, moins vite
      qu'elle : on saute par-dessus, ou on rebondit dessus (sans rien leur faire), ou on freine pour rester derrière. Ce
      qui fait mal, c'est de toucher la boule de côté : Malice est roulée dedans, puis elle file devant, et le hérisson
@@ -428,14 +444,21 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      l'air au-dessus d'eux), ils ont la tête qui tourne, puis ils font la sieste : ils ne font plus mal, et quand on leur
      saute dessus, ils redeviennent tout gentils (des petits cœurs). Le caramel les colle, les chips les rendent trop gros
      pour rouler. Devant un très grand trou, ils freinent au bord (« Ouf ! ») ; ils ne se réveillent pas pendant qu'on
-     lit une fleur. En Bébé, ils se réveillent plus tôt et roulent moins vite. Onze parties, de plus en plus dures, plus
-     de 650 cases de glissade en tout (le robot met près de 3 minutes) : les premières apprennent une chose à la fois
-     (glisser, les trous, les hérissons, les écraser, le premier très grand trou, la pente raide, deux pentes à la suite),
-     les suivantes enchaînent (deux hérissons avec un trou entre les deux, un hérisson juste après un très grand trou, une
-     pente toute raide qui finit sur un très grand trou suivi d'un autre, un rocher juste après l'atterrissage, un
-     hérisson qui roule vers un très grand trou), puis la plus grande glissade de toutes, en trois pentes, jusqu'au trou
-     de 5 cases. Un drapeau toutes les 70 cases au plus (aussi sur des paliers au milieu des longues pentes), un bloc
-     étoile (Super Malice y trouve l'étoile, pour foncer à travers les hérissons), et des sucettes tout en haut pour qui
+     lit une fleur. En Bébé, ils se réveillent plus tôt et roulent moins vite. Treize tableaux, plus
+     de 600 cases de glissade en tout : les quatre premiers apprennent une chose à la fois (glisser, les crevasses, le
+     hérisson de roche, l'écraser ou le coller au caramel), puis chacun a son idée : les montagnes russes (trois pentes,
+     et au pied de chacune un champignon qui renvoie en haut de la suivante, à travers des cerceaux de bonbons), le
+     toboggan dans la montagne (la pente passe dans un tunnel, où il ne faut pas sauter, et ressort sur une crevasse),
+     la crevasse secrète (elle n'a pas de lave au fond : on peut s'y laisser tomber, dans une galerie pleine de bonbons
+     et de sucettes, avec un gros œil bonbon, qui ressort au bas de la pente), le grand vol plané (un pissenlit au bout
+     d'un tremplin, pour traverser tout le canyon ; au fond, un ascenseur remonte), le jeu de quilles (on y monte par
+     les planches d'un moulin ; trois hérissons dorment sur la pente, et tout en bas, un rocher), la glissade à deux
+     étages (un champignon envoie sur celle du haut, pleine de sucettes ; sur celle du bas, un hérisson fait la sieste),
+     saute-mouton (une pente toute raide et trois crevasses à la file, la dernière de 4 cases), les rochers à ronces
+     (ils flottent au-dessus de la pente : dessous, surtout ne pas sauter), puis la plus grande glissade de toutes
+     (une crevasse, un hérisson, un rocher), jusqu'au trou de 5 cases. Un drapeau toutes les 70 cases environ (aussi
+     en haut de certaines pentes, et sur un palier entre deux pentes), un bloc étoile (Super Malice y trouve l'étoile,
+     pour foncer à travers les hérissons), et des sucettes tout en haut pour qui
      rebondit très haut ou saute très loin. Le niveau descend bien plus bas que l'écran : la caméra suit la pente, et
      regarde loin devant pendant la glissade ; le fond monte doucement, pour qu'on voie toujours le volcan. Le Lutin ne
      peut pas poser son bloc sur la pente (seulement en l'air, au-dessus d'un trou).
@@ -461,19 +484,21 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      rendent trop gros pour glisser, et les pouvoirs qui renversent les ennemis marchent. Ils ne plongent pas pendant
      qu'on lit une fleur, ni quand Malice est tout contre eux, et restent sur place pendant qu'on la lit ; une petite
      bosse de roche ou un trou les sépare des drapeaux. En Bébé, ils voient Malice de plus loin et glissent moins vite :
-     quand elle marche vers eux, ils plongent plus tôt, et on a plus de temps pour sauter. Onze parties de plus en plus
-     dures (le robot met un peu moins de 3 minutes) : la première glace, les marches de glace, la grotte de glace et ses
-     stalactites (une fleur qui éternue à cause de la vapeur ; au bout, une marche de roche d'où l'on redescend sur la
-     glace, juste sous une stalactite), les pingouins (sur la roche, puis sur la glace), le **gros glaçon creux** (la
-     cachette : on voit ses bonbons à travers la glace ; on écrase un bloc lutin de son toit, ou on trouve sa porte de
-     derrière ; dedans, un gros œil bonbon), les plateformes au-dessus de la lave (on arrive sur la glace, sous une
-     stalactite, et un pingouin glisse vers Malice) et l'ascenseur, le **raccourci** (un champignon sur une planche fait
+     quand elle marche vers eux, ils plongent plus tôt, et on a plus de temps pour sauter. Quatorze tableaux de plus en
+     plus durs : la première glace, les marches de glace, la grotte aux stalactites (une fleur qui éternue à cause de la
+     vapeur ; au bout, une marche de roche d'où l'on redescend sur la glace, sous deux stalactites), le premier
+     pingouin (sur la roche), la patinoire des pingouins (en cuvette : deux pingouins sur la glace du fond ; ou par les
+     planches, tout là-haut), le **gros glaçon creux** (la cachette : on voit ses bonbons à travers la glace ; on écrase
+     un bloc lutin de son toit, ou on trouve sa porte de derrière ; dedans, un gros œil bonbon), le grand toboggan (un
+     ascenseur, puis des marches de glace qui dévalent la montagne), le **raccourci** (un champignon sur une planche fait
      monter sur une longue plaque de glace, avec deux trous et des sucettes ; en bas, la grotte aux pingouins et aux
-     stalactites), le grand lac de lave et sa longue île de glace (un pingouin, puis, au bout de l'île, un grand saut :
-     il faut garder son élan), les marches de glace sous les stalactites, la grande montée aux deux ascenseurs (un
-     pingouin sur la glace de chaque palier ; tout en haut, un saut de 5 cases avec élan, deux marches plus bas, sous
-     une stalactite), et le grand pont de glace (cinq travées, quatre pingouins, six stalactites). Un drapeau toutes les
-     70 cases environ.
+     stalactites), les icebergs sur le lac de lave (un pingouin sur le dernier, puis un grand saut : il faut garder son
+     élan), la cathédrale de glace (sous sa voûte, les stalactites pendent comme des tuyaux d'orgue ; tout en haut des
+     marches, rien ne tombe, et il y a des sucettes), la grande montée aux deux ascenseurs (un pingouin sur la glace de
+     chaque palier ; tout en haut, un saut de 5 cases avec élan, deux marches plus bas, sous une stalactite), les séracs
+     (des tours de glace entre des crevasses de lave ; celles qui ont un chapeau de roche ne glissent pas), et la grande
+     vague gelée (on grimpe sur son dos et on saute du bout de la crête ; un trésor se cache dans son rouleau, sous deux
+     glaçons). Un drapeau toutes les 70 cases environ.
    - 4-4 **Le Bord du Cratère** : on monte jusqu'au sommet du volcan, en biais vers la droite (la caméra suit la
      montée ; le fond descend doucement, et le cratère, au loin, se rapproche). Le volcan fume, ses coulées de lave
      descendent dans le fond, des braises montent et de la cendre tombe. **La surprise : le volcan gronde.** Dans
@@ -492,21 +517,22 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      reparti d'un drapeau ; sur la glace, assez loin pour qu'on ait la place de freiner. Plus la difficulté est
      grande, plus il y en a, plus souvent, et moins leur ombre prévient longtemps (Bébé : une pierre toutes les 7 à
      10 s, annoncée 1,7 s avant ; Difficile : trois toutes les 4 s, annoncées 1 s avant) ; plus haut sur le volcan, il
-     en crache une de plus, et tout en haut, deux de plus, et plus souvent. Le niveau réunit tout le monde 4, en onze
-     parties de plus en plus dures (le robot met un peu plus de 3 minutes) : le premier grondement, les marches de
-     lave (des piliers et deux plateformes qui bougent), la crête sous un petit orage (éclairs au chocolat) et son
-     ascenseur, la pente de cendres (deux glissades : des crevasses, des rochers, un hérisson de roche, et un
-     champignon pour remonter entre les deux), la glace du sommet (glaçons sous les rochers, un petit trou de lave
-     sur la glace, un pingouin), le **rocher creux** (la cachette : on écrase un bloc lutin de son toit ; dedans, des
-     bonbons et un gros œil bonbon ; on ressort par la droite) et le deuxième grondement (une coccinelle s'y
-     promène), le **raccourci des planches** (une planche et un champignon au-dessus du chemin, qui font rebondir
-     tout là-haut sur une suite de planches, avec des sucettes : plus court, mais il ne faut pas tomber ; en bas,
-     deux ascenseurs et un pingouin sur un palier de glace), les pierres sur la glace (on y freine mal : il faut
-     voir les ombres de loin), les wagons de feu (un grand lac de lave et **deux wagons à la suite**, qui vont et
-     viennent ensemble : on saute de l'un à l'autre au-dessus de la lave, avec des sucettes au milieu ; puis une
-     **île de glace** sous deux glaçons, où un pingouin attend, et il faut freiner avant le trou), la dernière pente
-     (deux crevasses de 4 cases, un hérisson de roche et un rocher), et la grotte de glace (quatre glaçons, un
-     pingouin) avant la dernière montée sous les pierres. Tout en haut, au bord du cratère, un grand espace plat : le
+     en crache une de plus, et tout en haut, deux de plus, et plus souvent. Le niveau réunit tout le monde 4, en seize
+     tableaux de plus en plus durs : le premier grondement, le gué du gros œil, les marches de lave (des piliers et
+     deux plateformes qui bougent ; là, le volcan ne crache rien), la crête sous un petit orage (éclairs au chocolat)
+     et son ascenseur, la pente de cendres (une glissade, deux crevasses de 4 cases et un rocher), l'échelle de la
+     falaise (des planches dans une faille, comme les barreaux d'une échelle, et un champignon express qui envoie tout
+     en haut), la glace du sommet (glaçons sous les rochers, un petit trou de lave sur la glace, un pingouin), le
+     **rocher creux** (la cachette : on écrase un bloc lutin de son toit ; dedans, des bonbons et un gros œil bonbon ;
+     on ressort par la droite), les trois marmites de lave et le deuxième grondement (une coccinelle s'y promène), le
+     **raccourci des planches** (une planche et un champignon au-dessus du chemin, qui font rebondir tout là-haut sur
+     une suite de planches, avec des sucettes : plus court, mais il ne faut pas tomber ; en bas, deux ascenseurs et un
+     pingouin sur un palier de glace), les dômes de glace (deux bosses de glace sous les pierres : on y freine mal, il
+     faut voir les ombres de loin ; dans le creux, un pingouin fait du toboggan), les geysers du lac de lave (trois
+     plateformes qui montent et descendent ensemble), le souffle du cratère (un pissenlit, et la vapeur qui le remonte
+     en haut d'une falaise trop haute pour sauter ; là-haut, un Rubik's cube), l'aigle dessiné en bonbons (trois
+     champignons pour le croquer), et la dernière montée sous les pierres (de la glace, une coccinelle). Tout en haut,
+     au bord du cratère, un grand espace plat : le
      grand **nid de Maman Aigle**, sur son pic de roche, où elle couve ses trois œufs (la dernière fleur dit qu'elle
      dort, et qu'elle a très peur pour ses petits). Un drapeau toutes les 70 cases environ, et des fleurs pour rire.
      `?niveau=4-4` lance le niveau (Maman Aigle est tout au bout).
@@ -876,15 +902,25 @@ Il suffit de modifier les lettres et de recharger la page.
 
 **Les tableaux.** Un long niveau peut s'écrire en petits morceaux, les `tableaux`, posés bout à bout de gauche à
 droite (à la place de `map`) : chaque tableau a un nom, une idée, et sa petite carte. C'est comme ça que sont écrits
-les niveaux de la Prairie : pour inventer un passage, on glisse un tableau de plus entre deux autres. Les colonnes
-écrites dans un tableau (`updrafts`, `storms`, `winds`, `galeries`, `clairDeLune`, `arene`) se comptent depuis son
-bord gauche. Pour vérifier qu'on peut toujours aller jusqu'au bout : `node outils/franchissable.js 0` (0 = le premier
+les niveaux des mondes 1 à 4 (sauf les stages, et ceux où l'on grimpe, écrits en étages) : pour inventer un
+passage, on glisse un tableau de plus entre deux autres. Les colonnes écrites dans un tableau (`updrafts`, `storms`,
+`winds`, `galeries`, `clairDeLune`, `arene`, et au Volcan `glissades`, `volcan`, `nid`) se comptent depuis son bord
+gauche. D'habitude, tous les tableaux d'un niveau ont le même nombre de lignes ; dans un niveau qui descend ou qui
+monte (la Grande Glissade, le Bord du Cratère), ils n'ont pas tous la même hauteur : `entree` et `sortie` donnent la rangée du sol par où l'on y entre, à gauche, et
+par où l'on en sort, à droite (comptée depuis la première ligne du tableau), et chaque tableau est posé à sa hauteur,
+son entrée au niveau de la sortie du tableau d'avant ; ses rangées (`glissades`, `updrafts`, `storms`, `nid`) se
+comptent alors aussi depuis sa première ligne ; au-dessus, la roche et la glace de sa première ligne montent
+jusqu'en haut du niveau, et en dessous, la roche, la glace et la lave de sa dernière ligne descendent jusqu'en bas.
+Pour vérifier qu'on peut toujours aller jusqu'au bout : `node outils/franchissable.js 0` (0 = le premier
 niveau de `LEVELS`, 1 le suivant…). L'outil essaie tous les sauts de Malice en marchant (et les vols en pissenlit),
 et dit si l'arrivée est atteinte, quels bonbons sont hors d'atteinte, et s'il y a des culs-de-sac. Il ne connaît que
-le sol, les plateformes, la lave, les ronces, l'eau, les nénuphars et les pissenlits (pas les plateformes qui
-bougent, ni les champignons).
-Un niveau où l'on grimpe s'écrit de même en `etages`, empilés du bas vers le haut (voir « LES ÉTAGES » dans
-`js/levels.js`).
+le sol, les plateformes, la lave, les ronces, l'eau, les nénuphars, les pissenlits et les courants d'air (ni les
+ennemis, ni les plateformes qui bougent, ni les champignons).
+Un niveau où l'on grimpe (`grimpe` : le Vieux Chêne, la Crue, le Phare) s'écrit de même en `etages`, empilés du
+bas vers le haut (voir « LES ÉTAGES » dans `js/levels.js`) : le premier de la liste est celui du départ, tout en
+bas ; chaque étage a son nom et sa carte, qui finit par son plancher, et tous ont la même largeur. Les rangées
+écrites dans un étage (`storms` : `[début, fin, rangée du sol]` ; les `montees` de la crue ; `eau`, dans l'étage du
+bas) se comptent depuis sa première ligne ; pour rallonger la grimpette, on glisse un étage de plus dans la pile.
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
 au-dessus des niveaux). Pour **ajouter un niveau à un monde**, il suffit d'écrire un niveau de plus avec son `world` :
@@ -900,7 +936,8 @@ propre fichier dans [`js/boss/`](js/boss/) (l'Épouvantail : [`js/boss/epouvanta
 Pépé Chêne et Ronchon : [`js/boss/chene.js`](js/boss/chene.js) ; Bourrasque : [`js/boss/bourrasque.js`](js/boss/bourrasque.js) ;
 Maman Aigle : [`js/boss/aigle.js`](js/boss/aigle.js)), avec ses attaques, ses aides et ses dessins. Dans le niveau (`levels.js`) :
 - `boss: "epouvantail"` : le nom du boss (celui de `BOSSES.epouvantail = …` à la fin de son fichier) ;
-- `arene: [192, 211]` : la première et la dernière colonne de son arène (20 colonnes : la largeur de l'écran) ;
+- `arene: [14, 33]` : la première et la dernière colonne de son arène (20 colonnes : la largeur de l'écran ; dans
+  un tableau, comptées depuis son bord gauche, comme celle de l'Épouvantail dans le dernier tableau du 1-4) ;
 - la lettre `&` dans la carte : là où il attend (sur le sol de la case du dessous) ;
 - un drapeau `!` juste avant l'arène (on y repart si on perd une vie), et l'arrivée `G` dans l'arène :
   elle n'apparaît que quand le boss est battu.
