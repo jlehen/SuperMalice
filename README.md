@@ -53,14 +53,17 @@ pas. Ce qu'on trouve dans les parties ajoutées :
 - 2-4 : douze étages de plus, chacun avec son idée : les étagères des écureuils, le nœud du bois, le nid secret, la
   liane du sanglier, le conduit des écureuils, les deux champignons bleus, le nid de hérissons, les lianes en
   escalier, le grand pilier, le grenier aux caisses, la liane et le champignon bleu, le palier des nids.
-- 3-1 : des gués à champignons bleus dans le chocolat, les visiteurs de la Forêt (hérissons et sangliers) sous
-  l'orage, et une crête pleine de Rubik's cubes.
-- 3-2 : deux moulins côte à côte au-dessus du vide, le lac de chocolat (un pissenlit planté sur un petit nuage) et un
-  raccourci de petits nuages au-dessus de l'orage, puis la grande traversée à trois moulins.
-- 3-3 : neuf étages de plus : l'orage revient, la colline percée (des trous jusqu'à l'eau), un raccourci de petits
-  nuages, et le sommet ; les escaliers prennent des nuages qui bougent, et l'eau monte de plus en plus vite.
-- 3-4 : dix paliers de plus, de plus en plus de paratonnerres sur les escaliers, une planche cachée au-dessus d'un
-  bloc lutin ; un palier sur deux est calme, avec un drapeau.
+- 3-1 : les abris de briques (sous un toit, la foudre ne touche pas), les orgues de pierre, l'éclair en bonbons, les
+  trous à rebonds, les terrasses des hérissons, le lac aux radeaux, la montagne fendue par la foudre (une salle au
+  trésor dedans, un pissenlit au sommet) et la crête de la tempête.
+- 3-2 : la grande roue (des bonbons en cercle autour du moulin), le théâtre des grenouilles, le plongeoir, le parapluie
+  de bonbons, les moulins jumeaux (par terre, ou de planche en planche jusqu'aux nuages), l'arche de nuages, le grand
+  vol au-dessus du lac et le dernier moulin.
+- 3-3 : neuf étages de plus, chacun avec sa façon de monter : les îles, la pyramide, le grand zigzag, la cheminée de
+  pierre, l'escalier qui fait boing, la maison inondée (porte, grenier, fenêtre, toit), le moulin, les nuages-bus et
+  la grande échelle.
+- 3-4 : six étages de plus : le pont des paratonnerres, le monte-charge du gardien, sa chambre (à l'abri), l'ancre en
+  bonbons, les deux escaliers (paratonnerres tout droit, ou planches plus longues) et les paratonnerres géants.
 
 Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pendant qu'une fleur toute proche parle.
 
