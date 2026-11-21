@@ -921,6 +921,9 @@ Il ne connaît pas les ennemis, ni ce qui dépend du moment (les éclairs, le ve
 lave, les paratonnerres qui grésillent), ni les badges : à chaque fois, il rappelle sur une ligne « non modélisé
 dans ce niveau » ce dont son verdict ne tient pas compte. `easy` (par défaut) garde de la marge, `full` saute comme
 en vrai, `kid` comme une enfant qui débute ; les autres réglages sont expliqués en haut du fichier.
+Pour vérifier l'outil lui-même, `outils/rejoue.js` refait dans le vrai jeu (ouvert dans un Chrome sans écran) chaque
+saut du chemin que l'outil a trouvé (`path=fichier`), et liste les endroits où Malice ne retombe pas comme prévu :
+le mode d'emploi est en haut du fichier.
 Un niveau où l'on grimpe (`grimpe` : le Vieux Chêne, la Crue, le Phare) s'écrit de même en `etages`, empilés du
 bas vers le haut (voir « LES ÉTAGES » dans `js/levels.js`) : le premier de la liste est celui du départ, tout en
 bas ; chaque étage a son nom et sa carte, qui finit par son plancher, et tous ont la même largeur. Les rangées
