@@ -38,15 +38,21 @@ pas. Ce qu'on trouve dans les parties ajoutées :
   ne creusent pas sous les dalles de briques), la Grande Casserole dessinée en bonbons dans le ciel, une vieille
   maison de briques toute noire (on monte à l'étage par les trous du plafond), la colline aux lucioles et son vol de
   nuit, la mare aux lucioles (elles dansent au-dessus des nénuphars solides), les ronces et la bave.
-- 2-1 : escargots, gros yeux, coccinelles, pissenlits et courants d'air, deux ruisseaux à nénuphars, un raccourci en
-  briques et une branche secrète.
-- 2-2 : des chapeaux au-dessus des ronces, des plateformes qui bougent, un gouffre qu'on traverse en pissenlit, des
-  champignons bleus au-dessus d'un très grand trou, et des buttes à hérissons.
-- 2-3 : des cabanes perchées, des radeaux (plateformes qui bougent), un village sur pilotis, le gué des sangliers,
-  des ponts qui dansent avec un grenier secret (le champignon caché dans la boue, en gardant le saut), et quatre
-  sangliers pour finir.
-- 2-4 : quatorze étages de plus : le grenier des écureuils, les champignons bleus, les grands trous à lianes, et le
-  haut du tronc avec un nid secret.
+- 2-1 : le chemin des souches au-dessus des ronces, trois sapins où guetter les gros yeux qui foncent, le couloir des
+  ronces (marche, saute, marche, saute), un ravin (en bas, les ennemis ; en haut, un pissenlit et un courant d'air),
+  le grand roncier (par-dessus, ou par le tunnel), les marches qui glissent des escargots, et le labyrinthe de ronces
+  à trois étages.
+- 2-2 : les montagnes russes de chapeaux au-dessus du vide, une falaise que seul le champignon bleu fait franchir, le
+  jardin de ronces (de champignon bleu en champignon bleu), les trois marches des hérissons, les chapeaux qui se
+  promènent (et celui qui fait l'ascenseur), le grand parasol (dessus, la coccinelle ; dessous, les hérissons), et le
+  grand trampoline.
+- 2-3 : les enclos des sangliers (par les cabanes, ou en bas pour les bonbons), le pont-hamac, la traversée en radeau,
+  le bain de boue (le pont est aux hérissons : plof, plof, plof !), « dessus, dessous » (un pont et des ronces, tantôt
+  dessus, tantôt dessous), les monte-charges jusqu'au grand pont, et le champignon du marais qui envoie sur les
+  cabanes perchées.
+- 2-4 : douze étages de plus, chacun avec son idée : les étagères des écureuils, le nœud du bois, le nid secret, la
+  liane du sanglier, le conduit des écureuils, les deux champignons bleus, le nid de hérissons, les lianes en
+  escalier, le grand pilier, le grenier aux caisses, la liane et le champignon bleu, le palier des nids.
 - 3-1 : des gués à champignons bleus dans le chocolat, les visiteurs de la Forêt (hérissons et sangliers) sous
   l'orage, et une crête pleine de Rubik's cubes.
 - 3-2 : deux moulins côte à côte au-dessus du vide, le lac de chocolat (un pissenlit planté sur un petit nuage) et un
@@ -862,6 +868,8 @@ niveau de `LEVELS`, 1 le suivant…). L'outil essaie tous les sauts de Malice en
 et dit si l'arrivée est atteinte, quels bonbons sont hors d'atteinte, et s'il y a des culs-de-sac. Il ne connaît que
 le sol, les plateformes, la lave, les ronces, l'eau, les nénuphars et les pissenlits (pas les plateformes qui
 bougent, ni les champignons).
+Un niveau où l'on grimpe s'écrit de même en `etages`, empilés du bas vers le haut (voir « LES ÉTAGES » dans
+`js/levels.js`).
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
 au-dessus des niveaux). Pour **ajouter un niveau à un monde**, il suffit d'écrire un niveau de plus avec son `world` :
