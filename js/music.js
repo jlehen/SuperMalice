@@ -609,7 +609,8 @@ const Music = (() => {
 
   // 4-3. Le Glacier Fumant : la même valse lydienne, un peu plus lente et toute givrée : la mélodie au célesta, le
   // glockenspiel en écho une octave plus haut (des glaçons qui tintent), la contrebasse en pizzicati sur le « oum », la
-  // harpe sur les « pah-pah », et des charlestons tout légers ; au refrain, l'accordéon revient tout doucement en dessous.
+  // harpe sur les « pah-pah », et des charlestons tout légers ; à la reprise, l'accordéon revient tout doucement en
+  // dessous.
   function mountainIce() {
     const S = new Song({ bpm: 156, meter: 3, warp: waltz, mode: LYD, modeChords: false, chordMap: { F: 'D', G7: 'Gmaj7', Bb: 'Bb', Db: 'Db' } });
     const OOM = [[[0, 0.9, 'R']], [[0, 0.9, '5L']]];
