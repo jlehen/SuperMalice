@@ -66,6 +66,15 @@ const PHYS = {
 // secondes.
 const SLIDE = { speed: 370, grade: 0.7, fast: 1.4, slow: 0.62, acc: 900, air: 320, skid: 1100, sound: 0.17 };
 
+// Le Glacier Fumant : sur les plaques de glace (les cases +, voir World.iceUnder), on n'accroche plus. On démarre
+// doucement (acc), on freine mal (dec : sans rien appuyer ; turn : en appuyant de l'autre côté), et on va un peu plus
+// vite (top fois la vitesse ordinaire). Plus vite que ça (après une roulade, une charge, une glissade…), elle ralentit
+// jusqu'à sa vitesse de glace (over). En sautant de la glace, elle garde son élan en l'air (airAcc : comment ← et → le
+// changent ; airDec : sans rien appuyer, elle ne ralentit presque pas). La même glace dans toutes les difficultés
+// (plus glissante en Bébé, on y freinerait encore moins bien ; moins glissante en Classique, ce serait plus facile).
+// skid : le « chhh » de la glace toutes les skid secondes, quand elle dérape.
+const ICE_PHYS = { acc: 650, dec: 300, turn: 760, top: 1.1, over: 1100, airAcc: 1100, airDec: 150, skid: 0.3 };
+
 // Moustache-grappin : portée, vitesse de la moustache, vitesse de traction, longueur de la corde.
 const GRAPPLE = { range: 340, shoot: 2600, pull: 820, len: 58 };
 // Les lianes du Vieux Chêne (J) : on s'y balance comme à la moustache-grappin (voir Player.updateHanging), avec
@@ -131,6 +140,11 @@ const OUCH = {
   // en ressort aplatie comme une crêpe, puis se regonfle d'un coup : « Pop ! » (voir Art.CREPE et Art.crepeShape ;
   // elle peut rebouger dès qu'elle sort de la boule, toute plate)
   crepe: { dur: 1.55, pose: 1.4, lock: 0.5, vx: 160, vy: -300, hold: 0.7, text: 'Badaboum !', color: '#d8ccc4', textY: -70 },
+  // le pingouin grincheux qui glisse sur le ventre : elle part en toboggan sur le ventre, les bras devant (« Wiiii ! »),
+  // jusqu'à s'arrêter (jamais dans un trou : au bord, elle s'arrête) ; puis elle se relève, son nez devient tout rouge,
+  // et elle éternue des flocons de neige (« Atchoum ! »). Toute l'animation suit la vraie glissade : voir LUGE et
+  // Player.updateLuge (dur est fixé quand elle s'est relevée ; on peut rebouger pendant qu'elle éternue).
+  luge: { dur: 9, pose: 9, lock: 0.3, vx: 360, vy: -110, hold: 0.3, text: 'Wiiii !', color: '#c8ecff', textY: -62 },
   // n'importe quoi d'autre
   hit: { dur: 0.45, pose: 0.45, lock: 0.25, vx: 260, vy: -430, hold: 0.3 },
 };
@@ -139,6 +153,12 @@ const OUCH = {
 // attend au plus head secondes (au bout de headMin, on peut se relever en bougeant ou en sautant), puis elle
 // se remet sur ses pieds d'une petite cabriole (back secondes). Elle ne peut rien faire avant.
 const SPIN = { flip: 0.24, head: 1.0, headMin: 0.45, back: 0.24 };
+
+// En toboggan sur le ventre (OUCH.luge) : elle glisse sur le ventre en freinant de dec pixels par seconde par seconde
+// (iceDec sur la glace : elle va bien plus loin), jusqu'à presque s'arrêter (stop) ; puis elle se relève (Art.LUGE.up
+// secondes), et elle a le nez tout rouge pendant Art.LUGE.nose secondes (elle éternue, voir Art.LUGE.sneezes).
+// edge : elle s'arrête à edge pixels du bord d'un trou.
+const LUGE = { dec: 420, iceDec: 170, stop: 18, edge: 4 };
 
 // ======================= MALICE =======================
 class Player {
@@ -227,6 +247,11 @@ class Player {
     this.safe = { x: x + this.w / 2, y: y + this.h, pad: null };
     this.slick = false;
     this.slipT = 0;
+    // le Glacier Fumant : sur une plaque de glace (icy), en l'air après avoir sauté de la glace (iceAir : elle garde son
+    // élan), et le prochain « chhh » de la glace quand elle dérape (iceT)
+    this.icy = false;
+    this.iceAir = false;
+    this.iceT = 0;
     // la Crue : trempée par la pluie d'un petit nuage grognon, elle avance moins vite (soak : le temps qu'il reste ;
     // dripT : le prochain « flic » de ses pas mouillés)
     this.soak = 0;
@@ -334,6 +359,11 @@ class Player {
     if (I.pressed.grapple && badgeGrappin && !this.pound && !this.ball && this.hurtT <= 0) this.startGrapple();
     // la bave d'escargot sous les pieds : ça glisse ! (pas sur un nénuphar)
     this.slick = this.onGround && !this.platform && !this.swim && w.slimeUnder(this);
+    // une plaque de glace sous les pieds : ça glisse aussi ! (en l'air après avoir sauté de la glace, elle garde son
+    // élan ; en arrivant sur un sol ordinaire, sur le nuage de Goku ou contre un mur, elle accroche de nouveau)
+    this.icy = this.onGround && !this.platform && !this.swim && !!w.ice && w.iceUnder(this);
+    if (this.icy) this.iceAir = true;
+    else if (this.onGround || this.grap || this.puff || this.swim || this.dive > 0 || this.pw.cloud > 0 || this.pw.wall) this.iceAir = false;
     const pow = this.pow;
     if (this.pw.poseT > 0) this.pw.poseT -= dt;
     if (pow.update) pow.update(this, dt, I);
@@ -415,6 +445,9 @@ class Player {
       // en boule, elle file tout droit (voir updateRoll)
       this.vx = this.rollDir * PHYS.rollSpeed;
       this.facing = this.rollDir;
+    } else if (this.sledding()) {
+      // en toboggan sur le ventre (le pingouin grincheux) : elle glisse jusqu'à s'arrêter (voir updateLuge)
+      if (this.onGround) this.vx = this.lugeSpeed(dt);
     } else if (tumbling && !this.onGround) {
       // projetée par le sanglier : elle garde son élan jusqu'à retomber
     } else if (pow.move && pow.move(this, dt, dir)) {
@@ -433,13 +466,30 @@ class Player {
       this.vx = approach(this.vx, Math.sign(this.vx) * top, 260 * dt);
       if (dir) this.facing = dir;
     } else {
-      const target = dir * top;
+      let target = dir * top;
       let acc;
       if (this.onGround) acc = dir ? PHYS.accGround : PHYS.decGround;
       else acc = dir ? PHYS.accAir : PHYS.decAir;
       if (dir && Math.sign(this.vx) === -dir) acc *= 1.6;
       // sur la bave, on n'accroche plus : on démarre doucement, et on a du mal à s'arrêter
       if (this.slick) acc = dir ? PHYS.slimeAcc : PHYS.slimeDec;
+      // sur la glace aussi, et on y garde son élan, même en sautant (mais pas pendant qu'elle a mal : elle s'arrête
+      // tout de suite, sinon un coup la ferait glisser jusque dans la lave)
+      const iceTop = top * ICE_PHYS.top;
+      if (this.hurtT > 0) {
+        this.iceAir = false;
+      } else if (this.icy) {
+        target = dir * iceTop;
+        if (Math.abs(this.vx) > iceTop + 5 && dir !== -Math.sign(this.vx)) {
+          target = Math.sign(this.vx) * iceTop;
+          acc = ICE_PHYS.over;
+        } else {
+          acc = !dir ? ICE_PHYS.dec : Math.sign(this.vx) === -dir ? ICE_PHYS.turn : ICE_PHYS.acc;
+        }
+      } else if (this.iceAir && !this.onGround) {
+        target = dir * iceTop;
+        acc = dir ? ICE_PHYS.airAcc * (Math.sign(this.vx) === -dir ? 1.6 : 1) : ICE_PHYS.airDec;
+      }
       // au bas de la glissade, elle dérape un peu avant de s'arrêter (ou de reprendre sa vitesse)
       if (this.skid && this.onGround) {
         if (Math.abs(this.vx) <= top + 10 || this.hurtT > 0) this.skid = false;
@@ -448,8 +498,11 @@ class Player {
       this.vx = approach(this.vx, target, acc * dt);
       if (dir) this.facing = dir;
     }
-    this.slipping = this.slick && Math.abs(this.vx) > 60 && Math.sign(this.vx) !== dir;
-    if (this.slipping) this.slipFx(dt);
+    this.slipping = (this.slick || (this.icy && this.hurtT <= 0)) && Math.abs(this.vx) > 60 && Math.sign(this.vx) !== dir;
+    if (this.slipping) {
+      if (this.icy) this.iceFx(dt);
+      else this.slipFx(dt);
+    }
 
     // saut (avec un peu de tolérance pour les enfants)
     if (I.pressed.jump) this.jumpBuf = PHYS.buffer;
@@ -834,6 +887,105 @@ class Player {
     if (Math.random() < dt * 22) {
       w.spawn({ type: 'dot', x: this.cx + rand(-8, 8), y: this.y + this.h - 2, vx: -Math.sign(this.vx) * rand(20, 90) + this.vx * 0.2, vy: rand(-140, -40), g: 900, life: 0.4, size: rand(1.8, 3), color: choose(['#d8ffc8', '#ffffff', '#b8f0a0']) });
     }
+  }
+
+  // Elle dérape sur la glace : « chhh », et des petits éclats de givre qui brillent sous ses pieds.
+  iceFx(dt) {
+    const w = this.world;
+    this.iceT -= dt;
+    if (this.iceT <= 0 && Math.abs(this.vx) > 120) {
+      this.iceT = ICE_PHYS.skid;
+      Sound.sfx.iceSkid();
+    }
+    if (Math.random() < dt * 26) {
+      w.spawn({ type: 'spark', x: this.cx + rand(-8, 8), y: this.y + this.h - 2, vx: -Math.sign(this.vx) * rand(20, 90) + this.vx * 0.2, vy: rand(-110, -30), life: 0.35, size: rand(2.2, 3.6), color: choose(['#ffffff', '#cfefff', '#9fd8ff']) });
+    }
+  }
+
+  // ---------- En toboggan sur le ventre (OUCH.luge, le pingouin grincheux) ----------
+  // Elle n'est pas encore relevée : elle ne peut ni bouger, ni sauter, ni rien faire.
+  sledding() {
+    const k = this.ouch;
+    return !!k && k.kind === 'luge' && k.upT === undefined && !this.dead;
+  }
+
+  // Combien de place il y a devant elle, sur son sol, dans le sens d (en pixels, jusqu'à max) : jusqu'au bord d'un trou
+  // (ou de la lave, de l'eau, des ronces). Un mur l'arrête, c'est bon aussi (elle s'y cogne, sans tomber).
+  floorRoom(d, max) {
+    const w = this.world;
+    const r = Math.round((this.y + this.h) / TILE);
+    const edge = d > 0 ? this.x + this.w : this.x;
+    for (let k = 0; k <= max; k += 4) {
+      const c = Math.floor((edge + d * (k + 1)) / TILE);
+      const at = w.tileAt(c, r - 1);
+      if (isSolidCh(at)) return max;
+      const below = w.tileAt(c, r);
+      if (at === '^' || (!isSolidCh(below) && !isLedgeCh(below))) return k;
+    }
+    return max;
+  }
+
+  // Sa vitesse sur le ventre, par terre : elle freine (bien moins sur la glace), et s'arrête au bord d'un trou.
+  lugeSpeed(dt) {
+    const d = Math.sign(this.vx);
+    if (!d) return 0;
+    const ice = !!this.world.ice && this.world.iceUnder(this);
+    let v = Math.max(0, Math.abs(this.vx) - (ice ? LUGE.iceDec : LUGE.dec) * dt);
+    // (assez de place pour s'arrêter avant le bord, en freinant fort s'il le faut)
+    const room = Math.max(0, this.floorRoom(d, 400) - LUGE.edge);
+    v = Math.min(v, Math.sqrt(2 * 1800 * room));
+    if (room <= 0) v = 0;
+    return d * v;
+  }
+
+  // Elle glisse sur le ventre (« Wiiii ! », de la neige qui gicle), puis se relève : son nez devient tout rouge, et
+  // elle éternue des flocons (« Atchoum ! »). k.upT : le moment où elle s'est relevée.
+  updateLuge(k, dt) {
+    if (this.dead) return;
+    const w = this.world;
+    const L = Art.LUGE;
+    if (k.upT === undefined) {
+      // (dans la lave ou l'eau, plus de toboggan)
+      if (this.inChoco || this.dive > 0 || this.swim) {
+        this.ouch = null;
+        this.hurtT = 0;
+        return;
+      }
+      if (this.onGround && Math.abs(this.vx) > 40 && Math.random() < dt * 30) {
+        const d = Math.sign(this.vx);
+        w.spawn({ type: 'dust', x: this.cx + d * 18, y: this.y + this.h, vx: d * rand(30, 120), vy: rand(-90, -20), life: 0.4, size: rand(4, 7), color: 'rgba(240,250,255,0.95)' });
+      }
+      k.slideSnd = (k.slideSnd || 0) - dt;
+      if (this.onGround && k.slideSnd <= 0 && Math.abs(this.vx) > 60) {
+        k.slideSnd = 0.22;
+        Sound.sfx.lugeSlide();
+      }
+      // arrêtée : elle se relève
+      if (this.onGround && k.t > L.fly && Math.abs(this.vx) < LUGE.stop) {
+        this.vx = 0;
+        k.upT = k.t;
+        k.dur = k.t + L.up + L.nose;
+      }
+      this.hurtT = Math.max(this.hurtT, 0.05);
+      this.invuln = Math.max(this.invuln, 0.6);
+      return;
+    }
+    // le nez tout rouge : atchoum ! des flocons de neige sortent de son nez
+    const t0 = k.t - dt;
+    L.sneezes.forEach((s, i) => {
+      const at = k.upT + L.up + s;
+      if (!(t0 < at && k.t >= at)) return;
+      Sound.sfx.sneeze(i);
+      const f = this.facing;
+      const nose = Heroes.nose(this.hero, { pw: this.pw });
+      const nx = this.cx + f * nose[0];
+      const ny = this.y + this.h + nose[1];
+      w.popText(this.cx + f * 10, this.y - 18, 'Atchoum !', '#e8f6ff', 21);
+      for (let j = 0; j < 9; j++) {
+        const a = rand(-0.6, 0.5);
+        w.spawn({ type: 'flake', x: nx, y: ny, vx: f * Math.cos(a) * rand(120, 300), vy: Math.sin(a) * rand(120, 260) - 40, g: 120, life: rand(0.7, 1.1), size: rand(3, 5), rot: rand(0, 6), vr: rand(-6, 6) });
+      }
+    });
   }
 
   // Toute trempée (la pluie d'un petit nuage grognon) : des gouttes tombent d'elle, et ses pas font « flic, floc ».
@@ -1520,6 +1672,12 @@ class Player {
     const d = Math.sign(this.cx - sx) || -this.facing;
     this.vx = d * O.vx;
     this.vy = O.vy;
+    // (en toboggan : tout près du bord d'un trou, elle tombe sur le ventre sur place, sans glisser)
+    // (elle part la tête la première, du côté où elle glisse)
+    if (kind === 'luge') {
+      this.facing = d;
+      if (this.floorRoom(d, 60) < 48) this.vx = 0;
+    }
     // en boule : elle se relèvera dès qu'elle aura la place (sinon elle roule, loin de ce qui l'a touchée)
     if (this.ball) {
       this.roll = 0;
@@ -1543,9 +1701,10 @@ class Player {
 
   // ---------- Projetée par un sanglier (OUCH.spin) ----------
   // Elle n'est pas encore retombée sur ses pieds : elle ne peut ni bouger, ni sauter, ni rien faire.
+  // (pareil en toboggan sur le ventre, tant qu'elle n'est pas relevée : voir sledding)
   tumbling() {
     const k = this.ouch;
-    return !!k && k.kind === 'spin' && k.phase !== 'done' && !this.dead;
+    return (!!k && k.kind === 'spin' && k.phase !== 'done' && !this.dead) || this.sledding();
   }
 
   // Elle monte en tournant comme une toupie (phase 'up'), se retourne en retombant ('flip'), atterrit sur la
@@ -1719,6 +1878,9 @@ class Player {
       case 'spin':
         this.updateSpin(k, dt);
         break;
+      case 'luge':
+        this.updateLuge(k, dt);
+        break;
       case 'pins':
         // elle enlève les piquants un par un : aïe ! (le piquant s'envole en tournoyant)
         Art.PIN_PULLS.forEach((time, i) => {
@@ -1818,7 +1980,9 @@ class Player {
     // (et quand elle coasse, par terre : accroupie comme une grenouille, voir Art.croaking)
     // (et quand elle s'ébroue comme un chien, par terre et à l'arrêt : les jambes écartées, voir Art.shaking ; si elle
     // marche, elle garde sa pose de marche, les gouttes et son corps qui se tortille suffisent)
-    const ouching = k && (this.dead || k.t < OUCH[k.kind].pose || (k.kind === 'croak' && this.onGround && Art.croaking(k)) ||
+    // (en toboggan : jusqu'à ce qu'elle soit relevée ; ensuite, elle peut marcher en éternuant)
+    const poseEnd = k && k.kind === 'luge' && k.upT !== undefined ? k.upT + Art.LUGE.up : k ? OUCH[k.kind].pose : 0;
+    const ouching = k && (this.dead || k.t < poseEnd || (k.kind === 'croak' && this.onGround && Art.croaking(k)) ||
       (k.kind === 'shake' && this.onGround && Math.abs(this.vx) < 40 && Art.shaking(k)));
     if (k) k.shock = k.kind === 'zap' && (this.dead ? this.deathT < 0.5 : this.stunT > 0);
     if (this.dead) pose = k ? 'ouch' : 'hurt';
@@ -3679,6 +3843,316 @@ class RockHog extends Enemy {
   mouth() { return { x: this.fat ? 19 : 16, y: -9 }; }
 }
 
+// Pingouin grincheux (le Glacier Fumant) : un pingouin bleu ardoise, avec un bonnet jaune à pompon et de gros
+// sourcils blancs tout froncés (rien à voir avec le Pingouin qu'on peut jouer, tout noir, avec son écharpe rouge).
+// Il se dandine en ronchonnant sur son sol. Quand il voit Malice devant lui (à moins de penSee cases, à peu près à
+// sa hauteur, sans mur ni trou entre eux), « ! » : il se penche en avant et agite ses nageoires (penWarn secondes,
+// c'est l'annonce), puis il plonge sur le ventre et glisse vers elle à penSpeed pixels par seconde. Sur la roche, il
+// freine vite ; sur la glace, il glisse, il glisse… jusqu'à un mur (bonk : il a la tête qui tourne) ou jusqu'au bord
+// d'un trou, où il freine des nageoires (« Ouf ! »). Puis il se relève, il souffle, et il recommence à se dandiner.
+// Ce qui fait mal : toucher le pingouin qui glisse (Malice part en toboggan sur le ventre, voir OUCH.luge). On l'évite
+// en sautant par-dessus (il est tout plat) ; on rebondit sur son dos sans rien lui faire (↓ en l'air, on l'arrête net,
+// tout étourdi). Debout (il se dandine, il se prépare, il se relève, il a la tête qui tourne), il ne fait pas mal :
+// on lui saute dessus, et il redevient tout gentil (il sourit, des petits cœurs). Le caramel le colle, avec les chips
+// il est trop gros pour glisser ; une stalactite qui tombe sur lui le rend gentil aussi.
+// Il ne plonge pas pendant qu'on lit une fleur à moins de 9 cases, ni juste au début (ou à la reprise d'un drapeau),
+// ni quand Malice est tout contre lui (il attend qu'elle soit à au moins near cases : sinon il la toucherait sans
+// qu'elle ait le temps de sauter). (w.diff : penSee, penWarn, penSpeed, penRest, voir DIFFS dans game.js)
+// walk : sa vitesse quand il se dandine ; rock / ice : comment il freine en glissant sur la roche / sur la glace ;
+// brake : comment il freine au bord d'un trou ; up : le temps qu'il met à se relever ; dizzy : la tête qui tourne ;
+// near : (en cases) ; h / hSlide : sa hauteur debout / à plat ventre ; turn : quand Malice est derrière lui, il se
+// retourne au bout de turn secondes.
+const PENGUIN = { walk: 42, rock: 300, ice: 40, brake: 1500, up: 0.5, dizzy: 1.6, near: 1.6, h: 44, hSlide: 24, turn: 0.7 };
+
+class GrumpyPenguin extends Enemy {
+  constructor(world, cx, by) {
+    super(world, cx - 17, by - PENGUIN.h, 34, PENGUIN.h);
+    this.ouch = 'luge';
+    this.state = 'walk';
+    this.timer = 0;
+    this.calm = 1.2;
+    this.fatSpeed = 16;
+    this.grumbleT = rand(0.5, 2.5);
+    this.flap = 0;
+    this.turnT = 0;
+  }
+
+  // Il glisse sur le ventre (assez vite) : c'est là qu'il fait mal.
+  sliding() {
+    return this.state === 'slide' && Math.abs(this.vx) > 60;
+  }
+
+  harmful() {
+    return !this.dying && this.stuck <= 0 && !this.fat && this.sliding();
+  }
+
+  // Debout, on lui saute dessus ; sur le ventre, on rebondit sur son dos (sauf en l'écrasant, ↓ en l'air).
+  stompable() {
+    return !this.sliding() || this.stuck > 0 || this.fat || this.world.player.pound === 2;
+  }
+
+  // Une fleur qu'on lit (ou que Malice va lire : elle est juste à côté), assez près (13 cases : plus loin qu'il ne voit) ?
+  hush() {
+    const p = this.world.player;
+    return this.world.flowers.some((f) => (f.show > 0.05 || Math.abs(p.cx - f.x) < 170) && Math.abs(f.x - this.cx) < 13 * TILE &&
+      Math.abs(f.y - (this.y + this.h)) < 4 * TILE);
+  }
+
+  // Sur la glace ?
+  onIce() {
+    return this.onGround && !!this.world.ice && this.world.iceUnder(this);
+  }
+
+  // Il voit Malice devant lui : pas trop loin, à peu près à sa hauteur, et il peut glisser jusqu'à elle (pas de mur
+  // entre eux, ni de trou).
+  sees(p) {
+    if (p.dead || p.won || p.tumbling()) return false;
+    const w = this.world;
+    const dx = p.cx - this.cx;
+    if (Math.sign(dx) !== this.dir || Math.abs(dx) > w.diff.penSee * TILE) return false;
+    const feet = p.y + p.h;
+    const mine = this.y + this.h;
+    if (feet < mine - 1.3 * TILE || feet > mine + 0.6 * TILE) return false;
+    const r = Math.floor((mine - 10) / TILE);
+    const rf = Math.round(mine / TILE);
+    const c0 = Math.floor(Math.min(p.cx, this.cx) / TILE);
+    const c1 = Math.floor(Math.max(p.cx, this.cx) / TILE);
+    for (let c = c0; c <= c1; c++) {
+      if (c > c0 && c < c1 && isSolidCh(w.tileAt(c, r))) return false;
+      const below = w.tileAt(c, rf);
+      if (!isSolidCh(below) && !isLedgeCh(below)) return false;
+    }
+    return true;
+  }
+
+  // Malice est juste derrière lui (comme sees, mais de l'autre côté) ?
+  behind(p) {
+    this.dir *= -1;
+    const s = this.sees(p);
+    this.dir *= -1;
+    return s;
+  }
+
+  // Sa taille : tout plat quand il glisse, debout sinon (ses pieds restent au même endroit).
+  setFlat(flat) {
+    const h = flat ? PENGUIN.hSlide : PENGUIN.h;
+    if (h === this.h) return;
+    this.y += this.h - h;
+    this.h = h;
+  }
+
+  ai(dt) {
+    const w = this.world;
+    const p = w.player;
+    const D = w.diff;
+    this.calm -= dt;
+    this.timer -= dt;
+    switch (this.state) {
+      case 'walk':
+        // (il reste sur place pendant qu'on lit une fleur, comme les autres ennemis)
+        this.vx = this.hush() ? 0 : this.dir * PENGUIN.walk;
+        if (this.vx) this.legPhase += dt * 9;
+        this.walkPhysics(dt, true);
+        this.grumble(dt, 2.4);
+        if (this.calm <= 0 && this.sees(p) && !this.hush()) this.alert();
+        else if (this.calm <= 0 && this.behind(p)) {
+          // Malice est derrière lui : au bout d'un petit moment, il se retourne (« Hein ? »)
+          this.turnT += dt;
+          if (this.turnT > PENGUIN.turn) {
+            this.turnT = 0;
+            this.dir *= -1;
+            w.popText(this.cx, this.y - 16, '?', '#cfe8ff', 24);
+          }
+        } else {
+          this.turnT = 0;
+        }
+        break;
+      case 'warn': {
+        // il se penche en avant, en agitant ses nageoires ; il plonge quand Malice n'est plus tout contre lui
+        this.vx = 0;
+        this.walkPhysics(dt, false);
+        this.flap += dt * 30;
+        const face = Math.sign(p.cx - this.cx);
+        if (face && face !== this.dir && !p.dead) {
+          this.dir = face;
+          this.timer = Math.max(this.timer, D.penWarn * 0.5);
+        }
+        const close = Math.abs(p.cx - this.cx) < PENGUIN.near * TILE && p.y + p.h > this.y - TILE && p.y < this.y + this.h;
+        if (this.timer <= 0 && !close && !this.hush()) this.dive();
+        else if (this.timer < -2) this.rest(D.penRest);
+        break;
+      }
+      case 'slide': {
+        const ice = this.onIce();
+        this.vx = approach(this.vx, 0, (ice ? PENGUIN.ice : PENGUIN.rock) * (this.hush() ? 4 : 1) * dt);
+        // au bord d'un trou (ou de la lave, des ronces), il freine des nageoires
+        const v = Math.abs(this.vx);
+        if (this.onGround && !w.groundAhead(this, (v * v) / (2 * PENGUIN.brake) + 6)) {
+          this.vx = approach(this.vx, 0, PENGUIN.brake * dt);
+          if (!w.groundAhead(this, 3)) this.vx = 0;
+          if (Math.abs(this.vx) < 40) {
+            this.vx = 0;
+            w.popText(this.cx, this.y - 20, 'Ouf !', '#ffffff', 20);
+          }
+        }
+        this.vy = Math.min(this.vy + PHYS.gravity * dt, PHYS.maxFall);
+        const res = w.moveBody(this, dt);
+        if (res.wall) {
+          this.bonk();
+          break;
+        }
+        if (Math.abs(this.vx) < 30) {
+          this.getUp();
+          break;
+        }
+        this.slideT -= dt;
+        if (this.slideT <= 0 && this.onGround && w.onScreen(this, 100)) {
+          this.slideT = 0.2;
+          Sound.sfx.penSlide(ice);
+        }
+        if (this.onGround && Math.random() < dt * (ice ? 30 : 18)) {
+          w.spawn({ type: ice ? 'spark' : 'dust', x: this.cx - this.dir * 14, y: this.y + this.h - 2, vx: -this.dir * rand(30, 120), vy: rand(-90, -20), life: 0.35, size: ice ? rand(2.4, 3.8) : rand(4, 6), color: ice ? choose(['#ffffff', '#cfefff']) : 'rgba(235,245,255,0.95)' });
+        }
+        break;
+      }
+      case 'up':
+      case 'dizzy':
+      case 'rest':
+        this.vx = approach(this.vx, 0, 1200 * dt);
+        this.walkPhysics(dt, false);
+        if (this.state === 'rest') this.grumble(dt, 0.9);
+        if (this.timer <= 0) {
+          if (this.state === 'rest') {
+            this.state = 'walk';
+            this.calm = 0.5;
+            // (il se retourne vers Malice)
+            if (!p.dead) this.dir = Math.sign(p.cx - this.cx) || this.dir;
+          } else {
+            this.rest(this.world.diff.penRest);
+          }
+        }
+        break;
+      default: break;
+    }
+  }
+
+  // Il ronchonne (« grmbl », de petits nuages de buée), toutes les every secondes en moyenne.
+  grumble(dt, every) {
+    const w = this.world;
+    this.grumbleT -= dt;
+    if (this.grumbleT > 0) return;
+    this.grumbleT = every * rand(0.7, 1.3);
+    if (!w.onScreen(this)) return;
+    w.spawn({ type: 'smoke', x: this.cx + this.dir * 16, y: this.y + 12, vx: this.dir * rand(20, 50), vy: rand(-30, -10), life: 0.6, size: rand(3, 4.5), color: '#ffffff' });
+    if (Math.abs(this.cx - w.player.cx) < 500) Sound.sfx.penGrumble();
+  }
+
+  // « ! » : il a vu Malice.
+  alert() {
+    const w = this.world;
+    this.state = 'warn';
+    this.timer = w.diff.penWarn;
+    this.flap = 0;
+    w.popText(this.cx, this.y - 16, '!', '#ff4040', 30);
+    if (w.onScreen(this)) Sound.sfx.penAlert();
+  }
+
+  // Il plonge sur le ventre, et glisse vers Malice.
+  dive() {
+    const w = this.world;
+    this.state = 'slide';
+    this.setFlat(true);
+    this.vx = this.dir * w.diff.penSpeed;
+    this.slideT = 0;
+    if (w.onScreen(this)) Sound.sfx.penDive();
+  }
+
+  // Il se relève (il secoue la neige de son ventre).
+  getUp() {
+    const w = this.world;
+    this.state = 'up';
+    this.timer = PENGUIN.up;
+    this.vx = 0;
+    this.setFlat(false);
+    if (w.onScreen(this)) {
+      for (let i = 0; i < 5; i++) {
+        w.spawn({ type: 'dust', x: this.cx + rand(-14, 14), y: this.y + this.h - rand(4, 20), vx: rand(-80, 80), vy: rand(-90, -20), life: 0.4, size: rand(3, 5), color: 'rgba(240,250,255,0.95)' });
+      }
+    }
+  }
+
+  rest(time) {
+    this.state = 'rest';
+    this.timer = time;
+    this.setFlat(false);
+  }
+
+  // Bonk ! contre un mur : il a la tête qui tourne.
+  bonk() {
+    const w = this.world;
+    this.state = 'dizzy';
+    this.timer = PENGUIN.dizzy;
+    this.vx = 0;
+    this.setFlat(false);
+    w.popText(this.cx + this.dir * 16, this.y - 14, 'Bonk !', '#e8f6ff', 22);
+    if (w.onScreen(this)) {
+      w.shake(3);
+      Sound.sfx.penBonk();
+    }
+  }
+
+  // Il vient d'envoyer Malice en toboggan : lui s'arrête (« Hmpf ! »), il se relève.
+  tossed(p) {
+    if (this.state !== 'slide' || p.dead) return;
+    this.getUp();
+    this.world.popText(this.cx, this.y - 18, 'Hmpf !', '#cfe8ff', 20);
+  }
+
+  onStuck() {
+    if (this.state === 'slide') this.getUp();
+    this.vx = 0;
+  }
+
+  onFat() {
+    this.state = 'walk';
+    this.setFlat(false);
+  }
+
+  onUnstuck() { this.calm = 0.8; }
+
+  stomp() {
+    const w = this.world;
+    if (this.sliding() && this.stuck <= 0 && !this.fat) {
+      // écrasé pendant qu'il glisse (↓ en l'air) : il s'arrête net, la tête qui tourne
+      this.vx = 0;
+      this.bonk();
+      return;
+    }
+    // debout : pouic ! Il redevient tout gentil (il sourit, des petits cœurs)
+    this.setFlat(false);
+    this.kill('stomp');
+    w.popText(this.cx, this.y - 24, 'Coucou !', '#e8f6ff', 20);
+    for (let i = 0; i < 4; i++) {
+      w.spawn({ type: 'heart', x: this.cx + rand(-14, 14), y: this.y, vx: rand(-40, 40), vy: rand(-150, -80), life: 0.9, size: 1 });
+    }
+  }
+
+  kill(type) {
+    if (!this.dying) Sound.sfx.penHappy();
+    super.kill(type);
+  }
+
+  drawBody(ctx, x, y) {
+    const st = this.stuck > 0 ? 'stuck' : this.fat ? 'walk' : this.state;
+    Art.grumpyPenguin(ctx, x, y, {
+      dir: this.dir, t: this.t, phase: this.legPhase, state: st, flap: this.flap, nice: this.dying,
+      fat: this.fat, rest: this.fatRest && this.stuck <= 0, moving: Math.abs(this.vx) > 1, ice: this.state === 'slide' && this.onIce(),
+    });
+  }
+
+  mouth() { return { x: this.dir * (this.fat ? 18 : 15), y: -32 }; }
+}
+
 // Sanglier maléfique (le Marais aux Cabanes) : ses yeux rouges brillent, et de la fumée sort de ses naseaux.
 // Il se promène en reniflant. Quand il voit Malice (devant ou derrière lui, à peu près à la même hauteur, sans
 // mur entre eux), « ! » : il se tourne vers elle et gratte le sol, en soufflant de la fumée (c'est l'annonce).
@@ -5453,6 +5927,14 @@ class CubeBit {
 }
 
 // Stalactite : une pointe de pierre au plafond de la grotte. Quand Malice approche, elle tremble… puis tombe !
+// Dans le Glacier Fumant, c'est une pointe de glace (ice) : elle tremble plus ou moins longtemps selon la difficulté
+// (icicleWarn, voir DIFFS), et elle se met à trembler quand Malice arrive à ICICLE.k × (le temps qu'elle tremble + le
+// temps qu'elle met à tomber jusqu'à sa tête) pixels d'elle. Ainsi, quelle que soit la difficulté, c'est en passant
+// dessous à peu près à ICICLE.k pixels par seconde qu'on la reçoit sur la tête : en marchant ou en courant, elle tombe
+// juste derrière Malice ; arrêtée dessous (ou en glissant tout doucement), il faut s'écarter pendant qu'elle tremble.
+// Plus elle tremble longtemps, plus on a le temps de s'écarter (en Bébé, ce n'est jamais plus dur).
+const ICICLE = { k: 175, v0: 200, g: 3200, head: 56 };
+
 class Stalactite {
   constructor(world, x, y) {
     this.world = world;
@@ -5467,9 +5949,25 @@ class Stalactite {
     this.dead = false;
     this.v = Math.floor(Math.random() * 3);
     this.ouch = 'head'; // elle tombe sur la tête de Malice (voir OUCH)
+    this.ice = world.theme === 'glacier';
+    this.drip = rand(0, 3);
+    if (this.ice) {
+      // le temps qu'elle met à tomber jusqu'à la tête de Malice debout sur le sol du dessous
+      const c = Math.floor((x + TILE / 2) / TILE);
+      let r = Math.floor(y / TILE) + 1;
+      while (r < world.rows && !isSolidCh(world.tileAt(c, r)) && !isLedgeCh(world.tileAt(c, r))) r++;
+      const d = Math.max(0, r * TILE - ICICLE.head - (y + this.h));
+      const g = ICICLE.g / 2;
+      this.fallT = (-ICICLE.v0 + Math.sqrt(ICICLE.v0 * ICICLE.v0 + 4 * g * d)) / (2 * g);
+    }
   }
 
   harmful() { return this.state === 'fall'; }
+
+  // à combien de pixels de Malice elle se met à trembler
+  reach() {
+    return this.ice ? ICICLE.k * (this.world.diff.icicleWarn + this.fallT) : 120;
+  }
 
   update(dt) {
     const w = this.world;
@@ -5477,22 +5975,30 @@ class Stalactite {
     this.t += dt;
     const cx = this.x + this.w / 2;
     if (this.state === 'hang') {
-      if (!p.dead && Math.abs(p.cx - cx) < 120 && p.y > this.y && p.y - this.y < 560) {
+      if (!p.dead && Math.abs(p.cx - cx) < this.reach() && p.y > this.y && p.y - this.y < 560) {
         this.state = 'shake';
-        this.timer = 0.4;
-        if (w.onScreen(this)) Sound.sfx.stalactiteShake();
+        this.timer = this.ice ? w.diff.icicleWarn : 0.4;
+        if (w.onScreen(this)) Sound.sfx[this.ice ? 'icicleShake' : 'stalactiteShake']();
+      }
+      // (la glace fond un peu à cause de la vapeur : une goutte tombe de temps en temps)
+      if (this.ice) {
+        this.drip -= dt;
+        if (this.drip <= 0) {
+          this.drip = rand(1.6, 3.4);
+          if (w.onScreen(this)) w.spawn({ type: 'dot', x: cx, y: this.y + this.h - 2, vy: 40, g: 900, life: 0.6, size: 2, color: '#bfe8ff' });
+        }
       }
     } else if (this.state === 'shake') {
       this.timer -= dt;
       if (Math.random() < dt * 25) {
-        w.spawn({ type: 'dot', x: cx + rand(-14, 14), y: this.y + rand(0, 6), vy: rand(20, 80), g: 900, life: 0.6, size: rand(1.5, 3), color: '#9a8cb8' });
+        w.spawn({ type: 'dot', x: cx + rand(-14, 14), y: this.y + rand(0, 6), vy: rand(20, 80), g: 900, life: 0.6, size: rand(1.5, 3), color: this.ice ? '#e8f8ff' : '#9a8cb8' });
       }
       if (this.timer <= 0) {
         this.state = 'fall';
-        this.vy = 200;
+        this.vy = ICICLE.v0;
       }
     } else {
-      this.vy = Math.min(this.vy + 3200 * dt, 1200);
+      this.vy = Math.min(this.vy + ICICLE.g * dt, 1200);
       this.y += this.vy * dt;
       for (const e of w.enemies) {
         if (!e.dying && !e.dead && overlap(this, e)) e.kill('bump');
@@ -5506,23 +6012,27 @@ class Stalactite {
     const cx = this.x + this.w / 2;
     this.dead = true;
     if (w.onScreen(this)) {
-      Sound.sfx.stalactiteCrash();
+      Sound.sfx[this.ice ? 'icicleCrash' : 'stalactiteCrash']();
       w.shake(3);
     }
     for (let i = 0; i < 10; i++) {
       w.spawn({
         type: 'debris', x: cx + rand(-10, 10), y: this.y + this.h - rand(0, 20),
         vx: rand(-220, 220), vy: rand(-380, -120), g: 1800, life: 0.7, size: rand(5, 9),
-        color: i % 3 ? '#6f6394' : '#bff6ff', vr: rand(-12, 12),
+        color: this.ice ? (i % 3 ? '#cfefff' : '#ffffff') : i % 3 ? '#6f6394' : '#bff6ff', vr: rand(-12, 12),
       });
     }
-    w.puff(cx, this.y + this.h, '#b8aed0');
+    w.puff(cx, this.y + this.h, this.ice ? '#f0faff' : '#b8aed0');
   }
 
   draw(ctx) {
     const shake = this.state === 'shake' ? Math.sin(this.t * 60) * 2 : 0;
     const x = this.x + this.w / 2 + shake;
     const y = this.y;
+    if (this.ice) {
+      Art.icicle(ctx, x, y, this.w, this.h, this.t, this.state === 'shake');
+      return;
+    }
     ctx.save();
     ctx.lineJoin = 'round';
     // pointe de pierre avec des anneaux plus clairs et un bout en cristal

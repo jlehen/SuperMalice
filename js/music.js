@@ -607,6 +607,28 @@ const Music = (() => {
     return S.out({ drumV: 0.9 });
   }
 
+  // 4-3. Le Glacier Fumant : la même valse lydienne, un peu plus lente et toute givrée : la mélodie au célesta, le
+  // glockenspiel en écho une octave plus haut (des glaçons qui tintent), la contrebasse en pizzicati sur le « oum », la
+  // harpe sur les « pah-pah », et des charlestons tout légers ; au refrain, l'accordéon revient tout doucement en dessous.
+  function mountainIce() {
+    const S = new Song({ bpm: 156, meter: 3, warp: waltz, mode: LYD, modeChords: false, chordMap: { F: 'D', G7: 'Gmaj7', Bb: 'Bb', Db: 'Db' } });
+    const OOM = [[[0, 0.9, 'R']], [[0, 0.9, '5L']]];
+    const PAH = [[[1, 0.35, 'C'], [2, 0.35, 'C']]];
+    const D = [[[0, 'k', 0.4], [1, 'h', 0.35], [1.5, 'h', 0.2], [2, 'h', 0.35]]];
+    const base = (p) => {
+      p.pattern('bass', 'pizz', 0.2, OOM);
+      p.pattern('pah', 'harp', 0.06, PAH, { low: 60 });
+      p.drums(D);
+    };
+    const echo = (p) => p.melody('echo', 'glock', 0.04, { delay: 0.5, oct: 1, top: true });
+    S.part(SECT.I, (p) => { p.melody('lead', 'celesta', 0.2); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'celesta', 0.2); echo(p); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'celesta', 0.2); p.melody('low', 'accordion', 0.07, { oct: -1, top: true }); echo(p); base(p); });
+    S.part(SECT.C, (p) => { p.melody('lead', 'glock', 0.1, { top: true }); p.melody('low', 'celesta', 0.12, { oct: -1, top: true }); base(p); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'celesta', 0.2); echo(p); base(p); });
+    return S.out({ drumV: 0.6 });
+  }
+
   // Stage de la Moustache-Grappin : jazz swing (on se balance !), walking bass, ride, trompette bouchée,
   // accords de jazz avec substitution de triton (sol7 → ré♭7).
   function swingJazz() {
@@ -860,6 +882,7 @@ const Music = (() => {
     'boss-orage': bossStorm(),
     'badge-bocal': funk(),
     mountain: mountain(),
+    'mountain-glace': mountainIce(),
     'badge-grappin': swingJazz(),
     volcano: volcano(),
     victory: victory(),

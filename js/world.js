@@ -4,8 +4,10 @@ const LUTIN_BLOCKS = 'LFKCS';
 // le bouchon en chocolat (le Défi du Bocal à éclairs) : il est solide, et seul un éclair au chocolat lancé avec le
 // bocal le fait fondre (voir meltPlug)
 const PLUG = '%';
+// la glace du Glacier Fumant : un bloc solide où l'on glisse (voir ICE_PHYS dans entities.js, et iceUnder)
+const ICE = '+';
 // u : bloc magique du Lutin (il disparaît tout seul)
-const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || ch === PLUG || LUTIN_BLOCKS.includes(ch);
+const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || ch === ICE || ch === PLUG || LUTIN_BLOCKS.includes(ch);
 // plateformes qu'on traverse par dessous : planche, nuage… pont arc-en-ciel, ou paratonnerre (le Phare sur la Falaise)
 const isLedgeCh = (ch) => ch === '-' || ch === '=' || ch === 'z';
 // l'eau de la rivière (la Rivière aux Nénuphars)
@@ -150,6 +152,9 @@ class World {
     // la Rivière aux Nénuphars : la bave des escargots, les lapins, et le terrier secret
     // (les rangées à partir de "terrier" sont sous terre : la caméra n'y descend que si Malice y va)
     this.slime = [];
+    // le Glacier Fumant : des plaques de glace dans le niveau (les cases +), et leurs fumerolles (voir findVents)
+    this.ice = false;
+    this.vents = [];
     // les petites scènes pour rire, qui ne touchent à rien (la taupe qui sort voir Malice la tête en bas)
     this.gags = [];
     // le pont de corde qui s'enfonce sous les pieds de Malice : où (x, rangée), et de combien (k, de 0 à 1)
@@ -226,6 +231,9 @@ class World {
           case 'O': this.enemies.push(new Snail(this, mx - 22, by - 30)); break;
           case 'm': this.enemies.push(new Mole(this, mx, by)); break;
           case 'h': this.enemies.push(new Hedgehog(this, mx - 20, by - 30)); break;
+          // le Glacier Fumant : un pingouin grincheux (ses pieds sur le sol de la case du dessous)
+          case '1': this.enemies.push(new GrumpyPenguin(this, mx, by)); break;
+          case ICE: this.ice = true; keep = true; break;
           // la Grande Glissade : un hérisson de roche, posé sur la pente (sa case reste des éboulis), ou sur le sol de la
           // case du dessous
           case '0':
@@ -325,9 +333,15 @@ class World {
     // (au début, ou à un drapeau) : ils ne foncent pas tout de suite sur elle
     for (const e of this.enemies) {
       if (e instanceof Snail || e instanceof Hedgehog || e instanceof Boar) e.dir = e.cx < start.x ? -1 : 1;
+      // (les pingouins grincheux, eux, regardent du côté où elle arrive : ils sont tous loin des drapeaux, et une bosse ou
+      // un trou les sépare du drapeau d'avant)
+      if (e instanceof GrumpyPenguin) e.dir = e.cx < start.x ? 1 : -1;
     }
     // les paratonnerres (chaque suite de z côte à côte), numérotés de bas en haut
     this.rods = this.findRods();
+    // le Glacier Fumant : les fumerolles, là où la glace touche la roche chaude (voir findVents)
+    this.vents = this.ice ? this.findVents() : [];
+    this.ventSnd = 0;
     // (le pied du phare : le haut du sol, sous le milieu de sa tour)
     if (this.lighthouse) {
       const L = this.lighthouse;
@@ -966,6 +980,52 @@ class World {
     if (this.slime.length && this.slime[0].t >= SLIME_TIME) this.slime = this.slime.filter((s) => s.t < SLIME_TIME);
   }
 
+  // ---------- Le Glacier Fumant ----------
+  // De la glace sous les pieds ? (la case sous le milieu de son corps ; au bord, à moitié dans le vide, la case
+  // sous l'autre pied)
+  iceUnder(b) {
+    const r = Math.floor((b.y + b.h + 2) / TILE);
+    const mid = this.tileAt(Math.floor((b.x + b.w / 2) / TILE), r);
+    if (mid === ICE) return true;
+    if (isSolidCh(mid) || isLedgeCh(mid)) return false;
+    return this.tileAt(Math.floor((b.x + 3) / TILE), r) === ICE || this.tileAt(Math.floor((b.x + b.w - 3) / TILE), r) === ICE;
+  }
+
+  // Les fumerolles : de la vapeur sort de la fente entre une plaque de glace et la roche chaude (ou la lave), sur le
+  // dessus du sol. { x, y : le bas de la fente ; v : pour que chacune fume à son rythme }
+  findVents() {
+    const out = [];
+    const hot = (ch) => ch === '#' || ch === '~';
+    for (let r = 1; r < this.rows; r++) {
+      for (let c = 0; c < this.cols - 1; c++) {
+        const a = this.tiles[r][c];
+        const b = this.tiles[r][c + 1];
+        if (!((a === ICE && hot(b)) || (hot(a) && b === ICE))) continue;
+        if (this.tiles[r - 1][c] !== '.' || this.tiles[r - 1][c + 1] !== '.') continue;
+        out.push({ x: (c + 1) * TILE, y: r * TILE, v: hash2(c, r) });
+      }
+    }
+    return out;
+  }
+
+  // La vapeur des fumerolles qu'on voit (avec une marge : elle monte haut), et un « pschhh » de temps en temps, pour la
+  // plus proche de Malice.
+  drawVents(ctx, camX) {
+    for (const v of this.vents) {
+      if (v.x < camX - 120 || v.x > camX + VIEW_W + 120 || v.y < this.cam.y - 40 || v.y - 200 > this.cam.y + VIEW_H) continue;
+      Scenery.steamVent(ctx, v.x, v.y, this.t, v.v);
+    }
+  }
+
+  updateVents(dt) {
+    this.ventSnd -= dt;
+    if (this.ventSnd > 0 || !this.vents.length) return;
+    this.ventSnd = rand(2.5, 4.5);
+    const p = this.player;
+    const v = this.vents.find((q) => Math.abs(q.x - p.cx) < 320 && Math.abs(q.y - (p.y + p.h)) < 200);
+    if (v && !p.dead) Sound.sfx.steam();
+  }
+
   // De la bave encore toute fraîche sous les pieds ?
   slimeUnder(b) {
     const feet = b.y + b.h;
@@ -1266,6 +1326,7 @@ class World {
     this.updateWinds(dt);
     this.updateUpdrafts(dt);
     this.updateSlime(dt);
+    if (this.ice) this.updateVents(dt);
     if (this.rain) this.updateRain(dt);
     this.updateLight(dt);
     for (const [k, v] of this.springs) {
@@ -1812,6 +1873,7 @@ class World {
     this.drawBridges(ctx, camX);
     this.drawPuddles(ctx, camX);
     this.drawSlime(ctx);
+    if (this.vents.length) this.drawVents(ctx, camX);
     this.drawReeds(ctx, false);
     this.drawLutinShine(ctx, camX, camY);
     this.drawMagic(ctx);
@@ -1907,7 +1969,8 @@ class World {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // (le trou caché sous un bloc lutin, dans le terrier, compte comme du sol : pas de bord dessiné)
     // (les éboulis de la Grande Glissade aussi : la terre sous la pente n'a pas d'herbe, ni de bord)
-    const isG = (c, r) => (r >= this.rows ? true : this.tileAt(c, r) === '#' || this.tileAt(c, r) === SCREE || this.hiddenShaft(c, r));
+    // (et la glace du Glacier Fumant : la roche sous une plaque de glace n'a pas de neige dessus)
+    const isG = (c, r) => (r >= this.rows ? true : this.tileAt(c, r) === '#' || this.tileAt(c, r) === SCREE || this.tileAt(c, r) === ICE || this.hiddenShaft(c, r));
     // (les grands chapeaux de champignons sont dessinés à part : voir drawCaps)
     const capped = this.caps.length > 0;
     for (let r = r0; r <= r1; r++) {
@@ -1928,6 +1991,11 @@ class World {
           // (pas d'herbe au fond de la rivière ; sous terre, dans le terrier, de la terre toute nue)
           const m = { t: !isG(c, r - 1) && r > 0 && this.tileAt(c, r - 1) !== WATER, l: !isG(c - 1, r), r: !isG(c + 1, r), b: !isG(c, r + 1) };
           img = Scenery.groundSprite(this.tileTheme(c, r), m, Math.floor(hash2(c, r) * 4));
+        } else if (ch === ICE) {
+          // une plaque de glace (le Glacier Fumant) : ses bords là où il n'y a ni glace ni roche à côté
+          const ice = (cc, rr) => rr >= this.rows || (cc >= 0 && cc < this.cols && (this.tiles[rr] ? isSolidCh(this.tiles[rr][cc]) && !LUTIN_BLOCKS.includes(this.tiles[rr][cc]) && this.tiles[rr][cc] !== 'B' : false));
+          const m = { t: r === 0 || !ice(c, r - 1), l: !ice(c - 1, r), r: !ice(c + 1, r), b: !ice(c, r + 1) };
+          img = Scenery.iceSprite(m, Math.floor(hash2(c, r) * 4));
         } else if (ch === 'B') {
           img = Scenery.brickSprite(th);
         } else if (LUTIN_BLOCKS.includes(ch)) {
@@ -2611,6 +2679,12 @@ class World {
           break;
         case 'heart':
           Art.heart(ctx, q.x, q.y, 1.3, '#ff4f8a');
+          break;
+        case 'flake':
+          // un flocon de neige (éternué par Malice, le nez tout rouge) qui tourne en flottant
+          ctx.translate(q.x + Math.sin(q.life * 6 + q.rot) * 3, q.y);
+          ctx.rotate(q.rot);
+          Art.snowflake(ctx, q.size);
           break;
         case 'drop':
           Art.sweat(ctx, q.x, q.y, 1);

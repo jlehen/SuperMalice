@@ -42,6 +42,12 @@
 // La Grande Glissade : rockSee, rockWarn, rockSpeed, rockDizzy (les hérissons de roche, voir RockHog : en Bébé, ils se
 // réveillent plus tôt, mais ne tremblent pas plus longtemps, sinon ils se mettraient à rouler juste sous Malice qui
 // saute par-dessus).
+// Le Glacier Fumant : penSee (à combien de cases un pingouin grincheux voit Malice devant lui), penWarn (combien de
+// temps il se prépare avant de plonger sur le ventre : c'est l'annonce), penSpeed (sa vitesse quand il glisse), penRest
+// (combien de temps il souffle après s'être relevé). En Bébé, il voit Malice de plus loin, et ne se prépare pas beaucoup
+// plus longtemps : quand elle marche vers lui, il plonge alors qu'elle est encore loin (sinon, en se préparant plus
+// longtemps, il plongerait juste devant elle, et ce serait plus dur), et il glisse moins vite. icicleWarn : combien de temps une stalactite de glace tremble
+// avant de tomber (plus longtemps, elle se met à trembler de plus loin d'autant : voir ICICLE dans entities.js).
 const DIFFS = {
   bebe: {
     name: 'Bébé', lives: Infinity, eyeChase: 90, cubeFuse: 2.5, shootMin: 3.6, shootMax: 5,
@@ -55,6 +61,7 @@ const DIFFS = {
     cloudSpeed: 60, cloudWarn: 1.4, cloudRest: [3.5, 4.5], soakTime: 2.6, soakSlow: 0.75,
     rodRest: 5, rodWarn: 3, rodZap: 1,
     rockSee: 10, rockWarn: 0.55, rockSpeed: 140, rockDizzy: 4,
+    penSee: 10.5, penWarn: 0.7, penSpeed: 260, penRest: 2.6, icicleWarn: 0.65,
     vineReach: 46,
     gustHops: 2, gustTickles: 2, gustBells: Infinity,
   },
@@ -70,6 +77,7 @@ const DIFFS = {
     cloudSpeed: 100, cloudWarn: 0.95, cloudRest: [2.2, 3], soakTime: 3.4, soakSlow: 0.65,
     rodRest: 3.5, rodWarn: 2.1, rodZap: 1.2,
     rockSee: 8.5, rockWarn: 0.55, rockSpeed: 165, rockDizzy: 3.2,
+    penSee: 9.5, penWarn: 0.65, penSpeed: 350, penRest: 2, icicleWarn: 0.55,
     vineReach: 40,
     gustHops: 3, gustTickles: 4, gustBells: 11,
   },
@@ -85,6 +93,7 @@ const DIFFS = {
     cloudSpeed: 120, cloudWarn: 0.8, cloudRest: [1.6, 2.4], soakTime: 3.8, soakSlow: 0.6,
     rodRest: 2.9, rodWarn: 1.7, rodZap: 1.3,
     rockSee: 7.5, rockWarn: 0.55, rockSpeed: 185, rockDizzy: 2.6,
+    penSee: 8.5, penWarn: 0.6, penSpeed: 400, penRest: 1.6, icicleWarn: 0.5,
     vineReach: 36,
     gustHops: 4, gustTickles: 5, gustBells: 8,
   },
@@ -100,6 +109,7 @@ const DIFFS = {
     cloudSpeed: 140, cloudWarn: 0.7, cloudRest: [1.3, 2.0], soakTime: 4.2, soakSlow: 0.55,
     rodRest: 2.5, rodWarn: 1.4, rodZap: 1.4,
     rockSee: 6.5, rockWarn: 0.45, rockSpeed: 200, rockDizzy: 2.2,
+    penSee: 8, penWarn: 0.55, penSpeed: 440, penRest: 1.3, icicleWarn: 0.45,
     vineReach: 34,
     gustHops: 5, gustTickles: 6, gustBells: 6,
   },

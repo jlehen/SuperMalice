@@ -183,6 +183,11 @@ const Sound = (() => {
           for (let i = 0; i < 5; i++) noise({ filter: 'bandpass', f: 700 + (i % 2) * 500, d: 0.05, v: 0.2, q: 2, delay: 0.04 + i * 0.07 });
           tone({ type: 'triangle', f: 700, f2: 300, d: 0.35, v: 0.1, vib: 14, vibDepth: 120 });
           break;
+        case 'luge': // pouf ! dans la neige, puis « Wiiii ! » : un petit cri qui monte, comme sur un toboggan
+          noise({ filter: 'lowpass', f: 1400, f2: 500, d: 0.25, v: 0.3 });
+          tone({ type: 'sine', f: 700, f2: 1700, d: 0.55, v: 0.12, delay: 0.05, vib: 9, vibDepth: 40 });
+          tone({ type: 'triangle', f: 1400, f2: 2300, d: 0.5, v: 0.05, delay: 0.08 });
+          break;
         case 'hail': // tic ! un grêlon sur la tête, et des petites clochettes de glace qui tournent
           tone({ type: 'sine', f: 2600, f2: 1900, d: 0.08, v: 0.25 });
           noise({ filter: 'highpass', f: 5000, d: 0.05, v: 0.18 });
@@ -611,6 +616,69 @@ const Sound = (() => {
     squish() {
       noise({ filter: 'lowpass', f: 800, f2: 300, d: 0.07, v: 0.09 });
       tone({ type: 'sine', f: 520, f2: 320, d: 0.05, v: 0.035 });
+    },
+
+    // ---- Le Glacier Fumant ----
+    // elle dérape sur la glace : chhhh (un frottement tout aigu)
+    iceSkid() {
+      noise({ filter: 'highpass', f: 3200, d: 0.22, v: 0.06, a: 0.03 });
+      noise({ filter: 'bandpass', f: 5200, d: 0.12, v: 0.035, q: 3, delay: 0.05 });
+    },
+    // sur le ventre dans la neige : fffff
+    lugeSlide() {
+      noise({ filter: 'bandpass', f: rand(1800, 2600), d: 0.2, v: 0.05, q: 0.8, a: 0.03 });
+    },
+    // le nez tout rouge : « ah… ah… atchoum ! » (i : le premier ou le deuxième, un peu plus fort)
+    sneeze(i) {
+      tone({ type: 'sine', f: 520, f2: 760, d: 0.18, v: 0.05 });
+      noise({ filter: 'bandpass', f: 2400, f2: 900, d: 0.22, v: 0.3 + (i || 0) * 0.06, q: 0.7, delay: 0.02 });
+      tone({ type: 'triangle', f: 900, f2: 400, d: 0.12, v: 0.08, delay: 0.02 });
+      for (let k = 0; k < 3; k++) tone({ type: 'sine', f: 2600 + k * 500, d: 0.06, v: 0.035, delay: 0.16 + k * 0.07 });
+    },
+    // une stalactite de glace tremble : crr-crr, des petits craquements de glace
+    icicleShake() {
+      for (let k = 0; k < 4; k++) noise({ filter: 'bandpass', f: 3000 + k * 400, d: 0.04, v: 0.12, q: 4, delay: k * 0.08 });
+      tone({ type: 'sine', f: 1900, f2: 1500, d: 0.3, v: 0.03, vib: 30, vibDepth: 60 });
+    },
+    // elle se brise par terre : cling-clang, comme du verre
+    icicleCrash() {
+      noise({ filter: 'highpass', f: 2600, d: 0.3, v: 0.25 });
+      for (let k = 0; k < 5; k++) tone({ type: 'sine', f: 1700 + k * 520 + rand(-80, 80), d: 0.25, v: 0.07, delay: k * 0.035 });
+      tone({ type: 'sine', f: 180, f2: 90, d: 0.15, v: 0.2 });
+    },
+    // une fumerolle : pschhhh
+    steam() {
+      noise({ filter: 'bandpass', f: 1500, f2: 2600, d: 0.9, v: 0.05, q: 0.6, a: 0.2 });
+    },
+    // le pingouin grincheux ronchonne : grmbl (une petite voix grave qui tremblote)
+    penGrumble() {
+      tone({ type: 'sawtooth', f: 210, f2: 170, d: 0.22, v: 0.035, vib: 22, vibDepth: 25 });
+      tone({ type: 'sawtooth', f: 190, f2: 230, d: 0.16, v: 0.03, delay: 0.2, vib: 22, vibDepth: 25 });
+    },
+    // il a vu Malice : « Hé ! » (un petit cri fâché)
+    penAlert() {
+      tone({ type: 'square', f: 520, f2: 760, d: 0.12, v: 0.06 });
+      tone({ type: 'square', f: 760, f2: 600, d: 0.14, v: 0.05, delay: 0.12 });
+    },
+    // il plonge sur le ventre : flouf !
+    penDive() {
+      noise({ filter: 'lowpass', f: 1800, f2: 400, d: 0.3, v: 0.28 });
+      tone({ type: 'sine', f: 320, f2: 160, d: 0.2, v: 0.12 });
+    },
+    // il glisse : sur la glace, un sifflement tout fin ; sur la roche, ça frotte
+    penSlide(ice) {
+      if (ice) noise({ filter: 'highpass', f: 4200, d: 0.22, v: 0.035, a: 0.03 });
+      else noise({ filter: 'bandpass', f: 1200, d: 0.2, v: 0.05, q: 1, a: 0.03 });
+    },
+    // bonk ! contre un mur
+    penBonk() {
+      tone({ type: 'sine', f: 260, f2: 120, d: 0.25, v: 0.3 });
+      for (let k = 0; k < 3; k++) tone({ type: 'sine', f: 1900 + k * 300, d: 0.08, v: 0.04, delay: 0.18 + k * 0.1 });
+    },
+    // il redevient gentil : un petit air tout content (cui-cui !)
+    penHappy() {
+      tone({ type: 'triangle', f: 880, f2: 1320, d: 0.1, v: 0.09, delay: 0.08 });
+      tone({ type: 'triangle', f: 1320, f2: 1760, d: 0.12, v: 0.08, delay: 0.2 });
     },
 
     // ---- La Grande Glissade ----

@@ -113,6 +113,15 @@ const Scenery = (() => {
       plat: '#a5764a', platDark: '#6a4a2a', platLight: '#d4a26c',
       bramble: '#6a3a6a', brambleDark: '#2a1028', thorn: '#ffffff',
     },
+    // le Glacier Fumant : de la roche de volcan sombre (un peu chaude en dessous, glow), de la neige dessus, et des
+    // plaques de glace (les cases +, voir iceSprite)
+    glacier: {
+      dirt: '#55506a', dirtDark: '#38344c', dirtLight: '#726c8a', stripe: 'rgba(20,15,40,0.22)',
+      top: '#f4f9ff', topDark: '#b9cfe9', topLight: '#ffffff', blades: false, snow: true, glow: true,
+      brick: '#8fb6dc', brickDark: '#5a7fab', brickLight: '#d2e8ff',
+      plat: '#a5764a', platDark: '#6a4a2a', platLight: '#d4a26c',
+      bramble: '#5a4a7a', brambleDark: '#22182e', thorn: '#e8f6ff',
+    },
     badge: {
       dirt: '#5b4bb8', dirtDark: '#3e318a', dirtLight: '#7a6ad8', stripe: 'rgba(255,255,255,0.08)',
       top: '#7ff0ff', topDark: '#33b4d6', topLight: '#e8fdff', blades: false,
@@ -387,7 +396,7 @@ const Scenery = (() => {
     g.lineTo(lipR, 9);
     while (x > lipL) {
       const nx = Math.max(lipL, x - sc);
-      g.quadraticCurveTo((x + nx) / 2, th.cream ? 19 + (Math.round(x) % 16 === 0 ? 5 : 0) : 17, nx, 10);
+      g.quadraticCurveTo((x + nx) / 2, th.cream ? 19 + (Math.round(x) % 16 === 0 ? 5 : 0) : th.snow ? 15 + hash(v * 3.1 + x) * 6 : 17, nx, 10);
       x = nx;
     }
     g.closePath();
@@ -406,6 +415,18 @@ const Scenery = (() => {
         g.quadraticCurveTo(bx + 1, -bh * 0.4, bx + 3, -1);
         g.closePath();
         g.fill();
+      }
+    }
+    if (th.snow) {
+      // de petits reflets de givre qui brillent sur la neige
+      g.fillStyle = 'rgba(150,200,255,0.9)';
+      for (let i = 0; i < 2; i++) {
+        const sx = 8 + hash(v * 5.7 + i * 3) * 32;
+        g.save();
+        g.translate(sx, 3 + i * 3);
+        g.rotate(0.785);
+        g.fillRect(-1.2, -1.2, 2.4, 2.4);
+        g.restore();
       }
     }
     if (th.cream) {
@@ -510,6 +531,123 @@ const Scenery = (() => {
       g.fillStyle = 'rgba(50,25,8,0.75)';
       if (l) g.fillRect(x0, 0, 2, T);
       if (r) g.fillRect(x1 - 2, 0, 2, T);
+    });
+  }
+
+  // ---------- Les plaques de glace du Glacier Fumant ----------
+  // Un bloc de glace bleutée : plus clair en haut, des reflets en biais, une fissure de temps en temps, un bord bien
+  // net là où il n'y a ni glace ni roche à côté (m : t, l, r, b), et de petits glaçons qui pendent dessous.
+  function iceSprite(m, v) {
+    return sprite(`ice:${m.t | 0}${m.l | 0}${m.r | 0}${m.b | 0}:${v}`, TILE + PAD * 2, TILE + PAD * 2, (g) => {
+      const T = TILE;
+      g.translate(PAD, PAD);
+      const R = 10;
+      cornerRect(g, 0, 0, T, T, m.t && m.l ? R : 0, m.t && m.r ? R : 0, m.b && m.r ? R : 0, m.b && m.l ? R : 0);
+      g.save();
+      g.clip();
+      const gr = g.createLinearGradient(0, 0, T * 0.4, T);
+      gr.addColorStop(0, m.t ? '#e6f7ff' : '#bfe4fb');
+      gr.addColorStop(0.5, '#a9d8f6');
+      gr.addColorStop(1, '#86bfe9');
+      g.fillStyle = gr;
+      g.fillRect(0, 0, T, T);
+      // des reflets en biais (ils se raccordent d'une case à l'autre)
+      g.fillStyle = 'rgba(255,255,255,0.35)';
+      for (const k of [-20, 14]) {
+        g.beginPath();
+        g.moveTo(k + 6, 0);
+        g.lineTo(k + 16, 0);
+        g.lineTo(k + 34, T);
+        g.lineTo(k + 24, T);
+        g.closePath();
+        g.fill();
+      }
+      // des bulles prises dans la glace
+      g.fillStyle = 'rgba(255,255,255,0.55)';
+      for (let i = 0; i < 3; i++) {
+        circlePath(g, 6 + hash(v * 4.3 + i) * 36, 10 + hash(v * 7.1 + i * 2) * 32, 1 + hash(v + i * 3) * 1.4);
+        g.fill();
+      }
+      // une fissure, parfois
+      if (v % 2 === 0) {
+        g.strokeStyle = 'rgba(60,120,190,0.45)';
+        g.lineWidth = 1.2;
+        g.beginPath();
+        const fx = 10 + hash(v * 2.7) * 26;
+        g.moveTo(fx, m.t ? 8 : 0);
+        g.lineTo(fx + 6, 20);
+        g.lineTo(fx + 2, 30);
+        g.moveTo(fx + 6, 20);
+        g.lineTo(fx + 13, 24);
+        g.stroke();
+      }
+      // ombre bleue sur les bords visibles
+      const edge = (x0, y0, x1, y1) => {
+        const e = g.createLinearGradient(x0, y0, x1, y1);
+        e.addColorStop(0, 'rgba(30,80,150,0.32)');
+        e.addColorStop(1, 'rgba(30,80,150,0)');
+        g.fillStyle = e;
+        g.fillRect(0, 0, T, T);
+      };
+      if (m.l) edge(0, 0, 8, 0);
+      if (m.r) edge(T, 0, T - 8, 0);
+      if (m.b) edge(0, T, 0, T - 8);
+      g.restore();
+      // le dessus, tout brillant : c'est là qu'on glisse
+      if (m.t) {
+        g.fillStyle = 'rgba(255,255,255,0.95)';
+        roundRectPath(g, m.l ? 5 : 0, 1, T - (m.l ? 5 : 0) - (m.r ? 5 : 0), 3.2, 1.6);
+        g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.9)';
+        for (let i = 0; i < 2; i++) {
+          const sx = 8 + hash(v * 3.9 + i * 5) * 30;
+          g.save();
+          g.translate(sx, 8);
+          g.rotate(0.785);
+          g.fillRect(-1.5, -1.5, 3, 3);
+          g.restore();
+        }
+      }
+      // le contour
+      g.strokeStyle = '#4a86c0';
+      g.lineWidth = 2;
+      g.beginPath();
+      if (m.t) {
+        g.moveTo(m.l ? 0 : 0, m.l ? R : 0);
+        if (m.l) g.arcTo(0, 0, R, 0, R);
+        g.lineTo(m.r ? T - R : T, 0);
+        if (m.r) g.arcTo(T, 0, T, R, R);
+      }
+      if (m.l) {
+        g.moveTo(0, m.t ? R : 0);
+        g.lineTo(0, m.b ? T - R : T);
+      }
+      if (m.r) {
+        g.moveTo(T, m.t ? R : 0);
+        g.lineTo(T, m.b ? T - R : T);
+      }
+      if (m.b) {
+        g.moveTo(m.l ? R : 0, T);
+        g.lineTo(m.r ? T - R : T, T);
+      }
+      g.stroke();
+      // de petits glaçons qui pendent dessous
+      if (m.b) {
+        g.fillStyle = '#cdeeff';
+        g.strokeStyle = '#4a86c0';
+        g.lineWidth = 1;
+        for (let i = 0; i < 2; i++) {
+          const ix = 10 + i * 20 + hash(v * 6.1 + i) * 8;
+          const ih = 4 + hash(v * 8.3 + i * 2) * 4;
+          g.beginPath();
+          g.moveTo(ix - 3, T - 0.5);
+          g.lineTo(ix, T + ih);
+          g.lineTo(ix + 3, T - 0.5);
+          g.closePath();
+          g.fill();
+          g.stroke();
+        }
+      }
     });
   }
 
@@ -4203,6 +4341,82 @@ const Scenery = (() => {
       });
     },
 
+    // Le Glacier Fumant : un ciel froid du matin, le sommet du volcan tout blanc de neige (qui fume, avec la lueur du
+    // cratère), des montagnes de glace bleues, de grandes colonnes de vapeur au loin, et des flocons qui tombent tout
+    // doucement.
+    glacier(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#8fb8ec'], [0.5, '#cfe0fa'], [1, '#ffd8cc']]);
+      // le sommet du volcan
+      const vx = 620 - (cx * 0.04) % 2000;
+      const vy = 440 - cy * 0.05;
+      ctx.fillStyle = '#6a6488';
+      ctx.beginPath();
+      ctx.moveTo(vx - 400, vy);
+      ctx.lineTo(vx - 70, vy - 300);
+      ctx.quadraticCurveTo(vx, vy - 310, vx + 70, vy - 300);
+      ctx.lineTo(vx + 400, vy);
+      ctx.closePath();
+      ctx.fill();
+      // sa neige, qui descend en langues
+      ctx.fillStyle = '#f4f8ff';
+      ctx.beginPath();
+      ctx.moveTo(vx - 70, vy - 300);
+      ctx.quadraticCurveTo(vx, vy - 310, vx + 70, vy - 300);
+      ctx.lineTo(vx + 170, vy - 205);
+      for (let i = 0; i <= 8; i++) {
+        const xx = vx + 170 - i * 42.5;
+        ctx.lineTo(xx, vy - 205 + (i % 2 ? 40 + hash(i) * 30 : 0) - Math.abs(i - 4) * 4);
+      }
+      ctx.closePath();
+      ctx.fill();
+      const cg = ctx.createRadialGradient(vx, vy - 300, 5, vx, vy - 300, 110);
+      cg.addColorStop(0, 'rgba(255,160,90,0.7)');
+      cg.addColorStop(1, 'rgba(255,140,90,0)');
+      ctx.fillStyle = cg;
+      circlePath(ctx, vx, vy - 300, 110);
+      ctx.fill();
+      for (let i = 0; i < 6; i++) {
+        const ph = (t * 0.12 + i / 6) % 1;
+        ctx.fillStyle = `rgba(235,240,250,${0.6 * (1 - ph)})`;
+        circlePath(ctx, vx + Math.sin(i * 2 + t * 0.3) * 30 + ph * 70, vy - 315 - ph * 210, 28 + ph * 46);
+        ctx.fill();
+      }
+      // les montagnes de glace
+      const off2 = cx * 0.25;
+      hillPath(ctx, off2, 400 - cy * 0.2, 80, 0.006, 1.2, 30);
+      stripedFill(ctx, '#a8c8ec', 'rgba(255,255,255,0.22)', off2, 30);
+      // les colonnes de vapeur, au loin
+      forEachItem(cx * 0.32, 420, 5, (x, i) => {
+        const by = 430 - cy * 0.25;
+        for (let k = 0; k < 4; k++) {
+          const ph = (t * 0.16 + k / 4 + i * 0.37) % 1;
+          ctx.fillStyle = `rgba(255,255,255,${0.42 * (1 - ph)})`;
+          circlePath(ctx, x + Math.sin(t * 0.7 + k + i) * 10, by - ph * 170, 14 + ph * 30);
+          ctx.fill();
+        }
+      });
+      // les collines de roche, avec des taches de neige
+      const off3 = cx * 0.5;
+      hillPath(ctx, off3, 470 - cy * 0.4, 44, 0.011, 2.4);
+      ctx.fillStyle = '#7a7296';
+      ctx.fill();
+      forEachItem(off3, 130, 17, (x, i, h) => {
+        const wx = x + off3;
+        const by = 470 - cy * 0.4 - 44 * (0.55 * Math.sin(wx * 0.011 + 2.4) + 0.3 * Math.sin(wx * 0.011 * 2.3 + 2.4 * 1.7) + 0.15 * Math.sin(wx * 0.011 * 5.1 + 2.4 * 2.9));
+        ctx.fillStyle = 'rgba(244,248,255,0.85)';
+        ellipsePath(ctx, x, by + 4, 22 + h * 16, 6 + h * 3);
+        ctx.fill();
+      });
+      // des flocons qui tombent tout doucement
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (let i = 0; i < 26; i++) {
+        const x = ((hash(i * 1.7) * 1100 - cx * 0.3 + Math.sin(t * 0.8 + i) * 20) % 1000 + 1000) % 1000 - 20;
+        const y = ((hash(i * 3.1) * 600 + t * (24 + hash(i) * 20)) % 600) - 30;
+        circlePath(ctx, x, y, 1.4 + hash(i * 5.3) * 1.6);
+        ctx.fill();
+      }
+    },
+
     // Monde des badges : nuit violette, étoiles et grandes médailles qui flottent.
     badge(ctx, cx, cy, t) {
       sky(ctx, [[0, '#140c42'], [0.55, '#33197a'], [1, '#7a3aa8']]);
@@ -4974,6 +5188,42 @@ const Scenery = (() => {
         circlePath(ctx, 9, -3, 4);
         ctx.fill();
       }
+    } else if (theme === 'glacier') {
+      if (v < 0.4) {
+        // de petits cristaux de glace
+        ctx.fillStyle = '#cdeeff';
+        ctx.strokeStyle = '#4a86c0';
+        ctx.lineWidth = 1;
+        for (let k = -1; k <= 1; k++) {
+          const h = k === 0 ? 13 : 8;
+          ctx.beginPath();
+          ctx.moveTo(k * 5 - 3, 0);
+          ctx.lineTo(k * 6, -h);
+          ctx.lineTo(k * 5 + 3, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+      } else if (v < 0.7) {
+        // un petit tas de neige
+        ctx.fillStyle = '#ffffff';
+        ellipsePath(ctx, 0, -2, 12, 6);
+        ctx.fill();
+        ctx.fillStyle = '#d6e6f8';
+        ellipsePath(ctx, 3, 0, 8, 2.4);
+        ctx.fill();
+      } else {
+        // une fleur de givre, toute bleue
+        ctx.rotate(sway * 0.5);
+        ctx.strokeStyle = '#6a8aa8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -13);
+        ctx.stroke();
+        ctx.translate(0, -15);
+        Art.snowflake(ctx, 5);
+      }
     } else if (theme === 'badge') {
       // petit cristal lumineux
       const a = 0.65 + 0.35 * Math.sin(t * 3 + v * 20);
@@ -5497,6 +5747,7 @@ const Scenery = (() => {
     windmill, millPlank, rain,
     lightningRod, lightningRodSky, lighthouse,
     THEMES, PAD, setScale, groundSprite, screeSprite, boulderSprite, brickSprite, lutinSprite, plugSprite, platformSprite, thornSprite,
+    iceSprite, steamVent: (ctx, x, y, t, v) => Art.steamPuffs(ctx, x, y, t, v),
     rainbowSprite, bounceSprite, capSprite, capRim, stalkSprite, puddle, drawLavaRun, drawChocoRun, drawBackground, decor, fluffyCloud, cornerRect,
     drawMudRun, mudMist, stilt, cabinSprite, CABIN_H, ropeBridge,
     trunkSprite, crown, riverBed, drawWaterRun, reeds, burrowCell, burrowSunbeam, burrowLantern,

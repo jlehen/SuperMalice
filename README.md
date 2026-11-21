@@ -410,6 +410,41 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      rebondit très haut ou saute très loin. Le niveau descend bien plus bas que l'écran : la caméra suit la pente, et
      regarde loin devant pendant la glissade ; le fond monte doucement, pour qu'on voie toujours le volcan. Le Lutin ne
      peut pas poser son bloc sur la pente (seulement en l'air, au-dessus d'un trou).
+   - 4-3 **Le Glacier Fumant** : de la glace sur le volcan, et de la vapeur qui sort des **fumerolles**, là où la glace
+     touche la roche chaude (ou la lave). Sur les **plaques de glace**, ça glisse : on démarre doucement, on freine mal
+     (il faut lâcher la flèche bien avant, ou appuyer de l'autre côté), on va un peu plus vite, et on garde son élan,
+     même en sautant (on saute plus loin, mais on retombe en glissant). Ça vaut pour les 16 personnages ; après un
+     pouvoir qui va très vite (charge, voiture, roulade…), on ralentit jusqu'à la vitesse de la glace, et la glissade du
+     Pingouin va un peu plus loin (l'élan qui reste après). Pendant qu'on a mal, on accroche (un coup ne fait jamais
+     glisser jusque dans la lave). Des **stalactites de glace** pendent du plafond : quand Malice approche, elles
+     tremblent (crac !), puis tombent. En marchant ou en courant, elles tombent juste derrière elle ; arrêtée dessous
+     (ou en glissant tout doucement), il faut s'écarter pendant qu'elles tremblent. Plus elles tremblent longtemps (en
+     Bébé), plus elles se mettent à trembler de loin : ce n'est jamais plus dur. Elles rendent gentils les pingouins sur
+     qui elles tombent. Nouvel ennemi : les **pingouins grincheux** (bleu ardoise, avec un bonnet jaune à pompon et de
+     gros sourcils blancs tout froncés : rien à voir avec le Pingouin qu'on joue, noir avec son écharpe rouge). Ils se
+     dandinent en ronchonnant ; quand ils voient Malice devant eux, « ! », ils se penchent en agitant leurs nageoires,
+     puis plongent sur le ventre et glissent vers elle : sur la roche, ils s'arrêtent vite ; sur la glace, ils glissent
+     très loin, jusqu'à un mur (bonk, la tête qui tourne) ou jusqu'au bord d'un trou, où ils freinent (« Ouf ! »).
+     **Pour les éviter**, on saute par-dessus pendant qu'ils glissent (ils sont tout plats ; sur leur dos, on rebondit
+     sans rien leur faire). **Pour s'en débarrasser**, on leur saute sur la tête quand ils sont debout (en se dandinant,
+     en se préparant, en se relevant) : ils redeviennent tout gentils, sourient, font coucou et des petits cœurs. ↓ en
+     l'air au-dessus d'un pingouin qui glisse l'arrête net (la tête qui tourne) ; le caramel le colle, les chips le
+     rendent trop gros pour glisser, et les pouvoirs qui renversent les ennemis marchent. Ils ne plongent pas pendant
+     qu'on lit une fleur, ni quand Malice est tout contre eux, et restent sur place pendant qu'on la lit ; une petite
+     bosse de roche ou un trou les sépare des drapeaux. En Bébé, ils voient Malice de plus loin et glissent moins vite :
+     quand elle marche vers eux, ils plongent plus tôt, et on a plus de temps pour sauter. Onze parties de plus en plus
+     dures (le robot met un peu moins de 3 minutes) : la première glace, les marches de glace, la grotte de glace et ses
+     stalactites (une fleur qui éternue à cause de la vapeur ; au bout, une marche de roche d'où l'on redescend sur la
+     glace, juste sous une stalactite), les pingouins (sur la roche, puis sur la glace), le **gros glaçon creux** (la
+     cachette : on voit ses bonbons à travers la glace ; on écrase un bloc lutin de son toit, ou on trouve sa porte de
+     derrière ; dedans, un gros œil bonbon), les plateformes au-dessus de la lave (on arrive sur la glace, sous une
+     stalactite, et un pingouin glisse vers Malice) et l'ascenseur, le **raccourci** (un champignon sur une planche fait
+     monter sur une longue plaque de glace, avec deux trous et des sucettes ; en bas, la grotte aux pingouins et aux
+     stalactites), le grand lac de lave et sa longue île de glace (un pingouin, puis, au bout de l'île, un grand saut :
+     il faut garder son élan), les marches de glace sous les stalactites, la grande montée aux deux ascenseurs (un
+     pingouin sur la glace de chaque palier ; tout en haut, un saut de 5 cases avec élan, deux marches plus bas, sous
+     une stalactite), et le grand pont de glace (cinq travées, quatre pingouins, six stalactites). Un drapeau toutes les
+     70 cases environ.
    - ⭐ **Stage d'entraînement : le Défi de la Moustache-Grappin** → on gagne le badge *Moustache-Grappin*
 5. **Le Cœur du Volcan** — 5-1 **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (avec Malice, il faut utiliser les deux badges)
 
@@ -561,6 +596,8 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Grenouille sauteuse | toute verte d'un coup ! Accroupie comme une grenouille, la gorge qui se gonfle, elle fait « Croa ! » deux fois, puis elle reprend sa couleur |
 | Grêlon de Bourrasque | « Brrr, un grêlon ! » Toc ! sonnée, la tête qui dodeline, **des étoiles et des flocons de neige tournent autour de sa tête**, et elle grelotte en se serrant dans ses bras, toute bleue de froid (son éclair au chocolat éternué, c'est l'électrocution des éclairs) |
 | Petit nuage grognon | « Splash ! » toute trempée par sa pluie, les mains sur la tête, puis elle **s'ébroue comme un chien** : tout son corps se tortille, et les gouttes volent tout autour d'elle ! Encore mouillée, elle avance moins vite un moment (des gouttes tombent d'elle, et ses pas font « flic, floc ») |
+| Pingouin grincheux qui glisse | « Wiiii ! » elle part en **toboggan sur le ventre**, les bras tendus devant elle, toute blanche de neige, jusqu'à s'arrêter (sur la glace, elle va bien plus loin ; au bord d'un trou, elle s'arrête toujours) ; elle se relève, et son **nez devient tout rouge**, qui brille un peu… « Ah… ah… **Atchoum !** » : elle **éternue des flocons de neige**, deux fois (elle peut rebouger dès qu'elle est relevée) |
+| Stalactite de glace | une grosse bosse soulève sa casquette, comme les ronces qui pendent |
 | Hérisson de roche qui roule | « Badaboum ! » roulée dans une **boule de cailloux** (on la voit toute petite qui tourne dedans), elle en ressort **aplatie comme une crêpe**, les bras et les jambes écartés comme une étoile de mer, toute grise de poussière ; puis elle se regonfle d'un coup : « **Pop !** » (elle peut rebouger dès qu'elle est sortie de la boule, toute plate) |
 | Sanglier qui fonce | projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe la tête en bas, les jambes en l'air ; une taupe sort de terre à côté d'elle, toute interloquée (« ? »), et replonge aussitôt. Dans la boue, plof : elle s'y enfonce tout de suite (vite, il faut sauter !) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre) |
 
@@ -640,7 +677,7 @@ La légende est en haut du fichier (`#` = sol, `~` = lave, `w` = flaque d'eau, `
 `x` = l'axe des ailes d'un moulin à vent (tout autour, rien de solide), `a` = petit nuage grognon,
 `z` = paratonnerre (une plaque de métal qu'on traverse par dessous, et qui grésille de temps en temps), `%` = bouchon en
 chocolat (seul un éclair lancé avec le bocal le fait fondre), `>` = éboulis (la pente de cailloux où l'on glisse),
-`0` = hérisson de roche, `i` = lucioles, `j` = fleur-lanterne,
+`0` = hérisson de roche, `+` = plaque de glace (on y glisse), `1` = pingouin grincheux, `i` = lucioles, `j` = fleur-lanterne,
 `J` = liane, `q` = écureuil, `k` = nid, `p` = le nid secret de l'oisillon qui donne une vie…). Un niveau peut avoir un terrier
 secret sous terre (`terrier` : voir la légende), se passer la nuit (`dark: "nuit"`, avec un grand champ éclairé
 par la lune : `clairDeLune`), monter tout en haut d'un arbre creux (`grimpe`, `tronc`, `couronne` : voir le Vieux Chêne),
@@ -651,7 +688,8 @@ lanterne sont dans le décor), ou être bien plus haut que l'écran, avec un coi
 Défi du Super Saut, dont le décor `sousbois` a des branches `=` sur les troncs `|`, et des feuillages de décor d'où
 pendent les lianes : `feuillage`), ou avoir de longues pentes de cailloux où l'on glisse (`glissades` : chaque pente
 est une ligne droite, `[première colonne, rangée du haut, dernière colonne, rangée du bas]`, et dans la carte, des `>`
-là où elle passe, de la terre `#` dessous ; voir la Grande Glissade).
+là où elle passe, de la terre `#` dessous ; voir la Grande Glissade), ou être tout en glace (`theme: "glacier"` : de la
+roche de volcan sous la neige, des plaques de glace `+`, et les stalactites `A` sont en glace ; voir le Glacier Fumant).
 Il suffit de modifier les lettres et de recharger la page.
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
@@ -733,6 +771,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Le combat contre Bourrasque | une tarentelle, qui tourne comme sa toupie : do mineur en 12/8 à toute allure, la mélodie à l'accordéon, la guitare qui gratte « oum-pa-pa », la contrebasse qui sautille, le tambourin et ses grelots ; au refrain, les cordes tourbillonnent avec un grand coup de vent, et à la fin le glockenspiel tombe comme des grêlons |
   | Stage du Bocal à éclairs | funk, tout électrique : basse « slap » qui saute d'octave, clavinet sur les contretemps (accords de neuvième), la mélodie aux cuivres tout en staccato, le saxophone au milieu, charleston en doubles croches et caisse claire avec des notes fantômes |
   | Les Pentes du Volcan (les Pentes du Volcan, la Grande Glissade) | valse à 3/4 en mode lydien, accordéon et tuba |
+  | Le Glacier Fumant | la même valse, un peu plus lente et toute givrée : la mélodie au célesta, le glockenspiel en écho une octave plus haut (des glaçons qui tintent), la contrebasse en pizzicati, la harpe sur les « pah-pah » ; au refrain, l'accordéon revient tout doucement en dessous |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |
   | La Grotte aux Cristaux | do mineur, lent et mystérieux : la mélodie au célesta revient en écho, bourdon d'orgue, gouttes d'eau |

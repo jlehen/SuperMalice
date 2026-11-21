@@ -42,7 +42,7 @@
     const withBird = P.has('oiseau');
     // poses communes, puis les poses spéciales des pouvoirs
     const POSES = ['idle', 'walk', 'run', 'jump', 'fall', 'pound', 'crouch', 'throw', 'hang', 'hurt', 'win', 'hold', 'float', 'vine', 'slip',
-      'ouch:butt', 'ouch:ko', 'ouch:soot', 'ouch:zap', 'ouch:wet', 'ouch:slime', 'ouch:dirt', 'ouch:pins', 'ouch:spin', 'ouch:croak', 'ouch:shake', 'ouch:hail', 'ouch:crepe', 'surf', 'star', 'power1', 'power2'];
+      'ouch:butt', 'ouch:ko', 'ouch:soot', 'ouch:zap', 'ouch:wet', 'ouch:slime', 'ouch:dirt', 'ouch:pins', 'ouch:spin', 'ouch:croak', 'ouch:shake', 'ouch:hail', 'ouch:crepe', 'ouch:luge', 'surf', 'star', 'power1', 'power2'];
     // les poses spéciales des pouvoirs (voir pouvoirs.js), et Malice en boule (la roulade)
     const POWER_POSES = {
       malice: ['roll'], lutin: ['magic'], bonbon: ['ball'], ronaxel: ['kick', 'siu'], poussin: ['flap'], luisy: ['glide'],
@@ -111,6 +111,8 @@
           if (c.p === 'ouch:hail') Object.assign(o.ouch, { t: 0.4 + (t % 1.2) * 0.4, dur: 1.7 });
           // (le hérisson de roche : roulé dans la boule de cailloux, puis aplati comme une crêpe, puis pop !)
           if (c.p === 'ouch:crepe') Object.assign(o.ouch, { t: (t % 1.6) * 0.95, dur: 1.55 });
+          // (le pingouin grincheux : à plat ventre en toboggan, il se relève, puis le nez tout rouge, et atchoum !)
+          if (c.p === 'ouch:luge') Object.assign(o.ouch, { t: t % 3.1, dur: Art.LUGE.slide + Art.LUGE.up + Art.LUGE.nose, upT: Art.LUGE.slide });
         } else if (c.p === 'star') {
           pose = 'run';
           o.star = true;
