@@ -21,32 +21,61 @@ un raccourci ou une cachette, avec un drapeau tous les 60 à 70 cases environ, e
 boss) tout au bout. Chaque niveau garde sa découverte : les parties ajoutées n'utilisent que ce qu'on a déjà
 rencontré avant (pas de hérisson dans le 2-1, ni de grenouille dans le 3-1). Les stages d'entraînement ne changent
 pas. Ce qu'on trouve dans les parties ajoutées :
-- 1-1 : un raccourci en planches plein de bonbons, un lac de lave, une colline creuse avec sa cachette (on casse le
-  bloc lutin du toit), l'escalier des gros yeux, une grande course (en courant, on attrape les sucettes au-dessus des
-  trous), et un dernier défi au-dessus de la lave.
-- 1-2 : des pissenlits en relais, des escargots dans les branches, un courant d'air qui mène au chemin du haut (ou
-  celui du bas, gardé), et deux très longs vols.
-- 1-3 : des nénuphars grignotés, des pissenlits au-dessus de la rivière, une deuxième galerie souterraine (un bloc
-  lutin caché sur la berge, un lapin qui parle, des sucettes), deux chemins au choix, et les rapides.
-- 1-4 : la colline aux taupes, la grande rivière, le grand vol (s'arrêter dans le courant d'air pour se poser sur le
-  pilier ; tout en haut, le chemin des étoiles), les planches au-dessus des taupes, le marais des lucioles.
-- 2-1 : escargots, gros yeux, coccinelles, pissenlits et courants d'air, deux ruisseaux à nénuphars, un raccourci en
-  briques et une branche secrète.
-- 2-2 : des chapeaux au-dessus des ronces, des plateformes qui bougent, un gouffre qu'on traverse en pissenlit, des
-  champignons bleus au-dessus d'un très grand trou, et des buttes à hérissons.
-- 2-3 : des cabanes perchées, des radeaux (plateformes qui bougent), un village sur pilotis, le gué des sangliers,
-  des ponts qui dansent avec un grenier secret (le champignon caché dans la boue, en gardant le saut), et quatre
-  sangliers pour finir.
-- 2-4 : quatorze étages de plus : le grenier des écureuils, les champignons bleus, les grands trous à lianes, et le
-  haut du tronc avec un nid secret.
-- 3-1 : des gués à champignons bleus dans le chocolat, les visiteurs de la Forêt (hérissons et sangliers) sous
-  l'orage, et une crête pleine de Rubik's cubes.
-- 3-2 : deux moulins côte à côte au-dessus du vide, le lac de chocolat (un pissenlit planté sur un petit nuage) et un
-  raccourci de petits nuages au-dessus de l'orage, puis la grande traversée à trois moulins.
-- 3-3 : neuf étages de plus : l'orage revient, la colline percée (des trous jusqu'à l'eau), un raccourci de petits
-  nuages, et le sommet ; les escaliers prennent des nuages qui bougent, et l'eau monte de plus en plus vite.
-- 3-4 : dix paliers de plus, de plus en plus de paratonnerres sur les escaliers, une planche cachée au-dessus d'un
-  bloc lutin ; un palier sur deux est calme, avec un drapeau.
+- 1-1 : les grands sauts (en courant, on attrape les sucettes), des collines qui font le dos rond, un pont de planches
+  à deux étages au-dessus de la lave, une colline creuse (on casse le bloc lutin du toit, on ressort de l'autre côté),
+  un grand cœur dessiné en bonbons, le lac de lave et ses îles, le château de briques des gros yeux (par les remparts
+  ou par en dessous), la ronde des gros yeux entre deux murets, l'escalier du géant (et le grand plongeon dans la
+  flaque), et l'arrivée en haut d'une colline.
+- 1-2 : un arbre géant qu'on grimpe en colimaçon, une cabane perchée en caisses (avec ses blocs lutin sous le toit),
+  trois courants d'air à la suite et des ronds de bonbons, la farandole des gros yeux (on saute de tête en tête), le
+  puits de bonbons entre deux troncs géants, la cheminée de feuilles (le courant d'air monte entre les caisses), des
+  brindilles toutes petites, et un dernier grand vol jusqu'à la grande souche.
+- 1-3 : un vieux pont cassé (par-dessus ou par-dessous), des bassins en escalier, le grand rondin baveux des
+  escargots, l'île au trésor et ses vieilles colonnes, les rapides et le tunnel secret des lapins qui passe sous toute
+  la rivière (un bloc lutin sur la berge, à côté d'un lapin), un grand vol sans un seul nénuphar, et trois îles qui
+  glissent, de plus en plus petites.
+- 1-4 : le chemin des lanternes au-dessus du vide (là où ça brille, il y a de la terre), le potager des taupes (elles
+  ne creusent pas sous les dalles de briques), la Grande Casserole dessinée en bonbons dans le ciel, une vieille
+  maison de briques toute noire (on monte à l'étage par les trous du plafond), la colline aux lucioles et son vol de
+  nuit, la mare aux lucioles (elles dansent au-dessus des nénuphars solides), les ronces et la bave.
+- 2-1 : le chemin des souches au-dessus des ronces, trois sapins où guetter les gros yeux qui foncent, le couloir des
+  ronces (marche, saute, marche, saute), un ravin (en bas, les ennemis ; en haut, un pissenlit et un courant d'air),
+  le grand roncier (par-dessus, ou par le tunnel), les marches qui glissent des escargots, et le labyrinthe de ronces
+  à trois étages.
+- 2-2 : les montagnes russes de chapeaux au-dessus du vide, une falaise que seul le champignon bleu fait franchir, le
+  jardin de ronces (de champignon bleu en champignon bleu), les trois marches des hérissons, les chapeaux qui se
+  promènent (et celui qui fait l'ascenseur), le grand parasol (dessus, la coccinelle ; dessous, les hérissons), et le
+  grand trampoline.
+- 2-3 : les enclos des sangliers (par les cabanes, ou en bas pour les bonbons), le pont-hamac, la traversée en radeau,
+  le bain de boue (le pont est aux hérissons : plof, plof, plof !), « dessus, dessous » (un pont et des ronces, tantôt
+  dessus, tantôt dessous), les monte-charges jusqu'au grand pont, et le champignon du marais qui envoie sur les
+  cabanes perchées.
+- 2-4 : douze étages de plus, chacun avec son idée : les étagères des écureuils, le nœud du bois, le nid secret, la
+  liane du sanglier, le conduit des écureuils, les deux champignons bleus, le nid de hérissons, les lianes en
+  escalier, le grand pilier, le grenier aux caisses, la liane et le champignon bleu, le palier des nids.
+- 3-1 : les abris de briques (sous un toit, la foudre ne touche pas), les orgues de pierre, l'éclair en bonbons, les
+  trous à rebonds, les terrasses des hérissons, le lac aux radeaux, la montagne fendue par la foudre (une salle au
+  trésor dedans, un pissenlit au sommet) et la crête de la tempête.
+- 3-2 : la grande roue (des bonbons en cercle autour du moulin), le théâtre des grenouilles, le plongeoir, le parapluie
+  de bonbons, les moulins jumeaux (par terre, ou de planche en planche jusqu'aux nuages), l'arche de nuages, le grand
+  vol au-dessus du lac et le dernier moulin.
+- 3-3 : neuf étages de plus, chacun avec sa façon de monter : les îles, la pyramide, le grand zigzag, la cheminée de
+  pierre, l'escalier qui fait boing, la maison inondée (porte, grenier, fenêtre, toit), le moulin, les nuages-bus et
+  la grande échelle.
+- 3-4 : six étages de plus : le pont des paratonnerres, le monte-charge du gardien, sa chambre (à l'abri), l'ancre en
+  bonbons, les deux escaliers (paratonnerres tout droit, ou planches plus longues) et les paratonnerres géants.
+- 4-1 : le téléphérique (des cabines qui montent en biais au-dessus de la lave), les orgues de basalte, le bébé volcan
+  (il crache des bonbons), les abris sous l'orage, le canyon des cubes, la route en lacets (trois étages, deux
+  ascenseurs), le rocher creux du nuage grognon, le moulin égaré, et le dos du dragon endormi.
+- 4-2 : les montagnes russes à champignons, le toboggan dans la montagne, la crevasse secrète et sa galerie au trésor,
+  le grand vol plané en pissenlit au-dessus du canyon, le jeu de quilles des hérissons (on y monte par un moulin), la
+  glissade à deux étages, saute-mouton au-dessus de trois crevasses, et les rochers à ronces.
+- 4-3 : la patinoire des pingouins (en cuvette, ou par les planches du dessus), le grand toboggan de glace, les icebergs
+  sur le lac de lave, la cathédrale de glace et ses stalactites en tuyaux d'orgue, les séracs et leurs crevasses, la
+  grande vague gelée (un trésor dans son rouleau).
+- 4-4 : l'échelle de la falaise (des planches dans une faille, et un champignon express), les trois marmites de lave,
+  les dômes de glace et leur pingouin, les geysers du lac (trois plateformes qui montent ensemble), le souffle du
+  cratère (un pissenlit et la vapeur qui remonte tout en haut), l'aigle en bonbons.
 
 Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pendant qu'une fleur toute proche parle.
 
@@ -844,6 +873,18 @@ des pierres de lave, `[début, fin, n]` pour en cracher `n` de plus, `[début, f
 (`k` fois l'écart habituel) ; `glacons` : les stalactites en glace ; `nid` : le grand nid de Maman Aigle dans le décor ;
 voir le Bord du Cratère).
 Il suffit de modifier les lettres et de recharger la page.
+
+**Les tableaux.** Un long niveau peut s'écrire en petits morceaux, les `tableaux`, posés bout à bout de gauche à
+droite (à la place de `map`) : chaque tableau a un nom, une idée, et sa petite carte. C'est comme ça que sont écrits
+les niveaux de la Prairie : pour inventer un passage, on glisse un tableau de plus entre deux autres. Les colonnes
+écrites dans un tableau (`updrafts`, `storms`, `winds`, `galeries`, `clairDeLune`, `arene`) se comptent depuis son
+bord gauche. Pour vérifier qu'on peut toujours aller jusqu'au bout : `node outils/franchissable.js 0` (0 = le premier
+niveau de `LEVELS`, 1 le suivant…). L'outil essaie tous les sauts de Malice en marchant (et les vols en pissenlit),
+et dit si l'arrivée est atteinte, quels bonbons sont hors d'atteinte, et s'il y a des culs-de-sac. Il ne connaît que
+le sol, les plateformes, la lave, les ronces, l'eau, les nénuphars et les pissenlits (pas les plateformes qui
+bougent, ni les champignons).
+Un niveau où l'on grimpe s'écrit de même en `etages`, empilés du bas vers le haut (voir « LES ÉTAGES » dans
+`js/levels.js`).
 
 Chaque niveau dit à quel monde il appartient (`world: 1` = la Prairie…, la liste des mondes `WORLDS` est juste
 au-dessus des niveaux). Pour **ajouter un niveau à un monde**, il suffit d'écrire un niveau de plus avec son `world` :
