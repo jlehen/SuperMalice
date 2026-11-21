@@ -54,10 +54,12 @@ function ellipsePath(ctx, x, y, rx, ry, rot) {
 
 // Sauvegarde dans le navigateur (niveaux débloqués, difficulté, son).
 // Les badges gagnés sont aussi gardés à part (badgeKey) : une ancienne version du jeu restée ouverte
-// dans un vieil onglet réécrit la sauvegarde sans eux, mais ne touche pas à celle-là.
+// dans un vieil onglet réécrit la sauvegarde sans eux, mais ne touche pas à celle-là. Pareil pour les cadeaux des
+// boss (giftKey : la plume dorée de Maman Aigle…).
 const Save = {
   key: 'superMalice.v1',
   badgeKey: 'superMalice.badges',
+  giftKey: 'superMalice.cadeaux',
   load() {
     try {
       const data = Object.assign({ unlocked: 1, difficulty: 'gentil', muted: false, musicOff: false },
@@ -65,6 +67,10 @@ const Save = {
       if (!Array.isArray(data.badges)) {
         const b = JSON.parse(localStorage.getItem(this.badgeKey) || 'null');
         if (Array.isArray(b)) data.badges = b;
+      }
+      if (!Array.isArray(data.cadeaux)) {
+        const g = JSON.parse(localStorage.getItem(this.giftKey) || 'null');
+        if (Array.isArray(g)) data.cadeaux = g;
       }
       return data;
     } catch (e) {
@@ -75,12 +81,14 @@ const Save = {
     try {
       localStorage.setItem(this.key, JSON.stringify(data));
       if (Array.isArray(data.badges)) localStorage.setItem(this.badgeKey, JSON.stringify(data.badges));
+      if (Array.isArray(data.cadeaux)) localStorage.setItem(this.giftKey, JSON.stringify(data.cadeaux));
     } catch (e) { /* navigation privée */ }
   },
   clear() {
     try {
       localStorage.removeItem(this.key);
       localStorage.removeItem(this.badgeKey);
+      localStorage.removeItem(this.giftKey);
     } catch (e) { /* navigation privée */ }
   },
 };

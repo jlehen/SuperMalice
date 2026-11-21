@@ -1679,6 +1679,7 @@ const Carte = (() => {
     const boss = nodes[W.castle.node];
     if (W.castle.node !== undefined && boss) {
       drawCastle(ctx, x, y - 14, W.look, t, isOpen(W.castle.node));
+      drawGift(ctx, W, x, y, t);
       return;
     }
     ctx.save();
@@ -1698,6 +1699,25 @@ const Carte = (() => {
     ellipsePath(ctx, 0, 2, 9, 5);
     ctx.fill();
     ctx.restore();
+  }
+
+  // Le cadeau d'un boss (gardé dans la sauvegarde : Game.hasGift), planté à côté de son château : la plume dorée de
+  // Maman Aigle, à côté du château des Pentes du Volcan (le monde 4). Elle scintille et se balance un peu dans le vent.
+  const GIFTS = { 4: 'plume' };
+  function drawGift(ctx, W, x, y, t) {
+    const g = GIFTS[W.k + 1];
+    if (!g || !Game.hasGift(g) || typeof AigleArt === 'undefined') return;
+    const gx = x + 78;
+    const gy = y - 6;
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ellipsePath(ctx, gx, gy + 4, 16, 5);
+    ctx.fill();
+    // (un halo doré)
+    const k = (Math.sin(t * 2.5) + 1) / 2;
+    ctx.fillStyle = `rgba(255,230,120,${0.18 + 0.14 * k})`;
+    circlePath(ctx, gx + 2, gy - 34, 30 + k * 4);
+    ctx.fill();
+    AigleArt.goldFeather(ctx, gx + 2, gy - 34, 0.18 + Math.sin(t * 1.6) * 0.08, 1.35, t);
   }
 
   // Le château du boss (pour les mondes qui en ont un : "boss" dans levels.js).

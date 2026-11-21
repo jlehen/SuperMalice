@@ -39,7 +39,13 @@
 //   drawDecor(ctx)           le décor de son arène (dessiné même quand il n'est pas à l'écran)
 //   drawWall(ctx, x, k, side) le mur qui ferme l'arène (side : -1 à gauche, 1 à droite ; k : de 0, caché, à 1,
 //                            fermé) ; le niveau le dessine de chaque côté qui n'est pas le bout du niveau
-//   drawLife(ctx, x, y, full, t)  une de ses vies dans le haut de l'écran (un chapeau, une citrouille…)
+//   drawLife(ctx, x, y, full, t, i)  une de ses vies dans le haut de l'écran (un chapeau, une citrouille… ; i : laquelle,
+//                            de 0 à life - 1, de gauche à droite : chaque vie peut avoir son icône, comme celles de
+//                            Maman Aigle ; la vie i est pleine tant que i < life : c'est la plus à droite qui s'en va)
+//   drawScreen(ctx)          (s'il en a besoin) une scène par-dessus tout l'écran, en pixels de l'écran, sous le HUD et
+//                            les particules (le vol de Maman Aigle jusqu'au Cœur du Volcan, à la fin)
+//   quiet                    (s'il en a besoin) vrai quand on ne doit entendre aucune musique (au début de sa fin), même
+//                            après une pause (voir Game.levelMusic)
 //   sayAt()                  d'où sort sa bulle quand il parle ({ x, y } ; below : la bulle sous ce point, pour un boss
 //                            tout en haut de l'écran, qui ne doit pas passer sous ses vies)
 //   tipAt()                  d'où sort le petit conseil ({ x, y, below }, comme sayAt ; par défaut, au-dessus de la tête
@@ -444,7 +450,7 @@ class Boss extends Enemy {
       ctx.translate(x0 + i * gap + gap / 2 - 8, 34);
       const s = pop < 1 ? 0.4 + 0.75 * Math.sin(pop * Math.PI * 0.8) : 1 + (full && this.life === 1 ? Math.sin(t * 8) * 0.08 : 0);
       ctx.scale(s, s);
-      this.drawLife(ctx, 0, 0, full, t);
+      this.drawLife(ctx, 0, 0, full, t, i);
       ctx.restore();
     }
     // la vie qu'il vient de perdre s'envole en tournant
@@ -455,7 +461,7 @@ class Boss extends Enemy {
       ctx.translate(x0 + L.i * gap + gap / 2 - 8 + L.t * 60, 34 - L.t * 90 + L.t * L.t * 200);
       ctx.rotate(L.t * 7);
       ctx.scale(1 + L.t * 0.4, 1 + L.t * 0.4);
-      this.drawLife(ctx, 0, 0, true, t);
+      this.drawLife(ctx, 0, 0, true, t, L.i);
       ctx.restore();
     }
     ctx.restore();

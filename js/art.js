@@ -1200,6 +1200,29 @@ const Art = (() => {
     const u = (k.t - SHAKE.t0) / (SHAKE.t1 - SHAKE.t0);
     return Math.sin(u * (SHAKE.t1 - SHAKE.t0) * SHAKE.n * TAU) * SHAKE.a * Math.sin(u * Math.PI);
   }
+  // Le hérisson de roche : roulée dans une boule de cailloux (jusqu'à ball secondes : on la voit toute petite qui tourne
+  // dedans), elle en ressort aplatie comme une crêpe (sx fois plus large, sy fois moins haute, jusqu'à flat), puis elle
+  // se regonfle d'un coup : « Pop ! » (pendant pop secondes, elle dépasse un peu, puis reprend sa forme).
+  const CREPE = { ball: 0.5, flat: 1.1, pop: 0.3, sx: 1.6, sy: 0.24 };
+  // Comment la dessiner : ball (de 1, dans la boule, à 0), a (de combien la boule a tourné), sx / sy (aplatie)
+  function crepeShape(k) {
+    const t = k.t;
+    const C = CREPE;
+    if (t < C.ball) return { ball: 1, a: t * 15, sx: 1, sy: 1 };
+    if (t < C.flat) {
+      // aplatie : d'un coup, puis elle tremblote un peu
+      const u = clamp((t - C.ball) / 0.08, 0, 1);
+      const w = Math.sin((t - C.ball) * 30) * 0.06 * clamp(1 - (t - C.ball) / 0.4, 0, 1);
+      return { ball: 0, a: 0, sx: lerp(1, C.sx, u) + w, sy: lerp(0.5, C.sy, u) - w * 0.3 };
+    }
+    if (t < C.flat + C.pop) {
+      // pop ! elle se regonfle (un peu trop), puis reprend sa forme
+      const u = (t - C.flat) / C.pop;
+      const s = u < 0.35 ? lerp(C.sy, 1.18, u / 0.35) : 1 + 0.18 * Math.cos(((u - 0.35) / 0.65) * Math.PI * 1.5) * (1 - u);
+      return { ball: 0, a: 0, sx: u < 0.35 ? lerp(C.sx, 0.88, u / 0.35) : 2 - s, sy: s };
+    }
+    return null;
+  }
   // les moments où elle enlève chaque piquant (aïe !)
   const PIN_PULLS = PINS.map((_, i) => 0.55 + i * 0.24);
   // head : [x, y] du haut de la tête (Malice : [0, -62])
@@ -1278,6 +1301,17 @@ const Art = (() => {
   PRICKED.mustache = MALICE.mustache;
   PRICKED.eye = MALICE.eye;
 
+  // Toute poussiéreuse (roulée dans les cailloux).
+  const DUSTY = {};
+  for (const key in MALICE) DUSTY[key] = mixColor(MALICE[key], '#9a8a84', 0.4);
+  DUSTY.mustache = MALICE.mustache;
+  DUSTY.eye = MALICE.eye;
+  // pleine de neige (le toboggan du pingouin grincheux)
+  const SNOWY = {};
+  for (const key in MALICE) SNOWY[key] = mixColor(MALICE[key], '#eaf6ff', 0.45);
+  SNOWY.mustache = MALICE.mustache;
+  SNOWY.eye = MALICE.eye;
+
   // Toute noire de suie (seuls les yeux restent blancs).
   const SOOT = {};
   for (const key in MALICE) SOOT[key] = mixColor(MALICE[key], '#2a2422', 0.8);
@@ -1318,6 +1352,10 @@ const Art = (() => {
       case 'croak': return mixPalette(C, FROGGY, clamp(k.t / 0.12, 0, 1) * clamp(left / 0.5, 0, 1));
       // (comme les autres personnages : rouge au début, voir Heroes)
       case 'pins': return mixPalette(C, PRICKED, clamp(1 - k.t / 0.6, 0, 1));
+      // pleine de poussière de cailloux, qui s'en va quand elle se regonfle
+      case 'crepe': return mixPalette(C, DUSTY, clamp((CREPE.flat + 0.2 - k.t) / 0.3, 0, 1));
+      // pleine de neige en glissant sur le ventre, qui s'en va quand elle se relève
+      case 'luge': return mixPalette(C, SNOWY, k.upT === undefined ? clamp(k.t / 0.15, 0, 1) : clamp(1 - (k.t - k.upT) / 0.5, 0, 1));
       default: return C;
     }
   }
@@ -1416,6 +1454,28 @@ const Art = (() => {
       }
       // splash ! les deux mains sur la tête, sous la pluie
       return { legF: 0.12, legB: -0.12, armF: -2.55, armB: 2.45, lean: 0.06 };
+    }
+    if (k.kind === 'crepe') {
+      // dans la boule de cailloux : toute pelotonnée ; aplatie : les bras et les jambes écartés comme une étoile de mer
+      // (qui gigotent un peu) ; pop ! les bras en l'air
+      if (ot < CREPE.ball) return { legF: -1.9, legB: -1.6, armF: -1.05, armB: -0.8, lean: 0.3, crouch: 9 };
+      if (ot < CREPE.flat) {
+        const s = Math.sin(ot * 18) * 0.15;
+        return { legF: -1.05 + s, legB: 1.05 - s, armF: -2.2 - s, armB: 2.15 + s, lean: 0 };
+      }
+      return { legF: -0.3, legB: 0.3, armF: -2.7, armB: 2.6, lean: 0 };
+    }
+    if (k.kind === 'luge') {
+      // à plat ventre : les bras tendus devant elle comme une super-héroïne, les jambes derrière qui gigotent un peu
+      // (voir lugeShape : tout son corps est basculé sur le ventre) ; en se relevant : accroupie ; puis (dans la galerie)
+      // la main sous le nez qui chatouille
+      const up = k.upT === undefined ? Infinity : k.upT;
+      if (ot < up) {
+        const s = Math.sin(ot * 20) * 0.12;
+        return { legF: 0.18 + s, legB: -0.08 - s, armF: -2.95 + s * 0.4, armB: -2.7 - s * 0.4, lean: 0 };
+      }
+      if (ot < up + LUGE.up) return { legF: -0.9, legB: 0.6, armF: -0.8, armB: 0.7, lean: 0.2, crouch: 5 };
+      return { legF: 0.12, legB: -0.12, armF: -2.0, armB: 0.4, lean: 0 };
     }
     if (k.kind === 'wet') {
       // elle se serre dans ses bras, les genoux qui s'entrechoquent
@@ -1519,6 +1579,38 @@ const Art = (() => {
           fx.mouth = 'o';
         }
         break;
+      case 'crepe':
+        // la tête qui tourne dans la boule ; aplatie, tout étonnée (elle cligne des yeux) ; pop ! la bouche grande
+        // ouverte
+        if (t < CREPE.ball) {
+          fx.eye = 'spiral';
+          fx.mouth = 'wide';
+        } else if (t < CREPE.flat) {
+          fx.eye = (t - CREPE.ball) % 0.45 > 0.38 ? 'blink' : 'wide';
+          fx.mouth = 'o';
+        } else if (t < CREPE.flat + CREPE.pop) {
+          fx.eye = 'wide';
+          fx.mouth = 'wide';
+        }
+        break;
+      case 'luge': {
+        // « Wiiii ! » : les yeux tout ronds, la bouche grande ouverte ; puis le nez tout rouge : « ah… ah… » (les yeux
+        // qui se plissent), « Atchoum ! » (les yeux fermés très fort, la bouche grande ouverte)
+        const L = lugeShape(k);
+        if (k.upT === undefined || t < k.upT) {
+          fx.eye = 'wide';
+          fx.mouth = 'wide';
+        } else if (L.sneeze === 1) {
+          fx.eye = 'blink';
+          fx.mouth = 'o';
+        } else if (L.sneeze === 2) {
+          fx.eye = 'squeeze';
+          fx.mouth = 'wide';
+        } else {
+          fx.mouth = 'small';
+        }
+        break;
+      }
       case 'croak':
         // les yeux tout ronds, comme une grenouille, et la bouche grande ouverte quand elle coasse
         fx.eye = 'wide';
@@ -1935,6 +2027,13 @@ const Art = (() => {
       // en boule (la roulade) : les genoux contre le ventre, les bras autour, la tête rentrée
       case 'roll': crouch = 9; legF = -1.95; legB = -1.7; legLen = 7; armF = -1.05; armB = -0.8; lean = 0.32; break;
       case 'hang': armF = 0.25; armB = -0.25; legF = 0.25; legB = -0.2; break;
+      // elle glisse sur les éboulis comme sur une planche de surf : un pied devant, un pied derrière, les genoux pliés,
+      // les bras écartés qui tanguent
+      case 'surf': {
+        const s = Math.sin(t * 5) * 0.18;
+        legF = -0.55; legB = 0.5; armF = -1.45 + s; armB = 1.5 + s; crouch = 4; lean = 0.04; bob = Math.sin(t * 23) * 0.6;
+        break;
+      }
       // elle glisse sur la bave : les bras qui moulinent, penchée en arrière
       case 'slip':
         armF = -2.3 + Math.sin(t * 18) * 0.6; armB = 1.9 + Math.cos(t * 18) * 0.6;
@@ -5511,6 +5610,712 @@ const Art = (() => {
     ctx.restore();
   }
 
+  // ---------- Le Bord du Cratère ----------
+  // Une pierre de lave (centrée en x, y, de rayon r), toute bosselée (seed : sa forme), qui tourne (rot). heat : de 1,
+  // toute chaude (rouge, avec des fissures de lave qui brillent), à 0, refroidie (grise).
+  function lavaRock(ctx, x, y, r, rot, heat, seed) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.beginPath();
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const rr = r * (0.8 + 0.28 * hash(seed + i * 1.37));
+      if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle = mixColor('#4a3c40', '#a8341c', heat * 0.8);
+    ctx.fill();
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = '#231a1c';
+    ctx.stroke();
+    // (un reflet sur le dessus)
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ellipsePath(ctx, -r * 0.3, -r * 0.35, r * 0.4, r * 0.22, -0.4);
+    ctx.fill();
+    // les fissures de lave
+    if (heat > 0.02) {
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = `rgba(255,${150 + Math.floor(heat * 70)},60,${Math.min(1, heat * 1.4)})`;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.55, -r * 0.1);
+      ctx.lineTo(-r * 0.1, r * 0.05);
+      ctx.lineTo(r * 0.15, -r * 0.4);
+      ctx.moveTo(-r * 0.1, r * 0.05);
+      ctx.lineTo(r * 0.05, r * 0.55);
+      ctx.moveTo(r * 0.2, r * 0.2);
+      ctx.lineTo(r * 0.6, r * 0.1);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---------- Le Glacier Fumant ----------
+  // Une stalactite de glace (centrée en x, accrochée au plafond en y, w de large et h de long) : de la glace bleutée et
+  // transparente, un reflet tout du long, et une goutte qui grossit au bout. shaking : elle tremble (une fissure
+  // apparaît en haut).
+  function icicle(ctx, x, y, w, h, t, shaking) {
+    const hw = w / 2;
+    ctx.save();
+    ctx.lineJoin = 'round';
+    const g = ctx.createLinearGradient(x - hw, 0, x + hw, 0);
+    g.addColorStop(0, '#f4fcff');
+    g.addColorStop(0.45, '#bfe6ff');
+    g.addColorStop(1, '#78b0e0');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x - hw, y - 2);
+    ctx.quadraticCurveTo(x - hw * 0.55, y + h * 0.42, x - 1.5, y + h - 2);
+    ctx.quadraticCurveTo(x, y + h + 1, x + 1.5, y + h - 2);
+    ctx.quadraticCurveTo(x + hw * 0.55, y + h * 0.42, x + hw, y - 2);
+    ctx.closePath();
+    ctx.globalAlpha = 0.92;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#3a78b8';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    // le reflet, tout du long
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - hw * 0.55, y + 3);
+    ctx.quadraticCurveTo(x - hw * 0.35, y + h * 0.4, x - 2.5, y + h * 0.72);
+    ctx.stroke();
+    // de petits anneaux plus clairs
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1.4;
+    for (const k of [0.25, 0.5]) {
+      const yy = y + h * k;
+      const ww = hw * (1 - k) * 0.95;
+      ctx.beginPath();
+      ctx.moveTo(x - ww, yy);
+      ctx.quadraticCurveTo(x, yy + 2.5, x + ww, yy);
+      ctx.stroke();
+    }
+    if (shaking) {
+      // crac ! une fissure en haut
+      ctx.strokeStyle = '#2a5a90';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(x - hw * 0.7, y + 3);
+      ctx.lineTo(x - 2, y + 7);
+      ctx.lineTo(x + 3, y + 5);
+      ctx.lineTo(x + hw * 0.7, y + 9);
+      ctx.stroke();
+    }
+    // la goutte qui grossit au bout
+    const u = (t * 0.5) % 1;
+    ctx.fillStyle = 'rgba(200,236,255,0.9)';
+    ctx.strokeStyle = '#3a78b8';
+    ctx.lineWidth = 0.9;
+    circlePath(ctx, x, y + h + 1 + u * 2, 1 + u * 1.6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Les fumerolles (World.findVents) : de la vapeur sort de la fente en (x, y), en petits nuages qui montent, grossissent
+  // et s'effacent, en se balançant ; de temps en temps, un plus gros « pschhh ». v : pour que chacune fume à son rythme.
+  function steamPuffs(ctx, x, y, t, v) {
+    ctx.save();
+    const burst = ((t * 0.23 + v * 7) % 1) < 0.18 ? 1.6 : 1;
+    for (let i = 0; i < 6; i++) {
+      const u = (t * (0.42 + v * 0.1) + i / 6 + v) % 1;
+      const sway = Math.sin(t * 1.3 + i * 1.7 + v * 9) * (6 + u * 18);
+      const r = (5 + u * 20) * (i % 2 ? 1 : 0.85) * (burst > 1 ? 1.2 : 1);
+      ctx.globalAlpha = (1 - u) * (u < 0.12 ? u / 0.12 : 1) * 0.55;
+      ctx.fillStyle = '#ffffff';
+      circlePath(ctx, x + sway, y - 4 - u * 110 * burst, r);
+      ctx.fill();
+    }
+    // la fente, un peu orange de chaleur
+    ctx.globalAlpha = 0.65;
+    ctx.fillStyle = '#ff9a4a';
+    ellipsePath(ctx, x, y + 1, 5, 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // En toboggan sur le ventre (OUCH.luge, voir Player.updateLuge) : elle bascule sur le ventre en fly secondes, elle glisse
+  // (dans la galerie : slide secondes), se relève en up secondes, puis elle a le nez tout rouge pendant nose secondes,
+  // et elle éternue à ces moments-là (après s'être relevée) : « Ah… ah… » (la tête en arrière, pendant ah secondes),
+  // « Atchoum ! » (la tête part en avant d'un coup, et revient en jerk secondes).
+  const LUGE = { fly: 0.12, slide: 1.0, up: 0.25, nose: 1.6, sneezes: [0.45, 1.05], ah: 0.3, jerk: 0.25 };
+  // Comment la dessiner : belly (de 0, debout, à 1, à plat ventre), jerk (de combien elle se penche en éternuant), nose
+  // (le nez tout rouge, de 0 à 1) ; sneeze : elle éternue (ou va éternuer : « ah… ah… »).
+  function lugeShape(k) {
+    const L = LUGE;
+    const t = k.t;
+    const up = k.upT === undefined ? Infinity : k.upT;
+    const belly = t < L.fly ? t / L.fly : t < up ? 1 : clamp(1 - (t - up) / L.up, 0, 1);
+    let jerk = 0;
+    let nose = 0;
+    let sneeze = 0;
+    if (t >= up) {
+      nose = clamp((t - up) / 0.2, 0, 1) * clamp((k.dur - t) / 0.3, 0, 1);
+      for (const s of L.sneezes) {
+        const u = t - (up + L.up + s);
+        if (u > -L.ah && u <= 0) {
+          jerk = -0.09 * (1 + u / L.ah);
+          sneeze = 1;
+        } else if (u > 0 && u < L.jerk) {
+          jerk = 0.2 * (1 - u / L.jerk);
+          sneeze = 2;
+        }
+      }
+    }
+    return { belly, jerk, nose, sneeze };
+  }
+
+  // Le nez tout rouge (après le toboggan dans la neige), centré en (x, y), de rayon r, a : de 0 à 1. Il brille un peu,
+  // comme celui d'un renne.
+  function redNose(ctx, x, y, r, a, t) {
+    if (a <= 0) return;
+    ctx.save();
+    ctx.globalAlpha *= a;
+    const p = 1 + Math.sin(t * 9) * 0.06;
+    const glow = ctx.createRadialGradient(x, y, r * 0.5, x, y, r * 2.4);
+    glow.addColorStop(0, 'rgba(255,80,80,0.45)');
+    glow.addColorStop(1, 'rgba(255,80,80,0)');
+    ctx.fillStyle = glow;
+    circlePath(ctx, x, y, r * 2.4);
+    ctx.fill();
+    circlePath(ctx, x, y, r * p);
+    paint(ctx, '#ff3434', '#9a1020', 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ellipsePath(ctx, x - r * 0.3, y - r * 0.38, r * 0.34, r * 0.22, -0.5);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Le pingouin grincheux (le Glacier Fumant), les pieds en (x, y). Bleu ardoise, avec un bonnet jaune à pompon et de
+  // gros sourcils blancs tout froncés (le Pingouin qu'on joue est noir, avec une écharpe rouge et blanche).
+  // o : dir, t, phase (ses pas), state ('walk', 'warn' : il se prépare à plonger, 'slide' : à plat ventre, 'up', 'rest',
+  // 'dizzy', 'stuck'), flap (ses nageoires qui battent, en se préparant), nice (il est redevenu gentil), fat, rest.
+  const PENG = {
+    back: '#3f5a8e', backShade: '#2c4372', backLight: '#7690c4', line: '#152038',
+    belly: '#f2f7ff', bellyShade: '#d3e0f2', bellyLine: '#8ea2c2',
+    beak: '#ffb52e', beakDark: '#de870e', foot: '#ffa233', footLine: '#a8580a',
+    hat: '#ffd23a', hatDark: '#d99a0a', hatLine: '#8a5a08', pompon: '#ffffff', brow: '#ffffff', cheek: '#ff9ab0',
+  };
+  function grumpyPenguin(ctx, x, y, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const st = o.state || 'walk';
+    const C = PENG;
+    const nice = !!o.nice;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(o.dir || 1, 1);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    if (st === 'slide' && !nice) {
+      penguinSlide(ctx, o, t);
+      ctx.restore();
+      return;
+    }
+    const fat = o.fat ? 1 : 0;
+    // il se dandine en marchant ; il se penche en avant en se préparant à plonger
+    const rock = st === 'walk' && o.moving ? Math.sin(o.phase || 0) * 0.13 : st === 'rest' ? Math.sin(t * 2) * 0.03 : 0;
+    const lean = st === 'warn' ? 0.32 + Math.sin(t * 40) * 0.025 : 0;
+    // les pieds
+    const ph = o.moving ? o.phase || 0 : 0;
+    for (const [fx, s] of [[-6, 0], [6, Math.PI]]) {
+      const lift = o.moving ? Math.max(0, Math.sin(ph + s)) * 2.4 : 0;
+      ctx.beginPath();
+      ctx.ellipse(fx + 3, -2 - lift, 6.5, 2.6, 0, 0, Math.PI * 2);
+      paint(ctx, C.foot, C.footLine, 1);
+    }
+    ctx.rotate(rock + lean);
+    const bx = 0;
+    const by = -18;
+    const rx = 14 + fat * 5;
+    const ry = 18 + fat * 1;
+    // la nageoire de derrière
+    const fl = st === 'warn' ? Math.sin(o.flap || 0) * 0.6 : nice ? 0 : Math.sin(ph) * 0.2;
+    flipperP(ctx, -8, -28, 0.35 - fl, true);
+    // le corps
+    ellipsePath(ctx, bx, by, rx, ry);
+    paint(ctx, C.back, C.line, 1.2);
+    ctx.save();
+    ellipsePath(ctx, bx, by, rx, ry);
+    ctx.clip();
+    ellipsePath(ctx, bx + 5, by + 3, rx - 4, ry - 3);
+    paint(ctx, C.belly, C.bellyLine, 1);
+    ctx.fillStyle = C.bellyShade;
+    ellipsePath(ctx, bx + 7, by + 11, rx - 8, 5);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = C.backLight;
+    ellipsePath(ctx, -9, -24, 2.4, 5, 0.3);
+    ctx.fill();
+    // la tête
+    const hx = 3;
+    const hy = -39;
+    circlePath(ctx, hx, hy, 11.5);
+    paint(ctx, C.back, C.line, 1.2);
+    // le visage blanc
+    ctx.save();
+    circlePath(ctx, hx, hy, 11.5);
+    ctx.clip();
+    ctx.beginPath();
+    ctx.moveTo(hx + 13, hy - 7);
+    ctx.quadraticCurveTo(hx + 3, hy - 9, hx + 1.5, hy - 3);
+    ctx.quadraticCurveTo(hx, hy + 4, hx + 2, hy + 13);
+    ctx.lineTo(hx + 13, hy + 13);
+    ctx.closePath();
+    paint(ctx, C.belly, C.bellyLine, 1);
+    ctx.restore();
+    penguinFace(ctx, hx, hy, o, t, st, nice);
+    penguinHat(ctx, hx, hy, t, st, nice);
+    penguinBrows(ctx, hx, hy, t, st, nice);
+    // la nageoire de devant (qui bat en se préparant ; qui fait coucou quand il est gentil)
+    const wave = nice ? -2.2 + Math.sin(t * 14) * 0.4 : st === 'rest' ? 0.9 : 0.25 + fl;
+    flipperP(ctx, 3, -27, wave, false);
+    ctx.restore();
+  }
+
+  // Une nageoire du pingouin grincheux, depuis l'épaule (x, y), tournée de a.
+  function flipperP(ctx, x, y, a, back) {
+    const C = PENG;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    ctx.beginPath();
+    ctx.moveTo(-3, 0);
+    ctx.quadraticCurveTo(-5, 9, -0.5, 16);
+    ctx.quadraticCurveTo(1.5, 17, 2.6, 14);
+    ctx.quadraticCurveTo(5, 6, 3, -0.5);
+    ctx.quadraticCurveTo(0, -2.5, -3, 0);
+    ctx.closePath();
+    paint(ctx, back ? C.backShade : C.back, C.line, 1);
+    ctx.restore();
+  }
+
+  // Son visage : le bec, l'œil, et ses gros sourcils blancs tout froncés (gentil : ils remontent, il ferme les yeux
+  // en souriant, les joues toutes roses).
+  function penguinFace(ctx, hx, hy, o, t, st, nice) {
+    const C = PENG;
+    // le bec (grincheux : la pointe tournée vers le bas ; gentil : il sourit, le bec ouvert)
+    ctx.beginPath();
+    ctx.moveTo(hx + 9, hy - 1);
+    ctx.quadraticCurveTo(hx + 15, hy - 0.5, hx + 18, hy + (nice ? 1 : 3));
+    ctx.quadraticCurveTo(hx + 14, hy + 3, hx + 9, hy + 2.5);
+    ctx.closePath();
+    paint(ctx, C.beak, C.beakDark, 0.9);
+    if (nice || st === 'warn') {
+      ctx.beginPath();
+      ctx.moveTo(hx + 9, hy + 2.5);
+      ctx.quadraticCurveTo(hx + 13, hy + (nice ? 7 : 6), hx + 16, hy + 4);
+      ctx.closePath();
+      paint(ctx, C.beakDark, C.beakDark, 0.8);
+    }
+    const ex = hx + 6.5;
+    const ey = hy;
+    if (nice) {
+      // les yeux fermés, tout contents : ^ ^
+      ctx.strokeStyle = C.line;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(ex, ey + 1.2, 2.6, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+      ctx.fillStyle = C.cheek;
+      ctx.globalAlpha = 0.8;
+      ellipsePath(ctx, ex - 0.5, ey + 5.5, 3, 1.8);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (st === 'dizzy') {
+      // la tête qui tourne : une spirale
+      ctx.strokeStyle = C.line;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (let a = 0; a < 9; a += 0.4) {
+        const r = a * 0.36;
+        const px = ex + Math.cos(a + t * 9) * r;
+        const py = ey + Math.sin(a + t * 9) * r;
+        if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      for (let i = 0; i < 3; i++) {
+        const a = t * 6 + (i * Math.PI * 2) / 3;
+        ctx.save();
+        ctx.translate(hx + Math.cos(a) * 13, hy - 17 + Math.sin(a) * 3);
+        starShape(ctx, 3.2, 0.45);
+        paint(ctx, '#ffe94a', '#b07800', 0.8);
+        ctx.restore();
+      }
+    } else {
+      // un petit œil plissé, en colère (tout rond une seconde, quand il voit Malice)
+      const big = st === 'warn' ? 1.2 : st === 'stuck' ? 1.25 : 1;
+      ellipsePath(ctx, ex, ey + 0.5, 3.1 * big, 2.8 * big);
+      paint(ctx, '#ffffff', C.line, 0.9);
+      ctx.fillStyle = '#15101c';
+      circlePath(ctx, ex + 1, ey + 0.9, 1.6 * big);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      circlePath(ctx, ex + 0.5, ey + 0.2, 0.5);
+      ctx.fill();
+      // la paupière du dessus, toute penchée vers le bec (l'air fâché)
+      if (st !== 'stuck') {
+        ctx.fillStyle = C.back;
+        ctx.beginPath();
+        ctx.moveTo(ex - 3.6, ey - 3);
+        ctx.lineTo(ex + 3.6, ey + 0.2);
+        ctx.lineTo(ex + 3.6, ey - 3.4);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+  }
+
+  // Ses gros sourcils blancs, bien touffus (ils dépassent sous le bonnet) : tout froncés vers le bec ; quand il se
+  // prépare à plonger, ils sautillent de colère ; gentil, ils remontent tout ronds.
+  function penguinBrows(ctx, hx, hy, t, st, nice) {
+    const C = PENG;
+    ctx.save();
+    ctx.translate(hx + 5.5, hy - 4.6 - (nice ? 2.6 : 0) - (st === 'warn' ? Math.abs(Math.sin(t * 20)) * 1 : 0));
+    ctx.rotate(nice ? -0.25 : 0.5 + (st === 'warn' ? 0.12 : 0));
+    ctx.beginPath();
+    if (nice) {
+      ctx.moveTo(-6, 1.2);
+      ctx.quadraticCurveTo(0, -5, 6.5, 1.2);
+      ctx.quadraticCurveTo(0, -1.2, -6, 1.2);
+    } else {
+      ctx.moveTo(-6.5, 1.2);
+      ctx.quadraticCurveTo(-6.5, -3.4, -2.5, -3);
+      ctx.quadraticCurveTo(0, -4.8, 2.6, -3);
+      ctx.quadraticCurveTo(6.4, -3.4, 7.6, 0.4);
+      ctx.quadraticCurveTo(7.2, 2.6, 4.5, 2.2);
+      ctx.quadraticCurveTo(-1, 2.8, -6.5, 1.2);
+    }
+    ctx.closePath();
+    paint(ctx, C.brow, C.line, 1.15);
+    ctx.restore();
+  }
+
+  // Son bonnet jaune à pompon (qui sautille), sur la tête (hx, hy).
+  function penguinHat(ctx, hx, hy, t, st, nice) {
+    const C = PENG;
+    const bob = st === 'walk' || nice ? Math.sin(t * 9) * 1.2 : 0;
+    ctx.beginPath();
+    ctx.moveTo(hx - 11, hy - 7);
+    ctx.quadraticCurveTo(hx - 12, hy - 20, hx - 2, hy - 21);
+    ctx.quadraticCurveTo(hx + 9, hy - 21, hx + 10, hy - 9);
+    ctx.closePath();
+    paint(ctx, C.hat, C.hatLine, 1.1);
+    // des côtes de tricot
+    ctx.strokeStyle = C.hatDark;
+    ctx.lineWidth = 1.1;
+    for (const dx of [-5, 0, 5]) {
+      ctx.beginPath();
+      ctx.moveTo(hx + dx - 0.5, hy - 19);
+      ctx.lineTo(hx + dx, hy - 10);
+      ctx.stroke();
+    }
+    // le revers
+    roundRectPath(ctx, hx - 12.5, hy - 11, 24, 5.5, 2.6);
+    paint(ctx, C.hatDark, C.hatLine, 1);
+    // le pompon
+    circlePath(ctx, hx - 4, hy - 23 + bob, 4.2);
+    paint(ctx, C.pompon, '#9aa6ba', 1);
+  }
+
+  // À plat ventre, il file vers l'avant (le bonnet en arrière, les pieds en l'air, l'air bien décidé).
+  function penguinSlide(ctx, o, t) {
+    const C = PENG;
+    // les pieds en l'air derrière
+    for (const [fx, fy, a] of [[-20, -12, -0.5], [-22, -8, -0.2]]) {
+      ctx.save();
+      ctx.translate(fx, fy);
+      ctx.rotate(a);
+      ellipsePath(ctx, -3, 0, 5.5, 2.4);
+      paint(ctx, C.foot, C.footLine, 1);
+      ctx.restore();
+    }
+    flipperP(ctx, 2, -15, 1.75, true);
+    const wob = Math.sin(t * 30) * 0.6;
+    ellipsePath(ctx, -4, -10.5 + wob * 0.3, 20, 10.5);
+    paint(ctx, C.back, C.line, 1.2);
+    ctx.save();
+    ellipsePath(ctx, -4, -10.5 + wob * 0.3, 20, 10.5);
+    ctx.clip();
+    ellipsePath(ctx, -1, -1.5, 22, 7.5);
+    paint(ctx, C.belly, C.bellyLine, 1);
+    ctx.restore();
+    // la tête, tournée vers l'avant
+    const hx = 13;
+    const hy = -13;
+    circlePath(ctx, hx, hy, 9.5);
+    paint(ctx, C.back, C.line, 1.2);
+    ctx.save();
+    circlePath(ctx, hx, hy, 9.5);
+    ctx.clip();
+    ctx.beginPath();
+    ctx.moveTo(hx + 11, hy - 6);
+    ctx.quadraticCurveTo(hx + 2, hy - 8, hx + 1, hy - 2);
+    ctx.quadraticCurveTo(hx, hy + 4, hx + 2, hy + 11);
+    ctx.lineTo(hx + 11, hy + 11);
+    ctx.closePath();
+    paint(ctx, C.belly, C.bellyLine, 1);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.scale(0.85, 0.85);
+    penguinFace(ctx, 0, 0, o, t, 'slide', false);
+    penguinBrows(ctx, 0, 0, t, 'slide', false);
+    // le bonnet, emporté vers l'arrière par le vent
+    ctx.rotate(-0.9);
+    penguinHat(ctx, 0, 0, t, 'slide', false);
+    ctx.restore();
+    flipperP(ctx, 3, -11, 1.6, false);
+  }
+
+  // Hérisson de roche (la Grande Glissade), les pieds en (x, y) : un hérisson tout en pierre, ses piquants sont des
+  // éclats de roche, avec des petits cailloux collés dessus. En boule, c'est une grosse boule de cailloux qui roule.
+  // o : t, dir, curl (0 : déroulé, 1 : en boule), spin (de combien la boule a tourné, en radians), eyes ('sleep' : il
+  // dort en boule, le bout du nez et les yeux fermés qui dépassent ; 'open' : « ! », ses yeux tout ronds ; 'dizzy' :
+  // les yeux qui tournent et des étoiles ; 'nap' : il fait la sieste, tout gentil ; '' : rien), look, moving, phase,
+  // fat, rest (essoufflé)
+  function rockHog(ctx, x, y, o) {
+    o = o || {};
+    const t = o.t || 0;
+    const dir = o.dir || 1;
+    const k = clamp(o.curl || 0, 0, 1);
+    const fat = !!o.fat;
+    const eyes = o.eyes || '';
+    const line = '#2e2422';
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    // les petites pattes (elles rentrent quand il se met en boule)
+    if (k < 0.75) {
+      const ph = o.moving ? o.phase || 0 : 0;
+      ctx.fillStyle = '#4e4240';
+      for (const [fx, s] of [[-12, 0], [-5, Math.PI], [6, Math.PI * 0.5], [13, Math.PI * 1.5]]) {
+        const lift = o.moving ? Math.max(0, Math.sin(ph + s)) * 2.5 : 0;
+        ellipsePath(ctx, fx + Math.cos(ph + s) * 1.6, -2.4 - lift - k * 4, 4, 2.6);
+        ctx.fill();
+      }
+    }
+    // le manteau d'éclats de roche : sur le dos quand il est déroulé, tout autour quand il est en boule (et il tourne
+    // avec la boule qui roule)
+    const cx = lerp(-3, 0, k);
+    const cy = lerp(-14, -18, k);
+    const rx = lerp(fat ? 24 : 20, 17.5, k);
+    const ry = lerp(fat ? 16 : 13.5, 17.5, k);
+    const spin = (o.spin || 0) * k;
+    const a0 = lerp(-Math.PI - 0.25, -Math.PI * 1.5, k) + spin;
+    const a1 = lerp(-0.3, Math.PI * 0.5, k) + spin;
+    const n = Math.max(8, Math.round((a1 - a0) / 0.42));
+    const spike = lerp(7.5, 8, k);
+    const P = (a, r) => [cx + Math.cos(a) * (rx + r), cy + Math.sin(a) * (ry + r)];
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      // (des éclats de roche : pointus, de travers, pas tous pareils)
+      const [ox, oy] = P(a + 0.06, spike + hash(i * 3.3) * 2.5);
+      const [ix, iy] = P(a + (a1 - a0) / n / 2, -1);
+      if (i === 0) ctx.moveTo(...P(a, -2));
+      ctx.lineTo(ox, oy);
+      if (i < n) ctx.lineTo(ix, iy);
+    }
+    if (k < 0.98) ctx.lineTo(cx + 4, cy + ry * 0.4);
+    ctx.closePath();
+    paint(ctx, '#6e605c', line, 1.4);
+    // la lumière sur un côté de chaque éclat
+    ctx.fillStyle = 'rgba(232,222,214,0.55)';
+    for (let i = 0; i < n; i += 1) {
+      const a = a0 + ((a1 - a0) * i) / n;
+      const [ox, oy] = P(a + 0.06, spike * 0.8 + hash(i * 3.3) * 2);
+      const [bx, by] = P(a - 0.05, 0);
+      const [b2x, b2y] = P(a + 0.12, 0);
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(ox, oy);
+      ctx.lineTo((bx + b2x) / 2, (by + b2y) / 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // le corps de pierre
+    ellipsePath(ctx, cx, cy, rx - 2, ry - 2);
+    const g = ctx.createLinearGradient(0, cy - ry, 0, cy + ry);
+    g.addColorStop(0, '#b5a7a0');
+    g.addColorStop(1, '#7a6a66');
+    ctx.fillStyle = g;
+    ctx.fill();
+    // des petits cailloux collés dessus (ils tournent avec la boule)
+    for (let i = 0; i < 5; i++) {
+      const a = lerp(a0, a1, (i + 0.5) / 5) + 0.2;
+      const d = 0.45 + hash(i * 5.7) * 0.35;
+      const px = cx + Math.cos(a) * (rx - 2) * d;
+      const py = cy + Math.sin(a) * (ry - 2) * d;
+      const r = 2 + hash(i * 2.9) * 1.6;
+      ellipsePath(ctx, px, py + 0.6, r + 0.5, r * 0.75 + 0.5);
+      ctx.fillStyle = '#5a4c48';
+      ctx.fill();
+      ellipsePath(ctx, px, py, r, r * 0.72);
+      ctx.fillStyle = i % 2 ? '#d8ccc4' : '#9d8f88';
+      ctx.fill();
+    }
+    const face = clamp(1 - k * 1.6, 0, 1);
+    if (face > 0) {
+      ctx.save();
+      ctx.globalAlpha *= face;
+      // le museau, couleur sable, et le gros nez rose
+      const fx = fat ? 3 : 0;
+      ctx.beginPath();
+      ctx.moveTo(3 + fx, -22);
+      ctx.quadraticCurveTo(13 + fx, -20, 22 + fx, -11);
+      ctx.quadraticCurveTo(14 + fx, -3, 3 + fx, -3);
+      ctx.quadraticCurveTo(-2, -12, 3 + fx, -22);
+      paint(ctx, '#ead8c2', line, 1.2);
+      ctx.fillStyle = 'rgba(255,120,140,0.45)';
+      ellipsePath(ctx, 10 + fx, -8, 3, 2);
+      ctx.fill();
+      circlePath(ctx, 22 + fx, -11, 2.9);
+      paint(ctx, '#e0687c', line, 0.8);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      circlePath(ctx, 21.3 + fx, -12.1, 0.9);
+      ctx.fill();
+      circlePath(ctx, 4 + fx, -22, 2.6);
+      paint(ctx, '#c9b49c', line, 1);
+      // l'œil
+      const ex = 12 + fx;
+      const ey = -15;
+      if (eyes === 'dizzy') {
+        circlePath(ctx, ex, ey, 3.2);
+        paint(ctx, '#ffffff', line, 0.9);
+        ctx.strokeStyle = '#3a2a28';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < 14; i++) {
+          const a = t * 9 + i * 0.7;
+          const r = i * 0.19;
+          if (i === 0) ctx.moveTo(ex, ey); else ctx.lineTo(ex + Math.cos(a) * r, ey + Math.sin(a) * r);
+        }
+        ctx.stroke();
+      } else if (eyes === 'nap' || (fat && o.rest)) {
+        // les yeux fermés, tout content (un petit arc)
+        ctx.strokeStyle = '#1a1010';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.arc(ex, ey - 1, 2.2, 0.3, Math.PI - 0.3);
+        ctx.stroke();
+      } else {
+        const look = o.look || { x: 1, y: 0 };
+        const lx = clamp(look.x * dir, -1, 1);
+        circlePath(ctx, ex + lx * 0.8, ey, 2.2);
+        ctx.fillStyle = '#1a1010';
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        circlePath(ctx, ex - 0.6 + lx * 0.8, ey - 0.8, 0.8);
+        ctx.fill();
+      }
+      // la bouche : un sourire (il est gentil, au fond)
+      ctx.strokeStyle = '#5a2a20';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(16 + fx, -8, 2.2, 0.3, Math.PI - 0.6);
+      ctx.stroke();
+      if (fat) chubbyCheeks(ctx, 9 + fx, -9, 3.6, 2.8, '#ead8c2', line);
+      ctx.restore();
+    }
+    if (k > 0.6 && (eyes === 'sleep' || eyes === 'open')) {
+      // en boule, sur le devant : le bout de son nez, et ses yeux (fermés quand il dort, tout ronds quand il a vu Malice)
+      ctx.save();
+      ctx.globalAlpha *= clamp((k - 0.6) / 0.3, 0, 1);
+      ellipsePath(ctx, 10.5, -9, 6.5, 5);
+      ctx.fillStyle = '#ead8c2';
+      ctx.fill();
+      circlePath(ctx, 14.5, -8.5, 2.4);
+      paint(ctx, '#e0687c', line, 0.8);
+      if (eyes === 'open') {
+        for (const ex of [6.5, 11.5]) {
+          circlePath(ctx, ex, -14.5, 2.6);
+          paint(ctx, '#ffffff', line, 0.8);
+          circlePath(ctx, ex + 0.7, -14.3, 1.3);
+          ctx.fillStyle = '#1a1010';
+          ctx.fill();
+        }
+      } else {
+        ctx.strokeStyle = '#1a1010';
+        ctx.lineWidth = 1.2;
+        for (const ex of [6.5, 11.5]) {
+          ctx.beginPath();
+          ctx.arc(ex, -15, 1.8, 0.2, Math.PI - 0.2);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+    // étourdi : des étoiles tournent au-dessus de sa tête
+    if (eyes === 'dizzy') {
+      for (let i = 0; i < 3; i++) {
+        const a = t * 6 + (i * TAU) / 3;
+        ctx.save();
+        ctx.translate(8 + Math.cos(a) * 13, -34 + Math.sin(a) * 3.5);
+        ctx.rotate(t * 4 + i);
+        starShape(ctx, 3.6, 0.45);
+        paint(ctx, '#ffe94a', '#b07800', 0.9);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+    // il dort (ou fait la sieste) : des petits « z » qui montent
+    if (eyes === 'sleep' || eyes === 'nap') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.strokeStyle = 'rgba(60,40,40,0.6)';
+      ctx.lineWidth = 2;
+      ctx.font = 'bold 13px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      for (let i = 0; i < 2; i++) {
+        const ph = (t * 0.5 + i * 0.5) % 1;
+        const zx = x + dir * (8 + ph * 12);
+        const zy = y - 38 - ph * 22;
+        ctx.globalAlpha = Math.sin(ph * Math.PI);
+        ctx.strokeText('z', zx, zy);
+        ctx.fillText('z', zx, zy);
+      }
+      ctx.restore();
+    }
+  }
+
+  // La boule de cailloux où Malice est roulée par un hérisson de roche (OUCH.crepe) : centrée en (x, y), de rayon r,
+  // tournée de a (elle roule). k : de 1 (toute la boule) à 0 (les cailloux sont tous partis).
+  function pebbleBall(ctx, x, y, r, a, k) {
+    if (k <= 0) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    for (let i = 0; i < 18; i++) {
+      // (sur deux tours : tout autour, et quelques-uns par-dessus elle ; on la voit encore, toute petite, au milieu)
+      const ring = i < 13 ? 1 : 0.62;
+      const ang = hash(i * 7.31) * TAU + i * 0.9;
+      const d = r * ring * (0.9 + hash(i * 3.7) * 0.18) * (1 + (1 - k) * 0.6);
+      const px = Math.cos(ang) * d;
+      const py = Math.sin(ang) * d;
+      const s = (4.2 + hash(i * 1.9) * 3.6) * (0.6 + 0.4 * k);
+      ctx.globalAlpha = clamp(k * 1.6 - hash(i * 2.3) * 0.6, 0, 1);
+      ellipsePath(ctx, px, py + 0.8, s + 0.8, s * 0.78 + 0.8, ang);
+      ctx.fillStyle = '#4e4240';
+      ctx.fill();
+      ellipsePath(ctx, px, py, s, s * 0.78, ang);
+      ctx.fillStyle = ['#a8918c', '#c9bbb5', '#8a7470', '#d8ccc4'][i % 4];
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ellipsePath(ctx, px - s * 0.3, py - s * 0.3, s * 0.35, s * 0.2, ang);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // Sanglier maléfique, les pieds en (x, y) : tout hirsute, une crête de poils noirs sur le dos, de petites
   // défenses blanches, un groin rose, et des yeux rouges qui brillent (sous un gros sourcil tout froncé).
   // o : dir, t, phase (les pattes), moving, scratch (il gratte le sol de la patte avant, la tête baissée),
@@ -6480,7 +7285,8 @@ const Art = (() => {
   }
 
   return {
-    grumpyCloud, cloudRain, SHAKE, shaking, shakeTilt,
+    grumpyCloud, cloudRain, SHAKE, shaking, shakeTilt, rockHog, pebbleBall, CREPE, crepeShape,
+    icicle, steamPuffs, LUGE, lugeShape, redNose, grumpyPenguin, lavaRock,
     MALICE, MIMIC_DUR, CUBE_COLORS, COUGHS, SCRAMBLE_BACK, MALICE_SPOTS, spotPop, maliceRainbow, malice, maliceHead, heldBird,
     eyeMonster, rubik, ladybug, tiredFace, sweat, caramelGoo,
     passionFruit, caramel, caramelBlob, chip, chipsBag, star, starShape, candy, lollipop, ball, heart,

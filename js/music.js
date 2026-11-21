@@ -607,6 +607,82 @@ const Music = (() => {
     return S.out({ drumV: 0.9 });
   }
 
+  // 4-3. Le Glacier Fumant : la même valse lydienne, un peu plus lente et toute givrée : la mélodie au célesta, le
+  // glockenspiel en écho une octave plus haut (des glaçons qui tintent), la contrebasse en pizzicati sur le « oum », la
+  // harpe sur les « pah-pah », et des charlestons tout légers ; à la reprise, l'accordéon revient tout doucement en
+  // dessous.
+  function mountainIce() {
+    const S = new Song({ bpm: 156, meter: 3, warp: waltz, mode: LYD, modeChords: false, chordMap: { F: 'D', G7: 'Gmaj7', Bb: 'Bb', Db: 'Db' } });
+    const OOM = [[[0, 0.9, 'R']], [[0, 0.9, '5L']]];
+    const PAH = [[[1, 0.35, 'C'], [2, 0.35, 'C']]];
+    const D = [[[0, 'k', 0.4], [1, 'h', 0.35], [1.5, 'h', 0.2], [2, 'h', 0.35]]];
+    const base = (p) => {
+      p.pattern('bass', 'pizz', 0.2, OOM);
+      p.pattern('pah', 'harp', 0.06, PAH, { low: 60 });
+      p.drums(D);
+    };
+    const echo = (p) => p.melody('echo', 'glock', 0.04, { delay: 0.5, oct: 1, top: true });
+    S.part(SECT.I, (p) => { p.melody('lead', 'celesta', 0.2); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'celesta', 0.2); echo(p); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'celesta', 0.2); p.melody('low', 'accordion', 0.07, { oct: -1, top: true }); echo(p); base(p); });
+    S.part(SECT.C, (p) => { p.melody('lead', 'glock', 0.1, { top: true }); p.melody('low', 'celesta', 0.12, { oct: -1, top: true }); base(p); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'celesta', 0.2); echo(p); base(p); });
+    return S.out({ drumV: 0.6 });
+  }
+
+  // 4-4. Le Bord du Cratère : la même valse lydienne, mais plus vite, et qui gronde comme le volcan : la mélodie aux
+  // cuivres, le tuba doublé par la basse électrique sur le « oum », l'orgue sur les « pah-pah », et les timbales (les
+  // toms) qui roulent à chaque fin de phrase ; des cordes en tenue tout du long, comme la fumée. Au refrain, la mélodie
+  // passe à l'accordéon, avec le glockenspiel en écho (les braises qui crépitent).
+  function mountainCrater() {
+    const S = new Song({ bpm: 184, meter: 3, warp: waltz, mode: LYD, modeChords: false, chordMap: { F: 'D', G7: 'Gmaj7', Bb: 'Bb', Db: 'Db' } });
+    const OOM = [[[0, 0.9, 'R']], [[0, 0.9, '5L']]];
+    const PAH = [[[1, 0.35, 'C'], [2, 0.35, 'C']]];
+    const PAD = [[[0, 2.9, 'C']]];
+    const D = [[[0, 'k', 0.7], [1, 'h', 0.4], [2, 'h', 0.4]]];
+    const FILL = [[0, 'k'], [1, 't', 0.7], [1.5, 't', 0.8], [2, 't', 0.9], [2.5, 't']];
+    const base = (p) => {
+      p.pattern('bass', 'tuba', 0.22, OOM);
+      p.pattern('low', 'synbass', 0.07, OOM);
+      p.pattern('pah', 'organ', 0.045, PAH, { low: 57 });
+      p.pattern('pad', 'strings', 0.03, PAD, { low: 55 });
+      p.drums(D, { fill: FILL });
+    };
+    const echo = (p) => p.melody('echo', 'glock', 0.045, { delay: 0.5, oct: 1, top: true });
+    S.part(SECT.I, (p) => { p.melody('lead', 'brass', 0.15); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.15); base(p); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.15); echo(p); base(p); });
+    S.part(SECT.C, (p) => { p.melody('lead', 'accordion', 0.2); echo(p); base(p); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'brass', 0.15); p.melody('oct', 'accordion', 0.08, { oct: -1, top: true }); base(p); });
+    return S.out({ drumV: 0.8 });
+  }
+
+  // 4-4. Le combat contre Maman Aigle : une grande chevauchée dans le ciel, comme un galop de chevaux ailés. La valse
+  // du volcan redevient une marche en 4/4 qui galope (rythme pointé, en ré mineur), la mélodie au cor (les cuivres)
+  // qui sonne la charge, les cordes qui galopent dessous (« ta-ta-tam », deux doubles croches et une croche), les
+  // timbales sur les temps forts, et la harpe qui monte en glissando à la fin de chaque mesure, comme un grand coup
+  // d'ailes. Au refrain, la flûte s'envole une octave plus haut (le cor en dessous) ; à la fin, le glockenspiel joue en
+  // écho, tout doucement, comme une boîte à musique (la berceuse n'est pas loin).
+  function bossEagle() {
+    const S = new Song({ bpm: 144, warp: swing(0.75), mode: MINOR, key: 2 });
+    const GALLOP = [rep(4, (b) => [[b, 0.18, 'C', 0.55], [b + 0.25, 0.18, 'C', 0.65], [b + 0.5, 0.4, 'C']]).flat()];
+    const BASS = [[[0, 0.45, 'R'], [1, 0.45, '5L', 0.7], [2, 0.45, 'R'], [3, 0.45, 'O', 0.7]]];
+    const WINGS = [[[3, 0.3, 'a0', 0.5], [3.125, 0.3, 'a1', 0.6], [3.25, 0.3, 'a2', 0.7], [3.375, 0.3, 'a3', 0.8], [3.5, 0.3, 'a4', 0.9], [3.625, 0.4, 'a5']]];
+    const D = [[[0, 'm', 0.8], [0, 'k', 0.5], [1, 's', 0.35], [2, 'm', 0.6], [3, 's', 0.45], [3.5, 's', 0.25], [3.75, 's', 0.3]]];
+    const FILL = [[0, 'm'], [1, 'm', 0.7], [1.5, 'm', 0.75], [2, 'm', 0.8], [2.5, 'm', 0.85], [3, 'm', 0.9], [3.25, 'm'], [3.5, 'm'], [3.75, 'm']];
+    const base = (p) => {
+      p.pattern('bass', 'pizz', 0.2, BASS);
+      p.pattern('gallop', 'strings', 0.03, GALLOP, { low: 57 });
+      p.pattern('wings', 'harp', 0.05, WINGS, { low: 62 });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'brass', 0.16); p.pattern('bass', 'pizz', 0.2, BASS); p.drums([[[0, 'm'], [2, 'm', 0.7]]], { crash: 0.5 }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.16); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.16); p.melody('low', 'strings', 0.05, { oct: -1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.C, (p) => { p.melody('lead', 'flute', 0.16, { oct: 1, top: true }); p.melody('horn', 'brass', 0.08, { oct: -1, top: true }); base(p); p.drums(D, { crash: 0.6, fill: FILL }); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'brass', 0.16); p.melody('box', 'glock', 0.045, { delay: 0.5, oct: 1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    return S.out({ drumV: 0.7 });
+  }
+
   // Stage de la Moustache-Grappin : jazz swing (on se balance !), walking bass, ride, trompette bouchée,
   // accords de jazz avec substitution de triton (sol7 → ré♭7).
   function swingJazz() {
@@ -860,6 +936,9 @@ const Music = (() => {
     'boss-orage': bossStorm(),
     'badge-bocal': funk(),
     mountain: mountain(),
+    'mountain-glace': mountainIce(),
+    'mountain-cratere': mountainCrater(),
+    'boss-aigle': bossEagle(),
     'badge-grappin': swingJazz(),
     volcano: volcano(),
     victory: victory(),

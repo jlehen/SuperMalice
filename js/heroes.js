@@ -44,6 +44,14 @@ const HERO_HAT = {
 
 // La couleur de leurs mains (ou de leurs pattes, de leurs ailes…) et de leur contour : leurs deux poings serrés
 // sur une liane du Vieux Chêne (voir Player.draw).
+// Où est leur nez (ou le bout de leur bec, de leur museau) : [x vers l'avant, y depuis les pieds]. Après le toboggan
+// dans la neige (le pingouin grincheux), il devient tout rouge : voir Art.redNose.
+const HERO_NOSE = {
+  malice: [15.1, -39.4], lutin: [9.2, -32], biche: [24.8, -46.4], bonbon: [8.4, -29.3], ronaxel: [12.3, -47.7], poussin: [17.5, -38.5],
+  luisy: [13, -49], messi: [14.5, -44.4], licorne: [22, -40], dragon: [19.5, -40.5], pingouin: [21, -42], chat: [12.3, -41.1],
+  sirene: [12, -45], dino: [21, -45], goku: [13, -42.2], gizmo: [10.5, -26.5],
+};
+
 const HERO_HAND = {
   malice: ['#ffdcc4', '#c98868'], lutin: ['#ffd7b5', '#8a4a2a'], biche: ['#c98a4e', '#6e4020'], bonbon: ['#ff9cc8', '#b0346e'],
   ronaxel: ['#f7cfae', '#b97c58'], poussin: ['#ffd83a', '#b07a10'], luisy: ['#ffdcc4', '#c98868'], messi: ['#f5cba6', '#b67a52'],
@@ -178,6 +186,13 @@ const Heroes = (() => {
       case 'hold': Object.assign(R, { armF: -1.0, armB: -0.8 }); break;
       case 'crouch': Object.assign(R, { crouch: 7, legF: -1.25, legB: -0.85, armF: -0.6, armB: 0.3 }); break;
       case 'hang': Object.assign(R, { armF: 0.25, armB: -0.25, legF: 0.25, legB: -0.2 }); break;
+      // il glisse sur les éboulis (la Grande Glissade) comme sur une planche de surf : un pied devant, un pied
+      // derrière, les genoux pliés, les bras écartés qui tanguent pour garder l'équilibre
+      case 'surf': {
+        const s = Math.sin(t * 5) * 0.18;
+        Object.assign(R, { legF: -0.55, legB: 0.5, armF: -1.45 + s, armB: 1.5 + s, crouch: 4, lean: 0.04, bob: Math.sin(t * 23) * 0.6 });
+        break;
+      }
       // il glisse sur la bave : les bras qui moulinent, penché en arrière
       case 'slip': Object.assign(R, { armF: -2.3 + Math.sin(t * 18) * 0.6, armB: 1.9 + Math.cos(t * 18) * 0.6, legF: -0.6, legB: 0.5, lean: -0.2 }); break;
       case 'vine': {
@@ -202,6 +217,11 @@ const Heroes = (() => {
       if (a !== null) R.armF = a;
     }
     return R;
+  }
+
+  // Son nez : [x, y] (voir HERO_NOSE ; Gizmo en Gremlin a le même).
+  function nose(id, o) {
+    return HERO_NOSE[id] || HERO_NOSE.malice;
   }
 
   // Le haut de sa tête : [x, y] (là où se pose le bébé oiseau). o : comme pour draw (Gizmo en Gremlin…).
@@ -267,6 +287,10 @@ const Heroes = (() => {
       case 'dirt': return { color: '#7a4a24', a: 0.38 * clamp(left / 0.5, 0, 1) };
       // tout vert (la grenouille), puis il reprend sa couleur après avoir coassé deux fois
       case 'croak': return { color: '#3ed03a', a: 0.6 * clamp(k.t / 0.12, 0, 1) * clamp(left / 0.5, 0, 1) };
+      // plein de poussière de cailloux (le hérisson de roche), jusqu'à ce qu'il se regonfle
+      case 'crepe': return { color: '#8a7a74', a: 0.35 * clamp((Art.CREPE.flat + 0.2 - k.t) / 0.3, 0, 1) };
+      // plein de neige en glissant sur le ventre (le pingouin grincheux), puis il se relève et s'en débarrasse
+      case 'luge': return { color: '#f0f8ff', a: 0.42 * (k.upT === undefined ? clamp(k.t / 0.15, 0, 1) : clamp(1 - (k.t - k.upT) / 0.5, 0, 1)) };
       // tout rouge d'avoir été piqué, au début
       // (ensuite plus rien : inutile de redessiner le personnage à part)
       case 'pins': return k.t < 0.6 ? { color: '#ff5a6a', a: 0.22 * (1 - k.t / 0.6) } : null;
@@ -311,6 +335,66 @@ const Heroes = (() => {
       if (turn.whirl > 0) Art.spinWhirl(ctx, x, cy, (-top / 2 + 10) * sc, o.ouch.t, turn.whirl);
       return;
     }
+    // roulé par un hérisson de roche : d'abord tout petit dans une boule de cailloux qui roule (autour du milieu de la
+    // boule), puis aplati comme une crêpe (depuis ses pieds), puis il se regonfle d'un coup (pop !), voir Art.crepeShape
+    const crepe = o.ouch && o.ouch.kind === 'crepe' && !o.crepeDone ? Art.crepeShape(o.ouch) : null;
+    if (crepe) {
+      const top = id === 'malice' || !HERO_BY_ID[id] ? -62 : HERO_BY_ID[id].headY - 16;
+      const sc = o.scale || 1;
+      const f = o.facing || 1;
+      const inner = Object.assign({}, o, { crepeDone: true });
+      ctx.save();
+      if (crepe.ball > 0) {
+        const r = 25 * sc;
+        const cy = y - r;
+        ctx.translate(x, cy);
+        ctx.rotate(crepe.a * f);
+        ctx.scale(0.5, 0.5);
+        ctx.translate(-x, -(y + (top / 2) * sc));
+        draw(ctx, id, x, y, inner);
+        ctx.restore();
+        Art.pebbleBall(ctx, x, cy, r * 0.82, crepe.a * f, crepe.ball);
+        return;
+      }
+      ctx.translate(x, y);
+      ctx.scale(crepe.sx, crepe.sy);
+      ctx.translate(-x, -y);
+      draw(ctx, id, x, y, inner);
+      ctx.restore();
+      return;
+    }
+    // envoyé en toboggan par un pingouin grincheux : il bascule à plat ventre (autour d'un point du bas de son corps,
+    // posé un peu en arrière : il est allongé sur le sol, la tête devant), il glisse, il se relève ; puis son nez devient
+    // tout rouge, et il éternue (tout son corps part en avant d'un coup, autour de ses pieds), voir Art.lugeShape
+    const luge = o.ouch && o.ouch.kind === 'luge' && !o.lugeDone ? Art.lugeShape(o.ouch) : null;
+    if (luge) {
+      const sc = o.scale || 1;
+      const f = o.facing || 1;
+      const b = luge.belly;
+      ctx.save();
+      if (b > 0) {
+        const py = y - 13 * sc;
+        ctx.translate(x - f * 16 * sc * b, py + Math.sin((o.t || 0) * 26) * 0.6 * b);
+        ctx.rotate(f * b * 1.3);
+        ctx.translate(-x, -py);
+      } else if (luge.jerk) {
+        ctx.translate(x, y);
+        ctx.rotate(f * luge.jerk);
+        ctx.translate(-x, -y);
+      }
+      draw(ctx, id, x, y, Object.assign({}, o, { lugeDone: true }));
+      if (luge.nose > 0 && b < 0.3) {
+        // (le nez suit sa tête : la marche la fait sautiller et pencher, comme dans rig)
+        const R = rig(o.pose || 'idle', o.t || 0, o.ph || 0, null, null);
+        const [nx, ny0] = nose(id, o);
+        const ny = ny0 + R.bob + (R.crouch || 0) * 0.8;
+        const c = Math.cos(R.lean);
+        const sn = Math.sin(R.lean);
+        Art.redNose(ctx, x + f * (nx * c - ny * sn) * sc, y + (nx * sn + ny * c) * sc, 4.4 * sc, luge.nose, o.t || 0);
+      }
+      ctx.restore();
+      return;
+    }
     // trempé par la pluie d'un petit nuage, il s'ébroue comme un chien : tout son corps se tortille de gauche à droite
     // (autour du milieu de son corps), voir Art.shakeTilt
     const tilt = o.ouch && o.ouch.kind === 'shake' && !o.shook ? Art.shakeTilt(o.ouch) : 0;
@@ -342,7 +426,8 @@ const Heroes = (() => {
     const opts = Object.assign({}, o, {
       pose, t, ph: o.ph || 0,
       // tout son corps réagit, ou il vient d'avoir mal (ou il enlève un piquant) : les yeux plissés
-      hurt: pose === 'ouch' || pose === 'hurt' || (k && k.t < 0.35) || (k && k.kind === 'pins' && Art.pinsWince(k)),
+      hurt: pose === 'ouch' || pose === 'hurt' || (k && k.t < 0.35) || (k && k.kind === 'pins' && Art.pinsWince(k)) ||
+        (k && k.kind === 'luge' && Art.lugeShape(k).sneeze > 0),
     });
     ctx.save();
     ctx.translate(x, y);
@@ -400,5 +485,5 @@ const Heroes = (() => {
     ctx.restore();
   }
 
-  return { TAU, add, draw, head, headTop, rig, paint, tone, limb, tip, blob, eye, blinking };
+  return { TAU, add, draw, head, headTop, nose, rig, paint, tone, limb, tip, blob, eye, blinking };
 })();

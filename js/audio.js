@@ -178,6 +178,16 @@ const Sound = (() => {
           noise({ filter: 'bandpass', f: 1600, f2: 600, d: 0.35, v: 0.32, q: 0.8 });
           tone({ type: 'sine', f: 900, f2: 380, d: 0.2, v: 0.1 });
           break;
+        case 'crepe': // badaboum ! roulée dans les cailloux : un gros roulement de pierres, et un petit cri qui tourne
+          noise({ filter: 'lowpass', f: 900, f2: 200, d: 0.45, v: 0.38 });
+          for (let i = 0; i < 5; i++) noise({ filter: 'bandpass', f: 700 + (i % 2) * 500, d: 0.05, v: 0.2, q: 2, delay: 0.04 + i * 0.07 });
+          tone({ type: 'triangle', f: 700, f2: 300, d: 0.35, v: 0.1, vib: 14, vibDepth: 120 });
+          break;
+        case 'luge': // pouf ! dans la neige, puis « Wiiii ! » : un petit cri qui monte, comme sur un toboggan
+          noise({ filter: 'lowpass', f: 1400, f2: 500, d: 0.25, v: 0.3 });
+          tone({ type: 'sine', f: 700, f2: 1700, d: 0.55, v: 0.12, delay: 0.05, vib: 9, vibDepth: 40 });
+          tone({ type: 'triangle', f: 1400, f2: 2300, d: 0.5, v: 0.05, delay: 0.08 });
+          break;
         case 'hail': // tic ! un grêlon sur la tête, et des petites clochettes de glace qui tournent
           tone({ type: 'sine', f: 2600, f2: 1900, d: 0.08, v: 0.25 });
           noise({ filter: 'highpass', f: 5000, d: 0.05, v: 0.18 });
@@ -608,6 +618,134 @@ const Sound = (() => {
       tone({ type: 'sine', f: 520, f2: 320, d: 0.05, v: 0.035 });
     },
 
+    // ---- Le Glacier Fumant ----
+    // elle dérape sur la glace : chhhh (un frottement tout aigu)
+    iceSkid() {
+      noise({ filter: 'highpass', f: 3200, d: 0.22, v: 0.06, a: 0.03 });
+      noise({ filter: 'bandpass', f: 5200, d: 0.12, v: 0.035, q: 3, delay: 0.05 });
+    },
+    // sur le ventre dans la neige : fffff
+    lugeSlide() {
+      noise({ filter: 'bandpass', f: rand(1800, 2600), d: 0.2, v: 0.05, q: 0.8, a: 0.03 });
+    },
+    // le nez tout rouge : « ah… ah… atchoum ! » (i : le premier ou le deuxième, un peu plus fort)
+    sneeze(i) {
+      tone({ type: 'sine', f: 520, f2: 760, d: 0.18, v: 0.05 });
+      noise({ filter: 'bandpass', f: 2400, f2: 900, d: 0.22, v: 0.3 + (i || 0) * 0.06, q: 0.7, delay: 0.02 });
+      tone({ type: 'triangle', f: 900, f2: 400, d: 0.12, v: 0.08, delay: 0.02 });
+      for (let k = 0; k < 3; k++) tone({ type: 'sine', f: 2600 + k * 500, d: 0.06, v: 0.035, delay: 0.16 + k * 0.07 });
+    },
+    // une stalactite de glace tremble : crr-crr, des petits craquements de glace
+    icicleShake() {
+      for (let k = 0; k < 4; k++) noise({ filter: 'bandpass', f: 3000 + k * 400, d: 0.04, v: 0.12, q: 4, delay: k * 0.08 });
+      tone({ type: 'sine', f: 1900, f2: 1500, d: 0.3, v: 0.03, vib: 30, vibDepth: 60 });
+    },
+    // elle se brise par terre : cling-clang, comme du verre
+    icicleCrash() {
+      noise({ filter: 'highpass', f: 2600, d: 0.3, v: 0.25 });
+      for (let k = 0; k < 5; k++) tone({ type: 'sine', f: 1700 + k * 520 + rand(-80, 80), d: 0.25, v: 0.07, delay: k * 0.035 });
+      tone({ type: 'sine', f: 180, f2: 90, d: 0.15, v: 0.2 });
+    },
+    // une fumerolle : pschhhh
+    steam() {
+      noise({ filter: 'bandpass', f: 1500, f2: 2600, d: 0.9, v: 0.05, q: 0.6, a: 0.2 });
+    },
+    // le pingouin grincheux ronchonne : grmbl (une petite voix grave qui tremblote)
+    penGrumble() {
+      tone({ type: 'sawtooth', f: 210, f2: 170, d: 0.22, v: 0.035, vib: 22, vibDepth: 25 });
+      tone({ type: 'sawtooth', f: 190, f2: 230, d: 0.16, v: 0.03, delay: 0.2, vib: 22, vibDepth: 25 });
+    },
+    // il a vu Malice : « Hé ! » (un petit cri fâché)
+    penAlert() {
+      tone({ type: 'square', f: 520, f2: 760, d: 0.12, v: 0.06 });
+      tone({ type: 'square', f: 760, f2: 600, d: 0.14, v: 0.05, delay: 0.12 });
+    },
+    // il plonge sur le ventre : flouf !
+    penDive() {
+      noise({ filter: 'lowpass', f: 1800, f2: 400, d: 0.3, v: 0.28 });
+      tone({ type: 'sine', f: 320, f2: 160, d: 0.2, v: 0.12 });
+    },
+    // il glisse : sur la glace, un sifflement tout fin ; sur la roche, ça frotte
+    penSlide(ice) {
+      if (ice) noise({ filter: 'highpass', f: 4200, d: 0.22, v: 0.035, a: 0.03 });
+      else noise({ filter: 'bandpass', f: 1200, d: 0.2, v: 0.05, q: 1, a: 0.03 });
+    },
+    // bonk ! contre un mur
+    penBonk() {
+      tone({ type: 'sine', f: 260, f2: 120, d: 0.25, v: 0.3 });
+      for (let k = 0; k < 3; k++) tone({ type: 'sine', f: 1900 + k * 300, d: 0.08, v: 0.04, delay: 0.18 + k * 0.1 });
+    },
+    // il redevient gentil : un petit air tout content (cui-cui !)
+    penHappy() {
+      tone({ type: 'triangle', f: 880, f2: 1320, d: 0.1, v: 0.09, delay: 0.08 });
+      tone({ type: 'triangle', f: 1320, f2: 1760, d: 0.12, v: 0.08, delay: 0.2 });
+    },
+
+    // ---- Le Bord du Cratère ----
+    // le volcan gronde : un long grondement sourd qui roule, et un « boum » tout au fond (il va cracher des pierres)
+    volcanoRumble() {
+      noise({ filter: 'lowpass', f: 160, f2: 90, d: 1.3, v: 0.45, a: 0.15 });
+      noise({ filter: 'lowpass', f: 320, f2: 120, d: 0.9, v: 0.18, a: 0.05, delay: 0.25 });
+      tone({ type: 'sine', f: 48, f2: 36, d: 1.1, v: 0.22, a: 0.1, vib: 7, vibDepth: 6 });
+      tone({ type: 'sine', f: 70, f2: 40, d: 0.35, v: 0.2, delay: 0.75 });
+    },
+    // une pierre de lave tombe : un sifflement qui descend, et ça crépite
+    lavaWhistle() {
+      tone({ type: 'sine', f: 1100, f2: 380, d: 0.42, v: 0.05 });
+      noise({ filter: 'bandpass', f: 2400, d: 0.4, v: 0.04, q: 1.5, a: 0.1 });
+    },
+    // elle s'écrase par terre : boum, puis pschhh (la roche chaude qui fume)
+    lavaThud() {
+      tone({ type: 'sine', f: 140, f2: 50, d: 0.3, v: 0.35 });
+      noise({ filter: 'lowpass', f: 900, f2: 200, d: 0.3, v: 0.3 });
+      noise({ filter: 'bandpass', f: 1800, f2: 2600, d: 0.6, v: 0.06, q: 0.6, a: 0.06, delay: 0.1 });
+    },
+
+    // ---- La Grande Glissade ----
+    // Malice glisse sur les éboulis : chhh, des petits cailloux qui roulent (k : sa vitesse, un peu plus fort quand elle
+    // va vite)
+    scree(k) {
+      const v = 0.035 + 0.025 * clamp((k || 1) - 0.8, 0, 1);
+      noise({ filter: 'bandpass', f: rand(1300, 1900), d: 0.16, v, q: 0.9, a: 0.03 });
+      if (Math.random() < 0.5) noise({ filter: 'highpass', f: 3800, d: 0.03, v: 0.04, delay: rand(0, 0.1) });
+    },
+    // un hérisson de roche se réveille : « ! » un petit grognement de pierre (grrr-oc)
+    rockAlert() {
+      tone({ type: 'sawtooth', f: 140, f2: 230, d: 0.2, v: 0.07, vib: 30, vibDepth: 20 });
+      noise({ filter: 'bandpass', f: 900, d: 0.06, v: 0.12, q: 2, delay: 0.18 });
+    },
+    // il roule : un grondement de cailloux (toutes les ROCK.rumble secondes)
+    rockRumble() {
+      noise({ filter: 'lowpass', f: 420, f2: 260, d: 0.3, v: 0.16, a: 0.04 });
+      noise({ filter: 'bandpass', f: 1100, d: 0.04, v: 0.06, q: 3, delay: rand(0.05, 0.2) });
+    },
+    // hop ! il saute un petit trou
+    rockHop() {
+      tone({ type: 'sine', f: 180, f2: 520, d: 0.16, v: 0.14 });
+      noise({ filter: 'lowpass', f: 600, d: 0.08, v: 0.12 });
+    },
+    // bonk ! il se cogne contre un rocher (et des petites étoiles qui tintent)
+    rockBonk() {
+      tone({ type: 'sine', f: 140, f2: 70, d: 0.3, v: 0.35 });
+      noise({ filter: 'lowpass', f: 1200, f2: 300, d: 0.2, v: 0.25 });
+      for (let i = 0; i < 3; i++) tone({ type: 'sine', f: 1800 + i * 300, d: 0.08, v: 0.04, delay: 0.2 + i * 0.1 });
+    },
+    // il s'arrête tout étourdi (en bas de la pente, au bord d'un trou) : ouiii-ouiii
+    rockDizzy() {
+      tone({ type: 'sine', f: 900, f2: 500, d: 0.5, v: 0.06, vib: 9, vibDepth: 120 });
+    },
+    // les cailloux de la boule s'envolent : crrratch
+    crumble() {
+      for (let i = 0; i < 6; i++) noise({ filter: 'bandpass', f: 900 + i * 260, d: 0.05, v: 0.16, q: 2.5, delay: i * 0.03 });
+      noise({ filter: 'lowpass', f: 700, f2: 200, d: 0.25, v: 0.18 });
+    },
+    // aplatie comme une crêpe, elle se regonfle d'un coup : POP !
+    crepePop() {
+      tone({ type: 'sine', f: 260, f2: 1500, d: 0.12, v: 0.3 });
+      noise({ filter: 'highpass', f: 2500, d: 0.04, v: 0.25 });
+      tone({ type: 'triangle', f: 1500, f2: 1900, d: 0.1, v: 0.08, delay: 0.1 });
+    },
+
     // ---- Le Phare sur la Falaise ----
     // un paratonnerre va grésiller : bzz… (u : de 0 à 1, de plus en plus aigu et fort)
     rodHum(u) {
@@ -842,6 +980,58 @@ const Sound = (() => {
     breeze() { noise({ filter: 'bandpass', f: 700, f2: 2400, d: 1.2, v: 0.08, q: 1.5, a: 0.2 }); },
     // il redevient gentil : un petit air tout content
     scareFriend() { arp([523, 659, 784, 1047, 784, 1047], { type: 'triangle', d: 0.14, v: 0.14, gap: 0.09 }); },
+
+    // ---- Maman Aigle (le boss des Pentes du Volcan) ----
+    // son grand cri avant de piquer : kiiiii ! (qui descend, en tremblant)
+    eagleCry() {
+      tone({ type: 'triangle', f: 2300, f2: 1500, d: 0.55, v: 0.1, vib: 28, vibDepth: 60, a: 0.02 });
+      tone({ type: 'sine', f: 3400, f2: 2500, d: 0.4, v: 0.035, a: 0.02 });
+    },
+    // un grand coup d'ailes : fwoump
+    eagleFlap() { noise({ filter: 'lowpass', f: 650, f2: 220, d: 0.2, v: 0.12 }); },
+    // elle pique : un sifflement qui monte
+    eagleDive() { noise({ filter: 'bandpass', f: 500, f2: 2600, d: 0.42, v: 0.14, q: 2 }); },
+    // elle arrive en bas : pouf, de la poussière
+    eagleThud() {
+      noise({ f: 500, f2: 120, d: 0.3, v: 0.26 });
+      tone({ type: 'triangle', f: 140, f2: 70, d: 0.2, v: 0.18 });
+    },
+    // le rase-mottes : un grand fffouuu
+    eagleSwoop() { noise({ filter: 'bandpass', f: 1800, f2: 400, d: 0.9, v: 0.14, q: 1.2, a: 0.1 }); },
+    // surprise ! hiii !
+    eagleSurprise() { tone({ type: 'triangle', f: 900, f2: 2200, d: 0.3, v: 0.11, vib: 30, vibDepth: 50 }); },
+    // elle bâille : ooouaaah…
+    eagleYawn() { tone({ type: 'sawtooth', f: 520, f2: 240, d: 1.1, v: 0.04, vib: 5, vibDepth: 20, a: 0.25 }); },
+    // des œufs qui roulent : toc toc toc
+    eggRoll() { for (let i = 0; i < 6; i++) tone({ type: 'sine', f: 1300 - i * 70, d: 0.05, v: 0.07, delay: i * 0.12 }); },
+    // on ramasse un œuf (ou un morceau du dessin)
+    eggPick() { arp([660, 880], { type: 'triangle', d: 0.1, v: 0.1, gap: 0.07 }); },
+    // il retourne dans le nid : un petit air content
+    eggNest() { arp([523, 659, 784, 1047], { type: 'triangle', d: 0.14, v: 0.11, gap: 0.07 }); },
+    // une brindille : crac
+    twig() {
+      noise({ filter: 'highpass', f: 2500, d: 0.05, v: 0.12 });
+      tone({ type: 'triangle', f: 700, f2: 500, d: 0.06, v: 0.06 });
+    },
+    // une note de musique attrapée : do, ré, mi
+    noteGet(i) {
+      const f = [523, 587, 659][i % 3];
+      tone({ type: 'sine', f, d: 0.7, v: 0.13 });
+      tone({ type: 'sine', f: f * 2, d: 0.35, v: 0.04 });
+    },
+    // les coquilles qui craquent
+    eggCrack() { for (let i = 0; i < 6; i++) noise({ filter: 'highpass', f: 3000, d: 0.05, v: 0.12, delay: i * 0.13 }); },
+    // un aiglon : piou !
+    peep() { tone({ type: 'sine', f: 1800, f2: 2700, d: 0.12, v: 0.09 }); },
+    // un bisou : smack !
+    kiss() {
+      noise({ filter: 'bandpass', f: 2200, d: 0.06, v: 0.15, q: 3 });
+      tone({ type: 'sine', f: 900, f2: 1400, d: 0.1, v: 0.08, delay: 0.03 });
+    },
+    // la plume dorée (et le dessin entier) : des clochettes
+    goldFeather() { arp([1047, 1319, 1568, 2093, 2637], { type: 'sine', d: 0.4, v: 0.07, gap: 0.08 }); },
+    // un grand coup de vent (le nid abîmé, le dessin qui s'envole)
+    gust() { noise({ filter: 'bandpass', f: 400, f2: 1600, d: 1.2, v: 0.16, q: 0.8, a: 0.15 }); },
   };
 
   // ---------- Instruments ----------
@@ -1052,6 +1242,15 @@ const Sound = (() => {
   // Les petits morceaux ci-dessous sont écrits case par case (une case = une croche) :
   // "-" prolonge la note précédente, "." est un silence, "|" sépare les mesures (ignoré).
   const SONGS = {
+    // la berceuse que Malice chante à Maman Aigle (avec les trois notes attrapées : do, ré, mi) : « Au clair de la
+    // lune » (chanson traditionnelle), tout doucement, au célesta, avec la harpe en dessous
+    berceuse: {
+      bpm: 160, once: true,
+      tracks: [
+        { w: 'celesta', v: 0.2, n: 'C5 - C5 - C5 - D5 - | E5 - - - D5 - - - | C5 - E5 - D5 - D5 - | C5 - - - - - - -' },
+        { w: 'harp', v: 0.09, n: 'C3 G3 E4 G3 C3 G3 E4 G3 | C3 G3 E4 G3 G2 D3 B3 D3 | C3 G3 E4 G3 G2 D3 B3 D3 | C3 G3 E4 G3 C4 - - -' },
+      ],
+    },
     clear: {
       bpm: 160, once: true,
       tracks: [

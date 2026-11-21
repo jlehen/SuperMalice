@@ -4,12 +4,24 @@ const LUTIN_BLOCKS = 'LFKCS';
 // le bouchon en chocolat (le Défi du Bocal à éclairs) : il est solide, et seul un éclair au chocolat lancé avec le
 // bocal le fait fondre (voir meltPlug)
 const PLUG = '%';
+// la glace du Glacier Fumant : un bloc solide où l'on glisse (voir ICE_PHYS dans entities.js, et iceUnder)
+const ICE = '+';
 // u : bloc magique du Lutin (il disparaît tout seul)
-const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || ch === PLUG || LUTIN_BLOCKS.includes(ch);
+const isSolidCh = (ch) => ch === '#' || ch === 'B' || ch === 'M' || ch === 'u' || ch === ICE || ch === PLUG || LUTIN_BLOCKS.includes(ch);
 // plateformes qu'on traverse par dessous : planche, nuage… pont arc-en-ciel, ou paratonnerre (le Phare sur la Falaise)
 const isLedgeCh = (ch) => ch === '-' || ch === '=' || ch === 'z';
 // l'eau de la rivière (la Rivière aux Nénuphars)
 const WATER = '_';
+// les éboulis de la Grande Glissade : une case où passe la pente de cailloux (voir "glissades" et findScree)
+const SCREE = '>';
+// La caméra de la Grande Glissade : comme dans un niveau où l'on grimpe, elle suit le sol où Malice a les pieds, ses
+// pieds un peu plus haut sur l'écran (feet, une part de la hauteur de l'écran : on voit bien la pente qui descend
+// devant elle) ; en glissant, elle regarde plus loin devant (ahead pixels). Pour le fond : voir render.
+const SCREE_CAM = { feet: 0.6, ahead: 170 };
+const SCREE_BG = 240;
+// En arrivant sur la pente, ou en y restant, ses pieds se posent sur les cailloux s'ils en sont à moins de stick pixels
+// (en descendant la pente, ils la suivent sans décoller ; voir screeSnap).
+const SCREE_STICK = 18;
 // la bave des escargots : elle glisse pendant SLIME_WET secondes, puis elle sèche (et disparaît à SLIME_TIME)
 const SLIME_WET = 7;
 const SLIME_TIME = 9;
@@ -104,6 +116,18 @@ class World {
     this.goal = null;
     this.storms = def.storms || [];
     this.stormT = 1.5;
+    // le Bord du Cratère : les colonnes où le volcan gronde et crache des pierres de lave ("volcan" : [début, fin]), les
+    // pierres qui tombent ou refroidissent par terre (voir LavaBomb), le grondement (rumble : combien de temps la terre
+    // tremble encore), et le volcan du fond qui crache (belch, de 1 à 0) ; pas de grondement juste après une reprise
+    this.volcan = def.volcan || [];
+    this.bombs = [];
+    // (les zones où le volcan a déjà grondé une fois : voir lavaTargets)
+    this.volcanSeen = new Set();
+    this.volcanT = 3;
+    this.rumble = 0;
+    this.belch = 0;
+    // le grand nid de Maman Aigle, sur son pic ("nid" : [colonne, rangée du sol où il est posé]), dans le décor
+    this.nest = def.nid ? { x: (def.nid[0] + 0.5) * TILE, y: def.nid[1] * TILE } : null;
     this.flash = 0;
     this.flashT = 3;
     this.shakeMag = 0;
@@ -140,6 +164,9 @@ class World {
     // la Rivière aux Nénuphars : la bave des escargots, les lapins, et le terrier secret
     // (les rangées à partir de "terrier" sont sous terre : la caméra n'y descend que si Malice y va)
     this.slime = [];
+    // le Glacier Fumant : des plaques de glace dans le niveau (les cases +), et leurs fumerolles (voir findVents)
+    this.ice = false;
+    this.vents = [];
     // les petites scènes pour rire, qui ne touchent à rien (la taupe qui sort voir Malice la tête en bas)
     this.gags = [];
     // le pont de corde qui s'enfonce sous les pieds de Malice : où (x, rangée), et de combien (k, de 0 à 1)
@@ -157,6 +184,8 @@ class World {
     // "cachette" : le coin secret tout en haut d'un arbre, caché derrière un gros feuillage (k : de 1, fermé, à 0)
     const hd = def.cachette;
     this.hideout = hd ? { x0: hd[0] * TILE, y0: hd[1] * TILE, x1: (hd[2] + 1) * TILE, y1: (hd[3] + 1) * TILE, k: 1, found: false } : null;
+    // (dans les fumerolles du Défi de la Moustache-Grappin, c'est un gros nuage de vapeur : voir "hideout" dans THEMES)
+    this.hideStyle = Scenery.THEMES[this.theme].hideout || null;
     // "feuillage" : de gros feuillages dans le décor (les lianes y sont accrochées ; on passe à travers)
     this.foliage = (def.feuillage || []).map((f) => ({ x0: f[0] * TILE, y0: f[1] * TILE, x1: (f[2] + 1) * TILE, y1: (f[3] + 1) * TILE }));
     // les branches (=) sur les grands arbres du sous-bois (voir "branches" dans Scenery.THEMES)
@@ -167,6 +196,11 @@ class World {
     // le boss du bout du niveau (voir boss.js), et son arène quand on ne peut plus en sortir
     this.boss = null;
     this.arena = null;
+
+    // la Grande Glissade : les pentes d'éboulis ("glissades"), où l'on glisse sans pouvoir s'arrêter (voir findScree ;
+    // avant les ennemis : les hérissons de roche se posent sur la pente)
+    this.scree = def.glissades ? this.findScree(def.glissades) : null;
+    this.screeHit = null;
 
     let start = { x: 3 * TILE, y: 11 * TILE };
     const flowerSpots = [];
@@ -211,6 +245,18 @@ class World {
           case 'O': this.enemies.push(new Snail(this, mx - 22, by - 30)); break;
           case 'm': this.enemies.push(new Mole(this, mx, by)); break;
           case 'h': this.enemies.push(new Hedgehog(this, mx - 20, by - 30)); break;
+          // le Glacier Fumant : un pingouin grincheux (ses pieds sur le sol de la case du dessous)
+          case '1': this.enemies.push(new GrumpyPenguin(this, mx, by)); break;
+          case ICE: this.ice = true; keep = true; break;
+          // la Grande Glissade : un hérisson de roche, posé sur la pente (sa case reste des éboulis), ou sur le sol de la
+          // case du dessous
+          case '0':
+            if (this.screeCell(c, r)) {
+              this.tiles[r][c] = SCREE;
+              keep = true;
+            }
+            this.enemies.push(new RockHog(this, mx, by));
+            break;
           case 's': this.enemies.push(new Boar(this, mx - 28, by - 40)); break;
           case 'f': this.enemies.push(new Frog(this, mx - 20, by - 30)); break;
           // le moulin à vent : l'axe de ses ailes (ses planches sont des plateformes, voir Windmill)
@@ -301,9 +347,15 @@ class World {
     // (au début, ou à un drapeau) : ils ne foncent pas tout de suite sur elle
     for (const e of this.enemies) {
       if (e instanceof Snail || e instanceof Hedgehog || e instanceof Boar) e.dir = e.cx < start.x ? -1 : 1;
+      // (les pingouins grincheux, eux, regardent du côté où elle arrive : ils sont tous loin des drapeaux, et une bosse ou
+      // un trou les sépare du drapeau d'avant)
+      if (e instanceof GrumpyPenguin) e.dir = e.cx < start.x ? 1 : -1;
     }
     // les paratonnerres (chaque suite de z côte à côte), numérotés de bas en haut
     this.rods = this.findRods();
+    // le Glacier Fumant : les fumerolles, là où la glace touche la roche chaude (voir findVents)
+    this.vents = this.ice ? this.findVents() : [];
+    this.ventSnd = 0;
     // (le pied du phare : le haut du sol, sous le milieu de sa tour)
     if (this.lighthouse) {
       const L = this.lighthouse;
@@ -323,6 +375,9 @@ class World {
     this.bridges = this.cabins ? this.findBridges() : [];
     // (et la brume au ras de la boue : les suites de cases de boue à la surface, voir drawMist)
     this.mists = this.mud ? this.runsOf((c, r) => this.tiles[r][c] === '~' && (r === 0 || this.tiles[r - 1][c] !== '~')) : [];
+    // (dans les fumerolles du Défi de la Moustache-Grappin, des braises sautent de la lave : "embers" dans THEMES)
+    this.lavaTops = Scenery.THEMES[this.theme].embers ? this.runsOf((c, r) => this.tiles[r][c] === '~' && r > 0 && this.tiles[r - 1][c] === '.') : [];
+    this.emberT = 0;
     // le Vieux Chêne : sa porte (les cases vides tout en bas de son mur de gauche), et ce que le fond doit savoir
     // (la hauteur du niveau ; "couronne" : la rangée où le tronc s'ouvre en haut, sous les feuilles)
     if (this.trunk) {
@@ -351,6 +406,108 @@ class World {
     return isSolidCh(this.tileAt(Math.floor(px / TILE), Math.floor(py / TILE)));
   }
 
+  // ---------- La Grande Glissade : les pentes d'éboulis ----------
+  // Chaque glissade [c0, r0, c1, r1] est une pente toute droite, du coin en haut à gauche de la case (c0, r0) jusqu'au
+  // coin en bas à droite de la case (c1, r1). Les cases > de la carte sont celles où passe la pente (ailleurs, sur sa
+  // ligne, il y a un rocher ou un trou), et sous la pente, c'est de la terre (#). Pour chaque colonne : ses pentes
+  // (lines) ; fill : les cases de terre juste sous les éboulis (on ne s'y cogne pas, on glisse sur la pente au-dessus).
+  findScree(list) {
+    const T = TILE;
+    const lines = new Array(this.cols).fill(null);
+    for (const [c0, r0, c1, r1] of list) {
+      const L = { x0: c0 * T, y0: r0 * T, x1: (c1 + 1) * T, k: (r1 + 1 - r0) / (c1 + 1 - c0) };
+      for (let c = Math.max(0, c0); c <= Math.min(this.cols - 1, c1); c++) (lines[c] = lines[c] || []).push(L);
+    }
+    const fill = new Uint8Array(this.rows * this.cols);
+    // rock : les cases de terre au-dessus de la pente (les rochers posés dessus : dessinés comme de grosses pierres)
+    const rock = new Uint8Array(this.rows * this.cols);
+    // (déjà là pour screeCell, juste en dessous)
+    this.scree = { lines, fill, rock };
+    for (let c = 0; c < this.cols; c++) {
+      for (let r = 0; r < this.rows - 1; r++) {
+        // (un hérisson de roche posé sur la pente : sa case aussi, voir le constructeur)
+        const ch = this.tiles[r][c];
+        if (ch !== SCREE && !(ch === '0' && this.screeCell(c, r))) continue;
+        for (let rr = r + 1; rr < this.rows && isSolidCh(this.tiles[rr][c]); rr++) fill[rr * this.cols + c] = 1;
+      }
+      // (un rocher : de la terre là où passe la pente, et au-dessus)
+      for (const L of lines[c] || []) {
+        const y = L.y0 + L.k * (c * TILE + TILE / 2 - L.x0);
+        for (let r = Math.floor(y / TILE); r >= 0 && this.tiles[r][c] === '#'; r--) rock[r * this.cols + c] = 1;
+      }
+    }
+    return this.scree;
+  }
+
+  // La pente d'une glissade passe-t-elle dans la case (c, r) ?
+  screeCell(c, r) {
+    const ls = this.scree && this.scree.lines[c];
+    return !!ls && ls.some((L) => {
+      const ya = L.y0 + L.k * (c * TILE - L.x0);
+      const yb = ya + L.k * TILE;
+      return yb > r * TILE + 0.5 && ya < (r + 1) * TILE - 0.5;
+    });
+  }
+
+  // La hauteur de la pente d'éboulis à x (la plus proche de near), ou null s'il n'y a pas d'éboulis là (pas de pente,
+  // ou un rocher, ou un trou). line : la pente trouvée (sa pente k), dans screeHit.
+  screeY(x, near) {
+    const S = this.scree;
+    const c = Math.floor(x / TILE);
+    const ls = S && c >= 0 && c < this.cols ? S.lines[c] : null;
+    if (!ls) return null;
+    let best = null;
+    for (const L of ls) {
+      const y = L.y0 + L.k * (x - L.x0);
+      if (this.tileAt(c, Math.floor((y - 1) / TILE)) !== SCREE && this.tileAt(c, Math.floor((y + 1) / TILE)) !== SCREE) continue;
+      if (best === null || Math.abs(y - near) < Math.abs(best - near)) {
+        best = y;
+        this.screeHit = L;
+      }
+    }
+    return best;
+  }
+
+  // Après avoir bougé (voir moveBody) : les pieds sur la pente ? b.slope : la pente où il glisse (ou null).
+  // On s'y pose en arrivant d'au-dessus ; posé dessus, on la suit en descendant (sans décoller), et en la remontant ;
+  // en sautant (on monte), on la quitte.
+  screeSnap(b, prevBottom, res) {
+    const was = b.slope;
+    b.slope = null;
+    if (b.vy < 0) return;
+    const feet = b.y + b.h;
+    const sy = this.screeY(b.x + b.w / 2, feet);
+    if (sy === null) return;
+    // (déjà posé plus haut : sur un rocher, au bord de la pente)
+    if (b.onGround && feet <= sy + 0.5) return;
+    const from = feet >= sy && prevBottom <= sy + (was ? SCREE_STICK : 2);
+    const stick = was && feet < sy && sy - feet <= SCREE_STICK;
+    if (!from && !stick) return;
+    b.y = sy - b.h;
+    b.vy = 0;
+    b.onGround = true;
+    b.slope = this.screeHit;
+    res.landed = true;
+  }
+
+  // Tombée dans une crevasse, sous la pente : le bord d'en face (les cases > de la colonne c, entre les rangées r0 et r1)
+  // est un mur, sinon on rentrerait dans la terre sous les éboulis. x : le bord de la colonne qu'on touche.
+  screeWall(b, c, r0, r1, x) {
+    let found = false;
+    for (let r = r0; r <= r1 && !found; r++) found = this.tileAt(c, r) === SCREE;
+    if (!found) return false;
+    const sy = this.screeY(x, b.y + b.h);
+    return sy !== null && b.y + b.h > sy + SCREE_STICK;
+  }
+
+  // Une case de terre juste sous les éboulis (sa première rangée), sous un corps qui a les pieds sur la pente (voir
+  // moveBody) ?
+  underScree(b, c, r) {
+    if (!this.scree || this.scree.fill[r * this.cols + c] !== 1) return false;
+    const sy = this.screeY(b.x + b.w / 2, b.y + b.h);
+    return sy !== null && r * TILE < sy + TILE;
+  }
+
   // Déplace un objet en tenant compte des murs, du sol et des plateformes traversables.
   moveBody(b, dt, onFloorHit) {
     const T = TILE;
@@ -359,23 +516,34 @@ class World {
       b.x += b.vx * dt;
       const r0 = Math.floor(b.y / T);
       const r1 = Math.floor((b.y + b.h - 0.01) / T);
+      // (sur la pente d'éboulis, la terre juste sous les pieds n'est pas un mur : on remonte la pente sans s'y cogner)
+      const fill = b.slope && this.scree ? this.scree.fill : null;
+      const step = b.y + b.h - SCREE_STICK;
       if (b.vx > 0) {
         const c = Math.floor((b.x + b.w - 0.01) / T);
         for (let r = r0; r <= r1; r++) {
-          if (isSolidCh(this.tileAt(c, r))) {
+          if (isSolidCh(this.tileAt(c, r)) && !(fill && r * T > step && fill[r * this.cols + c] === 1)) {
             b.x = c * T - b.w;
             res.wall = 1;
             break;
           }
         }
+        if (!res.wall && this.scree && this.screeWall(b, c, r0, r1, c * T + 1)) {
+          b.x = c * T - b.w;
+          res.wall = 1;
+        }
       } else {
         const c = Math.floor(b.x / T);
         for (let r = r0; r <= r1; r++) {
-          if (isSolidCh(this.tileAt(c, r))) {
+          if (isSolidCh(this.tileAt(c, r)) && !(fill && r * T > step && fill[r * this.cols + c] === 1)) {
             b.x = (c + 1) * T;
             res.wall = -1;
             break;
           }
+        }
+        if (!res.wall && this.scree && this.screeWall(b, c, r0, r1, (c + 1) * T - 1)) {
+          b.x = (c + 1) * T;
+          res.wall = -1;
         }
       }
       if (res.wall) b.vx = 0;
@@ -383,6 +551,7 @@ class World {
     const prevBottom = b.y + b.h;
     b.y += b.vy * dt;
     b.onGround = false;
+    const scree = !!this.scree;
     const c0 = Math.floor((b.x + 0.01) / T);
     const c1 = Math.floor((b.x + b.w - 0.01) / T);
     if (b.vy > 0) {
@@ -390,6 +559,8 @@ class World {
       let tiles = [];
       for (let c = c0; c <= c1; c++) {
         const ch = this.tileAt(c, r);
+        // (sur la pente d'éboulis, on se pose sur la pente, pas sur la terre en dessous : voir screeSnap)
+        if (scree && this.underScree(b, c, r)) continue;
         if (isSolidCh(ch) || (isLedgeCh(ch) && prevBottom <= r * T + 0.5)) tiles.push({ c, r, ch });
       }
       if (tiles.length && onFloorHit && onFloorHit(tiles)) {
@@ -414,6 +585,7 @@ class World {
         res.ceil = tiles;
       }
     }
+    if (scree) this.screeSnap(b, prevBottom, res);
     return res;
   }
 
@@ -430,8 +602,12 @@ class World {
 
   surfaceBelow(x, fromY) {
     const c = Math.floor(x / TILE);
-    // (la Crue : l'eau qui a monté)
-    const f = this.flood && this.flood.y >= fromY ? this.flood.y : Infinity;
+    // (la Crue : l'eau qui a monté ; la Grande Glissade : la pente d'éboulis)
+    let f = this.flood && this.flood.y >= fromY ? this.flood.y : Infinity;
+    if (this.scree) {
+      const sy = this.screeY(x, fromY);
+      if (sy !== null && sy >= fromY) f = Math.min(f, sy);
+    }
     for (let r = Math.max(0, Math.floor(fromY / TILE)); r < this.rows && r * TILE < f; r++) {
       const ch = this.tileAt(c, r);
       if (isSolidCh(ch) || isLedgeCh(ch)) return r * TILE;
@@ -821,6 +997,52 @@ class World {
     if (this.slime.length && this.slime[0].t >= SLIME_TIME) this.slime = this.slime.filter((s) => s.t < SLIME_TIME);
   }
 
+  // ---------- Le Glacier Fumant ----------
+  // De la glace sous les pieds ? (la case sous le milieu de son corps ; au bord, à moitié dans le vide, la case
+  // sous l'autre pied)
+  iceUnder(b) {
+    const r = Math.floor((b.y + b.h + 2) / TILE);
+    const mid = this.tileAt(Math.floor((b.x + b.w / 2) / TILE), r);
+    if (mid === ICE) return true;
+    if (isSolidCh(mid) || isLedgeCh(mid)) return false;
+    return this.tileAt(Math.floor((b.x + 3) / TILE), r) === ICE || this.tileAt(Math.floor((b.x + b.w - 3) / TILE), r) === ICE;
+  }
+
+  // Les fumerolles : de la vapeur sort de la fente entre une plaque de glace et la roche chaude (ou la lave), sur le
+  // dessus du sol. { x, y : le bas de la fente ; v : pour que chacune fume à son rythme }
+  findVents() {
+    const out = [];
+    const hot = (ch) => ch === '#' || ch === '~';
+    for (let r = 1; r < this.rows; r++) {
+      for (let c = 0; c < this.cols - 1; c++) {
+        const a = this.tiles[r][c];
+        const b = this.tiles[r][c + 1];
+        if (!((a === ICE && hot(b)) || (hot(a) && b === ICE))) continue;
+        if (this.tiles[r - 1][c] !== '.' || this.tiles[r - 1][c + 1] !== '.') continue;
+        out.push({ x: (c + 1) * TILE, y: r * TILE, v: hash2(c, r) });
+      }
+    }
+    return out;
+  }
+
+  // La vapeur des fumerolles qu'on voit (avec une marge : elle monte haut), et un « pschhh » de temps en temps, pour la
+  // plus proche de Malice.
+  drawVents(ctx, camX) {
+    for (const v of this.vents) {
+      if (v.x < camX - 120 || v.x > camX + VIEW_W + 120 || v.y < this.cam.y - 40 || v.y - 200 > this.cam.y + VIEW_H) continue;
+      Scenery.steamVent(ctx, v.x, v.y, this.t, v.v);
+    }
+  }
+
+  updateVents(dt) {
+    this.ventSnd -= dt;
+    if (this.ventSnd > 0 || !this.vents.length) return;
+    this.ventSnd = rand(2.5, 4.5);
+    const p = this.player;
+    const v = this.vents.find((q) => Math.abs(q.x - p.cx) < 320 && Math.abs(q.y - (p.y + p.h)) < 200);
+    if (v && !p.dead) Sound.sfx.steam();
+  }
+
   // De la bave encore toute fraîche sous les pieds ?
   slimeUnder(b) {
     const feet = b.y + b.h;
@@ -1107,6 +1329,7 @@ class World {
     for (const v of this.vines) v.update(dt);
     for (const d of this.decos) d.update(dt);
     if (this.hideout) this.updateHideout(dt);
+    if (this.lavaTops.length) this.updateEmbers(dt);
     if (this.trunk) this.facadeK = this.facadeAt(p);
     for (const a of this.anchors) a.update(dt);
     for (const d of this.puffs) d.update(dt);
@@ -1118,9 +1341,11 @@ class World {
     if (this.def.sequel) p.birdTalk = this.flowers.reduce((m, f) => Math.max(m, f.show), 0);
     this.updateMagic(dt);
     this.updateStorms(dt);
+    if (this.volcan.length || this.bombs.length) this.updateVolcano(dt);
     this.updateWinds(dt);
     this.updateUpdrafts(dt);
     this.updateSlime(dt);
+    if (this.ice) this.updateVents(dt);
     if (this.rain) this.updateRain(dt);
     this.updateLight(dt);
     for (const [k, v] of this.springs) {
@@ -1252,6 +1477,11 @@ class World {
       }
       const b = ec.box();
       if (b && boxOverlap(pb, b.x, b.y, b.w, b.h)) p.hurt(b, 'zap');
+    }
+    // une pierre de lave qui tombe, ou qui arrive par terre : Malice est toute noircie de suie (« Kof kof ! »)
+    for (const lb of this.bombs) {
+      const b = lb.box();
+      if (b && boxOverlap(pb, b.x, b.y, b.w, b.h)) p.hurt(b, 'soot');
     }
     // les pieds sur un paratonnerre qui grésille : électrocutée, comme par un éclair au chocolat
     for (const rod of this.rods) {
@@ -1394,6 +1624,131 @@ class World {
     }
   }
 
+  // Le Bord du Cratère ("volcan" : les colonnes [début, fin] où le volcan gronde, et s'il en crache plus : [début, fin,
+  // pierres en plus], ou plus souvent : [début, fin, pierres en plus, combien de fois diff.lavaEvery]) : de temps en temps (diff.lavaEvery), la terre tremble un tout petit peu, le volcan gronde (au
+  // loin, dans le fond, il crache), et des pierres de lave tombent autour de Malice (diff.lavaStones, plus celles de la
+  // zone), chacune annoncée par son ombre par terre (voir LavaBomb). Jamais pendant
+  // qu'une fleur parle, ni quand Malice est en l'air, sur une plateforme qui bouge, sur la pente, ou tout près d'un trou :
+  // elle peut toujours s'écarter (en avançant ou en reculant).
+  updateVolcano(dt) {
+    const p = this.player;
+    this.belch = Math.max(0, this.belch - dt * 0.7);
+    if (this.rumble > 0) {
+      this.rumble -= dt;
+      this.shake(1.6);
+    }
+    for (const b of this.bombs) b.update(dt);
+    this.bombs = this.bombs.filter((b) => !b.dead);
+    if (p.dead || p.won) return;
+    const col = p.cx / TILE;
+    const z = this.volcan.find(([a, b]) => col >= a && col <= b + 1);
+    if (!z) {
+      this.volcanT = Math.max(this.volcanT, 1.2);
+      return;
+    }
+    this.volcanT -= dt;
+    if (this.volcanT > 0) return;
+    // (pas tout de suite : on réessaie un peu plus tard)
+    this.volcanT = 0.3;
+    // (les pierres qui refroidissent par terre ne comptent pas : elles ne font plus mal)
+    if (!p.onGround || p.platform || p.slope || p.hurtT > 0 || p.tumbling() || this.bombs.some((b) => b.phase !== 'cool')) return;
+    if (this.flowers.some((f) => f.show > 0.2) || this.nearPit(p)) return;
+    const spots = this.lavaTargets(p, z);
+    if (!spots.length) return;
+    this.volcanSeen.add(z[0]);
+    this.volcanT = rand(this.diff.lavaEvery[0], this.diff.lavaEvery[1]) * (z[3] || 1);
+    this.rumble = 0.9;
+    this.belch = 1;
+    Sound.sfx.volcanoRumble();
+    // (les pierres tombent l'une après l'autre)
+    spots.forEach(([x, gy, wn], i) => this.bombs.push(new LavaBomb(this, x, gy, (wn || this.diff.lavaWarn) + i * 0.3)));
+  }
+
+  // Un trou (ou de la lave) à moins d'une case et demie devant ou derrière Malice, sur son sol ?
+  nearPit(p) {
+    const feet = p.y + p.h;
+    for (const dx of [-1.5, -0.75, 0.75, 1.5]) {
+      const x = p.cx + dx * TILE;
+      const gy = this.surfaceBelow(x, feet - TILE * 0.5);
+      if (gy > feet + TILE * 1.5 || this.tileAt(Math.floor(x / TILE), Math.floor(gy / TILE)) === '~') return true;
+    }
+    return false;
+  }
+
+  // Où tombent les pierres de lave : la première là où Malice arriverait si elle continuait d'avancer comme maintenant
+  // (tout près d'elle si elle ne bouge pas : il faut bouger), les autres de part et d'autre, à 160 pixels au moins
+  // l'une de l'autre (assez de place entre deux ombres pour s'y mettre). Seulement sur un sol bien plat et solide (pas
+  // sur la lave, ni la pente, ni une plateforme qui bouge), à peu près à sa hauteur, dans la zone, et toujours à
+  // l'écran (l'ombre se voit dès qu'elle apparaît), jamais plus loin que LAVA_AIM.ahead pixels devant elle ; sur la
+  // glace, jamais avant l'endroit où elle peut s'arrêter. Au premier grondement d'une zone (celui qui apprend), une
+  // seule pierre, juste au-delà de l'endroit où elle arriverait : si elle avance sans s'arrêter, elle la voit tomber
+  // devant elle, et passe quand ce n'est plus qu'une pierre chaude (si l'écran est trop court pour ça, la pierre
+  // s'annonce un peu moins longtemps, jamais moins de LAVA_AIM.minWarn secondes). [x, sol, annonce (0 : diff.lavaWarn)]
+  lavaTargets(p, z) {
+    const n = this.diff.lavaStones + (z[2] || 0);
+    const feet = p.y + p.h;
+    const warn = this.diff.lavaWarn;
+    const lo = Math.max(z[0] * TILE + 30, this.cam.x + LAVA_AIM.edge);
+    const hi = Math.min((z[1] + 1) * TILE - 30, this.cam.x + VIEW_W - LAVA_AIM.edge);
+    const out = [];
+    // (sur la glace : la distance qu'il lui faut pour s'arrêter en lâchant tout, plus la pierre, plus un peu ; aucune
+    // pierre entre elle et ce point-là)
+    const icy = p.icy && Math.abs(p.vx) > 60 ? (p.vx * p.vx) / (2 * ICE_PHYS.dec) + LAVA_BOMB.r + 40 : 0;
+    const tryAt = (x, wn) => {
+      if (x < lo || x > hi || out.some(([ox]) => Math.abs(ox - x) < 160)) return;
+      if (icy && Math.sign(p.vx) * (x - p.cx) > -LAVA_BOMB.r - 30 && Math.sign(p.vx) * (x - p.cx) < icy) return;
+      const gy = this.lavaGround(x, feet);
+      if (gy !== null) out.push([x, gy, wn || 0]);
+    };
+    if (!this.volcanSeen.has(z[0])) {
+      const v = Math.abs(p.vx);
+      const dir = v > 30 ? Math.sign(p.vx) : p.facing;
+      const room = (dir > 0 ? hi - p.cx : p.cx - lo) - 10;
+      for (let k = 0; k < 8 && !out.length; k++) {
+        let d = Math.max(v * warn + LAVA_AIM.pass, icy) * rand(1, 1.15);
+        let wn = warn;
+        if (d > room) {
+          d = room - rand(0, 40);
+          if (v > 30) wn = Math.min(warn, (d - LAVA_AIM.pass) / v);
+        }
+        if (wn >= LAVA_AIM.minWarn) tryAt(p.cx + dir * d, wn);
+      }
+      // (les autres pierres : plus loin encore, ou derrière elle, jamais sur son chemin avant que la première tombe ;
+      // dans la première zone du niveau, celle où l'on découvre le volcan, une seule)
+      for (let k = 0; k < 12 && out.length && out.length < n && z !== this.volcan[0]; k++) {
+        tryAt(k % 2 ? out[0][0] + dir * rand(160, 260) : p.cx - dir * rand(90, 220), out[0][2]);
+      }
+      return out;
+    }
+    const ahead = p.vx * warn;
+    for (let k = 0; k < 8 && !out.length; k++) {
+      let dx = clamp(ahead * rand(0.7, 1) * (k < 4 ? 1 : 0.4) + p.facing * rand(-20, 60), -LAVA_AIM.ahead, LAVA_AIM.ahead);
+      if (icy) dx = Math.sign(p.vx) * Math.max(Math.sign(p.vx) * dx, icy);
+      tryAt(p.cx + dx);
+    }
+    for (let k = 0; k < 12 && out.length && out.length < n; k++) {
+      const side = (out.length % 2 ? 1 : -1) * p.facing * (Math.random() < 0.3 ? -1 : 1);
+      tryAt(out[0][0] + side * rand(160, 260));
+    }
+    return out;
+  }
+
+  // Le sol où peut tomber une pierre de lave en x (entre deux cases plus haut et trois plus bas que les pieds de Malice),
+  // ou null : un sol plat et solide sous la pierre, et une case de plus de chaque côté (jamais au bord d'une marche ou
+  // d'un trou, là où l'on prend son élan ou retombe d'un saut : le coup de la pierre y pousserait Malice dans la lave).
+  lavaGround(x, feet) {
+    const gy = this.surfaceBelow(x, feet - TILE * 2.2);
+    if (gy > feet + TILE * 3) return null;
+    for (const dx of [-84, -56, -28, 0, 28, 56, 84]) {
+      const g2 = this.surfaceBelow(x + dx, gy - TILE * 0.5);
+      if (Math.abs(g2 - gy) > 1) return null;
+      const ch = this.tileAt(Math.floor((x + dx) / TILE), Math.floor(gy / TILE));
+      if (!isSolidCh(ch) && !isLedgeCh(ch)) return null;
+    }
+    if (this.scree && this.screeCell(Math.floor(x / TILE), Math.floor(gy / TILE) - 1)) return null;
+    return gy;
+  }
+
   // La pluie (le Moulin à Vent) : des gouttes qui éclaboussent le sol, partout à l'écran (dessin : Scenery.rain).
   updateRain(dt) {
     this.rainT += dt * 30;
@@ -1407,6 +1762,20 @@ class World {
         this.spawn({ type: 'dot', x, y: y - 2, vx: rand(-50, 50), vy: rand(-110, -50), g: 900, life: 0.22, size: rand(1.1, 1.7), color: '#e4f2ff' });
       }
     }
+  }
+
+  // Des braises qui sautent de la lave, de temps en temps (seulement là où on les voit).
+  updateEmbers(dt) {
+    this.emberT -= dt;
+    if (this.emberT > 0) return;
+    this.emberT = rand(0.06, 0.16);
+    const x0 = this.cam.x - 20;
+    const x1 = this.cam.x + VIEW_W + 20;
+    const seen = this.lavaTops.filter((l) => (l.c1 + 1) * TILE > x0 && l.c0 * TILE < x1 && l.r * TILE < this.cam.y + VIEW_H + 10);
+    if (!seen.length) return;
+    const l = choose(seen);
+    const x = clamp(rand(l.c0 * TILE, (l.c1 + 1) * TILE), x0, x1);
+    this.spawn({ type: 'dot', x, y: l.r * TILE + 4, vx: rand(-30, 30), vy: rand(-260, -120), g: 380, life: rand(0.6, 1.1), size: rand(1.6, 2.8), color: choose(['#ffb040', '#ff7a1f', '#ffe08a']) });
   }
 
   updateParticles(dt) {
@@ -1441,9 +1810,17 @@ class World {
     const inside = !p.dead && p.x + p.w > h.x0 && p.x < h.x1 && p.y + p.h > h.y0 && p.y < h.y1;
     if (inside !== !!h.inside) {
       h.inside = inside;
-      Sound.sfx.leaves();
-      for (let i = 0; i < 10; i++) {
-        this.spawn({ type: 'leaf', x: p.cx + rand(-30, 30), y: p.y + rand(-10, 40), vx: rand(-120, 120), vy: rand(-160, -20), g: 160, drag: 1.5, life: 1.3, size: rand(0.7, 1), vr: rand(-6, 6), wob: rand(0, 6), color: choose(['#4fb84a', '#6fd25a', '#3a9e3e']) });
+      // (le nuage de vapeur des fumerolles fait pschhh, et s'effiloche en petites bouffées ; le feuillage bruisse)
+      if (this.hideStyle === 'vapeur') {
+        Sound.sfx.steam();
+        for (let i = 0; i < 12; i++) {
+          this.spawn({ type: 'smoke', x: p.cx + rand(-40, 40), y: p.y + rand(-10, 50), vx: rand(-90, 90), vy: rand(-90, -20), life: rand(0.8, 1.3), size: rand(9, 15), color: '#ffffff' });
+        }
+      } else {
+        Sound.sfx.leaves();
+        for (let i = 0; i < 10; i++) {
+          this.spawn({ type: 'leaf', x: p.cx + rand(-30, 30), y: p.y + rand(-10, 40), vx: rand(-120, 120), vy: rand(-160, -20), g: 160, drag: 1.5, life: 1.3, size: rand(0.7, 1), vr: rand(-6, 6), wob: rand(0, 6), color: choose(['#4fb84a', '#6fd25a', '#3a9e3e']) });
+        }
       }
       if (inside && !h.found) {
         h.found = true;
@@ -1506,8 +1883,10 @@ class World {
   updateCamera(dt, snap) {
     const p = this.player;
     if (p.dead) return;
-    // en courant, on voit plus loin devant
-    const ahead = p.facing * (p.running ? 110 : 60);
+    // en courant, on voit plus loin devant (et encore plus loin en glissant sur les éboulis)
+    // (du côté où elle glisse : vers la gauche aussi, en remontant la pente avec un pouvoir, ou en sautant en arrière)
+    const sliding = this.scree && (p.slope || p.slideAir);
+    const ahead = sliding ? (p.vx < -40 ? -1 : 1) * SCREE_CAM.ahead : p.facing * (p.running ? 110 : 60);
     this.look = snap ? ahead : approach(this.look, ahead, dt * 140);
     let tx = p.cx - VIEW_W * 0.45 + this.look;
     let ty = p.y + p.h / 2 - VIEW_H * 0.56;
@@ -1525,7 +1904,8 @@ class World {
     // (pendant le combat contre un boss, tout en haut : l'écran reste sur le haut de l'arène, voir Boss.setup)
     const fixed = this.arena && this.arena.camY != null;
     // (pareil dans un niveau plus haut que l'écran, "haut" : la caméra suit la branche ou le chapeau où elle a les pieds)
-    const climb = (this.def.grimpe || this.def.haut) && !fixed;
+    // (et dans la Grande Glissade, qui descend bien plus bas que l'écran : la caméra suit la pente où elle glisse)
+    const climb = (this.def.grimpe || this.def.haut || !!this.scree) && !fixed;
     if (climb) {
       const feet = p.y + p.h;
       const g = p.grap && p.grap.phase === 'swing' ? p.grap : null;
@@ -1533,7 +1913,7 @@ class World {
       if (g) this.camFeet = g.anchor.y + g.len + p.h - g.hy;
       else if (snap || p.onGround || p.swim || feet > this.camFeet) this.camFeet = feet;
       // (dans la Crue, ses pieds sont un peu plus haut sur l'écran : on voit mieux l'eau qui monte derrière elle)
-      ty = this.camFeet - VIEW_H * (this.flood ? CLIMB_FEET_CRUE : CLIMB_FEET);
+      ty = this.camFeet - VIEW_H * (this.flood ? CLIMB_FEET_CRUE : this.scree ? SCREE_CAM.feet : CLIMB_FEET);
     }
     // le terrier secret : la caméra ne descend sous terre que quand Malice y est
     const under = this.terrier && p.y + p.h > (this.terrier - 1) * TILE;
@@ -1589,13 +1969,18 @@ class World {
     else if (sky > 0) {
       const lift = this.cam.y - Math.max(0, this.height - VIEW_H);
       // (autour du phare, la mer au loin : voir Scenery BG.storm ; on la voit descendre doucement quand on monte)
-      const cy = this.flood ? lift * 3 + 84 : this.def.haut ? lift + 84 : this.lighthouse ? Math.max(lift * 0.25, -LIGHTHOUSE.sea) + 84 : this.cam.y;
+      // (la Grande Glissade descend bien plus bas que l'écran : le fond monte bien moins vite que la pente, de SCREE_BG
+      // pixels sur toute la descente, pour qu'on voie toujours le ciel et le volcan au loin ; tout en bas, il est à sa
+      // place, comme dans un niveau ordinaire)
+      const cy = this.flood ? lift * 3 + 84 : this.def.haut ? lift + 84 : this.lighthouse ? Math.max(lift * 0.25, -LIGHTHOUSE.sea) + 84
+        : this.scree ? 84 + SCREE_BG * (this.cam.y / Math.max(1, this.height - VIEW_H) - 1) : this.cam.y;
       // (depuis la falaise, le phare au loin, tout petit ; il s'efface derrière le rocher, juste avant qu'on voie le vrai)
       if (this.lighthouse) {
         LIGHTHOUSE_BG.far = clamp((this.lighthouse.x0 - VIEW_W - 60 - this.cam.x) / 200, 0, 1);
         LIGHTHOUSE_BG.ang = this.beamAngle();
       }
-      Scenery.drawBackground(ctx, this.theme, this.cam.x, cy, this.t, this.flash, this.lighthouse ? LIGHTHOUSE_BG : null);
+      // (au Bord du Cratère, le volcan du fond crache quand il gronde : belch)
+      Scenery.drawBackground(ctx, this.theme, this.cam.x, cy, this.t, this.volcan.length ? this.belch : this.flash, this.lighthouse ? LIGHTHOUSE_BG : null);
     }
     if (sky < VIEW_H) ctx.restore();
     // le Phare sur la Falaise : quand sa grande lumière tourne vers nous, elle éclaire tout le fond (seulement le fond :
@@ -1641,7 +2026,7 @@ class World {
     }
     // (les gros feuillages du décor, devant le haut des lianes qui y sont accrochées)
     for (const f of this.foliage) {
-      if (f.x1 + 60 > camX && f.x0 - 60 < camX + VIEW_W) Scenery.hideout(ctx, f.x0, f.y0, f.x1, f.y1, 1, this.t);
+      if (f.x1 + 60 > camX && f.x0 - 60 < camX + VIEW_W) Scenery.hideout(ctx, f.x0, f.y0, f.x1, f.y1, 1, this.t, this.hideStyle);
     }
     // (les fleurs-lanternes qu'on voit : cherchées une fois par image)
     this.glowsSeen = this.glows.filter((gl) => gl.x > camX - 150 && gl.x < camX + VIEW_W + 150);
@@ -1660,6 +2045,7 @@ class World {
     this.drawBridges(ctx, camX);
     this.drawPuddles(ctx, camX);
     this.drawSlime(ctx);
+    if (this.vents.length) this.drawVents(ctx, camX);
     this.drawReeds(ctx, false);
     this.drawLutinShine(ctx, camX, camY);
     this.drawMagic(ctx);
@@ -1673,6 +2059,8 @@ class World {
     for (const d of this.decos) {
       if (this.onScreen(d, 80)) d.draw(ctx);
     }
+    // le grand nid de Maman Aigle, sur son pic
+    if (this.nest && this.onScreen({ x: this.nest.x - 130, y: this.nest.y - 100, w: 260, h: 120 })) Scenery.eagleNest(ctx, this.nest.x, this.nest.y);
     if (this.goal) this.goal.draw(ctx);
     // (les nénuphars qui flottent sont dessinés par-dessus l'eau, plus loin)
     for (const pl of this.platforms) {
@@ -1701,6 +2089,9 @@ class World {
         (e === this.boss || this.arena || (e.y + e.h > camY - 240 && e.y < camY + VIEW_H + 240))) e.draw(ctx);
     }
     for (const ec of this.eclairs) ec.draw(ctx);
+    for (const lb of this.bombs) {
+      if (this.onScreen({ x: lb.x - 60, y: Math.min(lb.y, lb.groundY) - 60, w: 120, h: 120 })) lb.draw(ctx);
+    }
     for (const h of this.hazards) {
       if (!(h instanceof Stalactite) || this.onScreen(h, 120)) h.draw(ctx);
     }
@@ -1710,10 +2101,13 @@ class World {
     if (this.trunk && this.facadeK > 0.01) this.drawFacade(ctx, camX, camY);
     // le feuillage qui cache le coin secret (il s'écarte quand Malice entre)
     const hd = this.hideout;
-    if (hd && hd.x1 + 40 > camX && hd.x0 - 40 < camX + VIEW_W) Scenery.hideout(ctx, hd.x0, hd.y0, hd.x1, hd.y1, hd.k, this.t);
+    if (hd && hd.x1 + 64 > camX && hd.x0 - 64 < camX + VIEW_W) Scenery.hideout(ctx, hd.x0, hd.y0, hd.x1, hd.y1, hd.k, this.t, this.hideStyle);
     this.player.draw(ctx);
     if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);
+    for (const lb of this.bombs) {
+      if (this.onScreen({ x: lb.x - 40, y: lb.groundY - 110, w: 80, h: 120 })) lb.drawWarning(ctx);
+    }
     for (const rod of this.rods) rod.drawWarning(ctx);
     // (l'ombre des grenouilles sauteuses, là où elles vont retomber)
     for (const e of this.enemies) {
@@ -1732,6 +2126,14 @@ class World {
     for (const gl of this.glowsSeen) Scenery.glowFlowerShine(ctx, gl.x, gl.y, gl.v, this.t);
     for (const f of this.fireflies) {
       if (this.onScreen(f, 60)) f.draw(ctx);
+    }
+    // (la fin d'un boss peut se jouer par-dessus tout l'écran, en pixels de l'écran : le vol de Maman Aigle jusqu'au
+    // Cœur du Volcan ; les confettis du « Bravo ! » passent par-dessus)
+    if (this.boss && this.boss.drawScreen) {
+      ctx.save();
+      ctx.translate(camX, camY);
+      this.boss.drawScreen(ctx);
+      ctx.restore();
     }
     this.drawParticles(ctx);
     ctx.restore();
@@ -1754,7 +2156,9 @@ class World {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // (le trou caché sous un bloc lutin, dans le terrier, compte comme du sol : pas de bord dessiné)
-    const isG = (c, r) => (r >= this.rows ? true : this.tileAt(c, r) === '#' || this.hiddenShaft(c, r));
+    // (les éboulis de la Grande Glissade aussi : la terre sous la pente n'a pas d'herbe, ni de bord)
+    // (et la glace du Glacier Fumant : la roche sous une plaque de glace n'a pas de neige dessus)
+    const isG = (c, r) => (r >= this.rows ? true : this.tileAt(c, r) === '#' || this.tileAt(c, r) === SCREE || this.tileAt(c, r) === ICE || this.hiddenShaft(c, r));
     // (les grands chapeaux de champignons sont dessinés à part : voir drawCaps)
     const capped = this.caps.length > 0;
     for (let r = r0; r <= r1; r++) {
@@ -1767,10 +2171,19 @@ class World {
         // (les ponts de corde du marais sont dessinés à part : voir drawBridges)
         if (ch === '=' && this.cabins) continue;
         let img = null;
-        if (ch === '#') {
+        if (ch === '#' && this.scree && this.scree.rock[r * this.cols + c]) {
+          // un rocher sur la pente d'éboulis (la Grande Glissade) : une grosse pierre grise
+          const rk = (cc, rr) => rr >= 0 && cc >= 0 && cc < this.cols && this.scree.rock[rr * this.cols + cc] === 1;
+          img = Scenery.boulderSprite(!rk(c, r - 1), !rk(c - 1, r), !rk(c + 1, r), Math.floor(hash2(c, r) * 3));
+        } else if (ch === '#') {
           // (pas d'herbe au fond de la rivière ; sous terre, dans le terrier, de la terre toute nue)
           const m = { t: !isG(c, r - 1) && r > 0 && this.tileAt(c, r - 1) !== WATER, l: !isG(c - 1, r), r: !isG(c + 1, r), b: !isG(c, r + 1) };
           img = Scenery.groundSprite(this.tileTheme(c, r), m, Math.floor(hash2(c, r) * 4));
+        } else if (ch === ICE) {
+          // une plaque de glace (le Glacier Fumant) : ses bords là où il n'y a ni glace ni roche à côté
+          const ice = (cc, rr) => rr >= this.rows || (cc >= 0 && cc < this.cols && (this.tiles[rr] ? isSolidCh(this.tiles[rr][cc]) && !LUTIN_BLOCKS.includes(this.tiles[rr][cc]) && this.tiles[rr][cc] !== 'B' : false));
+          const m = { t: r === 0 || !ice(c, r - 1), l: !ice(c - 1, r), r: !ice(c + 1, r), b: !ice(c, r + 1) };
+          img = Scenery.iceSprite(m, Math.floor(hash2(c, r) * 4));
         } else if (ch === 'B') {
           img = Scenery.brickSprite(th);
         } else if (LUTIN_BLOCKS.includes(ch)) {
@@ -1786,6 +2199,16 @@ class World {
           img = Scenery.platformSprite('treetops', this.tileAt(c - 1, r) !== '=', this.tileAt(c + 1, r) !== '=', Math.floor(hash2(c, r) * 3));
         } else if (ch === '=') {
           img = Scenery.rainbowSprite(this.tileAt(c - 1, r) !== '=', this.tileAt(c + 1, r) !== '=');
+        } else if (ch === SCREE) {
+          // la pente d'éboulis (la Grande Glissade) : la terre sous la pente, et les cailloux dessus
+          const ls = this.scree && this.scree.lines[c];
+          if (!ls) continue;
+          // (la pente qui passe le plus près du milieu de la case)
+          const mid = (l) => Math.abs(l.y0 + l.k * (c * T + T / 2 - l.x0) - (r + 0.5) * T);
+          const L = ls.reduce((a, l) => (mid(l) < mid(a) ? l : a));
+          const yl = Math.round(L.y0 + L.k * (c * T - L.x0) - r * T);
+          const yr = Math.round(L.y0 + L.k * ((c + 1) * T - L.x0) - r * T);
+          img = Scenery.screeSprite(this.tileTheme(c, r), yl, yr, !isG(c - 1, r), !isG(c + 1, r), Math.floor(hash2(c, r) * 3));
         } else if (ch === 'M') {
           img = Scenery.bounceSprite(th);
         } else if (ch === '^' || ch === 'v') {
@@ -1867,6 +2290,8 @@ class World {
     for (let c = c0; c <= c1; c++) {
       for (let r = r0; r <= r1; r++) {
         if (this.tiles[r][c] !== '#') continue;
+        // (pas de fleur sur un rocher de la Grande Glissade)
+        if (this.scree && this.scree.rock[r * this.cols + c]) break;
         // sous un plafond (grotte), on cherche le vrai sol plus bas
         if (this.tiles[r - 1][c] === '#') continue;
         // (un bloc magique du Lutin posé par terre ne fait pas disparaître l'herbe)
@@ -2442,6 +2867,12 @@ class World {
           break;
         case 'heart':
           Art.heart(ctx, q.x, q.y, 1.3, '#ff4f8a');
+          break;
+        case 'flake':
+          // un flocon de neige (éternué par Malice, le nez tout rouge) qui tourne en flottant
+          ctx.translate(q.x + Math.sin(q.life * 6 + q.rot) * 3, q.y);
+          ctx.rotate(q.rot);
+          Art.snowflake(ctx, q.size);
           break;
         case 'drop':
           Art.sweat(ctx, q.x, q.y, 1);
