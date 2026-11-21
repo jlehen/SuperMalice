@@ -64,6 +64,18 @@ pas. Ce qu'on trouve dans les parties ajoutées :
   la grande échelle.
 - 3-4 : six étages de plus : le pont des paratonnerres, le monte-charge du gardien, sa chambre (à l'abri), l'ancre en
   bonbons, les deux escaliers (paratonnerres tout droit, ou planches plus longues) et les paratonnerres géants.
+- 4-1 : le téléphérique (des cabines qui montent en biais au-dessus de la lave), les orgues de basalte, le bébé volcan
+  (il crache des bonbons), les abris sous l'orage, le canyon des cubes, la route en lacets (trois étages, deux
+  ascenseurs), le rocher creux du nuage grognon, le moulin égaré, et le dos du dragon endormi.
+- 4-2 : les montagnes russes à champignons, le toboggan dans la montagne, la crevasse secrète et sa galerie au trésor,
+  le grand vol plané en pissenlit au-dessus du canyon, le jeu de quilles des hérissons (on y monte par un moulin), la
+  glissade à deux étages, saute-mouton au-dessus de trois crevasses, et les rochers à ronces.
+- 4-3 : la patinoire des pingouins (en cuvette, ou par les planches du dessus), le grand toboggan de glace, les icebergs
+  sur le lac de lave, la cathédrale de glace et ses stalactites en tuyaux d'orgue, les séracs et leurs crevasses, la
+  grande vague gelée (un trésor dans son rouleau).
+- 4-4 : l'échelle de la falaise (des planches dans une faille, et un champignon express), les trois marmites de lave,
+  les dômes de glace et leur pingouin, les geysers du lac (trois plateformes qui montent ensemble), le souffle du
+  cratère (un pissenlit et la vapeur qui remonte tout en haut), l'aigle en bonbons.
 
 Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pendant qu'une fleur toute proche parle.
 
