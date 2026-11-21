@@ -980,6 +980,58 @@ const Sound = (() => {
     breeze() { noise({ filter: 'bandpass', f: 700, f2: 2400, d: 1.2, v: 0.08, q: 1.5, a: 0.2 }); },
     // il redevient gentil : un petit air tout content
     scareFriend() { arp([523, 659, 784, 1047, 784, 1047], { type: 'triangle', d: 0.14, v: 0.14, gap: 0.09 }); },
+
+    // ---- Maman Aigle (le boss des Pentes du Volcan) ----
+    // son grand cri avant de piquer : kiiiii ! (qui descend, en tremblant)
+    eagleCry() {
+      tone({ type: 'triangle', f: 2300, f2: 1500, d: 0.55, v: 0.1, vib: 28, vibDepth: 60, a: 0.02 });
+      tone({ type: 'sine', f: 3400, f2: 2500, d: 0.4, v: 0.035, a: 0.02 });
+    },
+    // un grand coup d'ailes : fwoump
+    eagleFlap() { noise({ filter: 'lowpass', f: 650, f2: 220, d: 0.2, v: 0.12 }); },
+    // elle pique : un sifflement qui monte
+    eagleDive() { noise({ filter: 'bandpass', f: 500, f2: 2600, d: 0.42, v: 0.14, q: 2 }); },
+    // elle arrive en bas : pouf, de la poussière
+    eagleThud() {
+      noise({ f: 500, f2: 120, d: 0.3, v: 0.26 });
+      tone({ type: 'triangle', f: 140, f2: 70, d: 0.2, v: 0.18 });
+    },
+    // le rase-mottes : un grand fffouuu
+    eagleSwoop() { noise({ filter: 'bandpass', f: 1800, f2: 400, d: 0.9, v: 0.14, q: 1.2, a: 0.1 }); },
+    // surprise ! hiii !
+    eagleSurprise() { tone({ type: 'triangle', f: 900, f2: 2200, d: 0.3, v: 0.11, vib: 30, vibDepth: 50 }); },
+    // elle bâille : ooouaaah…
+    eagleYawn() { tone({ type: 'sawtooth', f: 520, f2: 240, d: 1.1, v: 0.04, vib: 5, vibDepth: 20, a: 0.25 }); },
+    // des œufs qui roulent : toc toc toc
+    eggRoll() { for (let i = 0; i < 6; i++) tone({ type: 'sine', f: 1300 - i * 70, d: 0.05, v: 0.07, delay: i * 0.12 }); },
+    // on ramasse un œuf (ou un morceau du dessin)
+    eggPick() { arp([660, 880], { type: 'triangle', d: 0.1, v: 0.1, gap: 0.07 }); },
+    // il retourne dans le nid : un petit air content
+    eggNest() { arp([523, 659, 784, 1047], { type: 'triangle', d: 0.14, v: 0.11, gap: 0.07 }); },
+    // une brindille : crac
+    twig() {
+      noise({ filter: 'highpass', f: 2500, d: 0.05, v: 0.12 });
+      tone({ type: 'triangle', f: 700, f2: 500, d: 0.06, v: 0.06 });
+    },
+    // une note de musique attrapée : do, ré, mi
+    noteGet(i) {
+      const f = [523, 587, 659][i % 3];
+      tone({ type: 'sine', f, d: 0.7, v: 0.13 });
+      tone({ type: 'sine', f: f * 2, d: 0.35, v: 0.04 });
+    },
+    // les coquilles qui craquent
+    eggCrack() { for (let i = 0; i < 6; i++) noise({ filter: 'highpass', f: 3000, d: 0.05, v: 0.12, delay: i * 0.13 }); },
+    // un aiglon : piou !
+    peep() { tone({ type: 'sine', f: 1800, f2: 2700, d: 0.12, v: 0.09 }); },
+    // un bisou : smack !
+    kiss() {
+      noise({ filter: 'bandpass', f: 2200, d: 0.06, v: 0.15, q: 3 });
+      tone({ type: 'sine', f: 900, f2: 1400, d: 0.1, v: 0.08, delay: 0.03 });
+    },
+    // la plume dorée (et le dessin entier) : des clochettes
+    goldFeather() { arp([1047, 1319, 1568, 2093, 2637], { type: 'sine', d: 0.4, v: 0.07, gap: 0.08 }); },
+    // un grand coup de vent (le nid abîmé, le dessin qui s'envole)
+    gust() { noise({ filter: 'bandpass', f: 400, f2: 1600, d: 1.2, v: 0.16, q: 0.8, a: 0.15 }); },
   };
 
   // ---------- Instruments ----------
@@ -1190,6 +1242,15 @@ const Sound = (() => {
   // Les petits morceaux ci-dessous sont écrits case par case (une case = une croche) :
   // "-" prolonge la note précédente, "." est un silence, "|" sépare les mesures (ignoré).
   const SONGS = {
+    // la berceuse que Malice chante à Maman Aigle (avec les trois notes attrapées : do, ré, mi) : « Au clair de la
+    // lune » (chanson traditionnelle), tout doucement, au célesta, avec la harpe en dessous
+    berceuse: {
+      bpm: 160, once: true,
+      tracks: [
+        { w: 'celesta', v: 0.2, n: 'C5 - C5 - C5 - D5 - | E5 - - - D5 - - - | C5 - E5 - D5 - D5 - | C5 - - - - - - -' },
+        { w: 'harp', v: 0.09, n: 'C3 G3 E4 G3 C3 G3 E4 G3 | C3 G3 E4 G3 G2 D3 B3 D3 | C3 G3 E4 G3 G2 D3 B3 D3 | C3 G3 E4 G3 C4 - - -' },
+      ],
+    },
     clear: {
       bpm: 160, once: true,
       tracks: [

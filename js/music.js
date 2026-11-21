@@ -656,6 +656,32 @@ const Music = (() => {
     return S.out({ drumV: 0.8 });
   }
 
+  // 4-4. Le combat contre Maman Aigle : une grande chevauchée dans le ciel, comme un galop de chevaux ailés. La valse
+  // du volcan redevient une marche en 4/4 qui galope (rythme pointé, en ré mineur), la mélodie au cor (les cuivres)
+  // qui sonne la charge, les cordes qui galopent dessous (« ta-ta-tam », deux doubles croches et une croche), les
+  // timbales sur les temps forts, et la harpe qui monte en glissando à la fin de chaque mesure, comme un grand coup
+  // d'ailes. Au refrain, la flûte s'envole une octave plus haut (le cor en dessous) ; à la fin, le glockenspiel joue en
+  // écho, tout doucement, comme une boîte à musique (la berceuse n'est pas loin).
+  function bossEagle() {
+    const S = new Song({ bpm: 144, warp: swing(0.75), mode: MINOR, key: 2 });
+    const GALLOP = [rep(4, (b) => [[b, 0.18, 'C', 0.55], [b + 0.25, 0.18, 'C', 0.65], [b + 0.5, 0.4, 'C']]).flat()];
+    const BASS = [[[0, 0.45, 'R'], [1, 0.45, '5L', 0.7], [2, 0.45, 'R'], [3, 0.45, 'O', 0.7]]];
+    const WINGS = [[[3, 0.3, 'a0', 0.5], [3.125, 0.3, 'a1', 0.6], [3.25, 0.3, 'a2', 0.7], [3.375, 0.3, 'a3', 0.8], [3.5, 0.3, 'a4', 0.9], [3.625, 0.4, 'a5']]];
+    const D = [[[0, 'm', 0.8], [0, 'k', 0.5], [1, 's', 0.35], [2, 'm', 0.6], [3, 's', 0.45], [3.5, 's', 0.25], [3.75, 's', 0.3]]];
+    const FILL = [[0, 'm'], [1, 'm', 0.7], [1.5, 'm', 0.75], [2, 'm', 0.8], [2.5, 'm', 0.85], [3, 'm', 0.9], [3.25, 'm'], [3.5, 'm'], [3.75, 'm']];
+    const base = (p) => {
+      p.pattern('bass', 'pizz', 0.2, BASS);
+      p.pattern('gallop', 'strings', 0.03, GALLOP, { low: 57 });
+      p.pattern('wings', 'harp', 0.05, WINGS, { low: 62 });
+    };
+    S.part(SECT.I, (p) => { p.melody('lead', 'brass', 0.16); p.pattern('bass', 'pizz', 0.2, BASS); p.drums([[[0, 'm'], [2, 'm', 0.7]]], { crash: 0.5 }); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.16); base(p); p.drums(D); });
+    S.part(SECT.A, (p) => { p.melody('lead', 'brass', 0.16); p.melody('low', 'strings', 0.05, { oct: -1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    S.part(SECT.C, (p) => { p.melody('lead', 'flute', 0.16, { oct: 1, top: true }); p.melody('horn', 'brass', 0.08, { oct: -1, top: true }); base(p); p.drums(D, { crash: 0.6, fill: FILL }); });
+    S.part(SECT.D, (p) => { p.melody('lead', 'brass', 0.16); p.melody('box', 'glock', 0.045, { delay: 0.5, oct: 1, top: true }); base(p); p.drums(D, { fill: FILL }); });
+    return S.out({ drumV: 0.7 });
+  }
+
   // Stage de la Moustache-Grappin : jazz swing (on se balance !), walking bass, ride, trompette bouchée,
   // accords de jazz avec substitution de triton (sol7 → ré♭7).
   function swingJazz() {
@@ -911,6 +937,7 @@ const Music = (() => {
     mountain: mountain(),
     'mountain-glace': mountainIce(),
     'mountain-cratere': mountainCrater(),
+    'boss-aigle': bossEagle(),
     'badge-grappin': swingJazz(),
     volcano: volcano(),
     victory: victory(),

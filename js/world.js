@@ -2099,6 +2099,14 @@ class World {
     for (const f of this.fireflies) {
       if (this.onScreen(f, 60)) f.draw(ctx);
     }
+    // (la fin d'un boss peut se jouer par-dessus tout l'écran, en pixels de l'écran : le vol de Maman Aigle jusqu'au
+    // Cœur du Volcan ; les confettis du « Bravo ! » passent par-dessus)
+    if (this.boss && this.boss.drawScreen) {
+      ctx.save();
+      ctx.translate(camX, camY);
+      this.boss.drawScreen(ctx);
+      ctx.restore();
+    }
     this.drawParticles(ctx);
     ctx.restore();
     // la pluie, tout près (par-dessus tout, sauf les bulles des fleurs qui parlent)

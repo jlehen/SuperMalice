@@ -52,6 +52,18 @@
 // plus] (secondes, voir World.updateVolcano) ; lavaStones : combien de pierres à chaque fois ; lavaWarn : combien de
 // temps l'ombre d'une pierre grandit par terre avant qu'elle y tombe (c'est l'annonce : plus longue, on a plus de temps
 // pour s'écarter ; les pierres visent toujours autour de l'endroit où est Malice quand le volcan gronde).
+// Maman Aigle (le boss des Pentes du Volcan, voir js/boss/aigle.js) : aigleEggs : combien d'œufs roulent hors du nid
+// (la première manche ; au plus 3, le nid n'en a que trois) ; aigleHops : combien de fois il faut lui sauter sur le dos
+// (la deuxième) ; aigleTwigs : combien de brindilles le vent emporte du nid (la troisième) ; aigleBits : en combien de
+// morceaux le dessin du bébé oiseau s'envole (la dernière : 2, 3, 4 ou 6). Bébé en a toujours le moins.
+// Ses renforts, tous annoncés (un cri, une ombre avec un « ! », des flèches par terre, un conseil) : aigleEggDive : elle
+// pique dès qu'on ramasse un de ses œufs ; aigleDouble : en touchant le sol, elle repique aussitôt (manches 1, 4 et 5 :
+// une nouvelle ombre, là où est Malice, annoncée un peu moins longtemps) ; aigleReturn : son rase-mottes fait
+// l'aller-retour (manches 3 et 5) ; aigleDrop : un coup fait lâcher ce qu'on porte (la botte de brindilles s'éparpille,
+// le dernier morceau du dessin ramassé s'envole, l'œuf roule plus loin). aigleTire : combien de temps elle reste
+// essoufflée par terre (la deuxième manche ; divisé par bossK) ; aigleLand : à combien de cases de Malice elle se pose,
+// au moins ; aigleRest : sa seule attaque entre deux pauses ('dive' : un piqué ; 'swoop' : un rase-mottes) ; aigleGap :
+// le temps entre deux attaques (divisé par bossK). Avec aigleReturn, la 3e manche a aussi un piqué après le rase-mottes.
 const DIFFS = {
   bebe: {
     name: 'Bébé', lives: Infinity, eyeChase: 90, cubeFuse: 2.5, shootMin: 3.6, shootMax: 5,
@@ -69,6 +81,8 @@ const DIFFS = {
     lavaEvery: [7.5, 9.5], lavaStones: 1, lavaWarn: 1.7,
     vineReach: 46,
     gustHops: 2, gustTickles: 2, gustBells: Infinity,
+    aigleEggs: 2, aigleHops: 1, aigleTwigs: 3, aigleBits: 2,
+    aigleEggDive: false, aigleDouble: false, aigleReturn: false, aigleDrop: false, aigleTire: 4.5, aigleLand: 3.6, aigleRest: 'dive', aigleGap: 1.5,
   },
   gentil: {
     name: 'Gentil', lives: Infinity, eyeChase: 135, cubeFuse: 1.55, shootMin: 2.2, shootMax: 3.2,
@@ -86,6 +100,8 @@ const DIFFS = {
     lavaEvery: [5.5, 7], lavaStones: 2, lavaWarn: 1.4,
     vineReach: 40,
     gustHops: 3, gustTickles: 4, gustBells: 11,
+    aigleEggs: 2, aigleHops: 2, aigleTwigs: 4, aigleBits: 3,
+    aigleEggDive: true, aigleDouble: false, aigleReturn: false, aigleDrop: false, aigleTire: 4.5, aigleLand: 3.6, aigleRest: 'dive', aigleGap: 1.5,
   },
   classique: {
     name: 'Classique', lives: 3, eyeChase: 155, cubeFuse: 1.3, shootMin: 1.7, shootMax: 2.6,
@@ -103,6 +119,8 @@ const DIFFS = {
     lavaEvery: [4.2, 5.5], lavaStones: 2, lavaWarn: 1.2,
     vineReach: 36,
     gustHops: 4, gustTickles: 5, gustBells: 8,
+    aigleEggs: 3, aigleHops: 2, aigleTwigs: 5, aigleBits: 4,
+    aigleEggDive: true, aigleDouble: true, aigleReturn: true, aigleDrop: true, aigleTire: 3.4, aigleLand: 3.6, aigleRest: 'dive', aigleGap: 1,
   },
   difficile: {
     name: 'Difficile', lives: 3, eyeChase: 175, cubeFuse: 1.1, shootMin: 1.4, shootMax: 2.1,
@@ -120,6 +138,8 @@ const DIFFS = {
     lavaEvery: [3.4, 4.4], lavaStones: 3, lavaWarn: 1.05,
     vineReach: 34,
     gustHops: 5, gustTickles: 6, gustBells: 6,
+    aigleEggs: 3, aigleHops: 3, aigleTwigs: 6, aigleBits: 6,
+    aigleEggDive: true, aigleDouble: true, aigleReturn: true, aigleDrop: true, aigleTire: 3.4, aigleLand: 5, aigleRest: 'swoop', aigleGap: 0.9,
   },
 };
 
@@ -265,6 +285,8 @@ const Game = {
       if (!known.includes(b) && ORDER_POS[i] < passed && !this.save.badges.includes(b)) this.save.badges.push(b);
     }
     this.save.stages = TRAINING_LEVELS.map((i) => LEVELS[i].badge);
+    // les cadeaux des boss (la plume dorée de Maman Aigle…), gardés comme les badges (voir giveGift)
+    if (!Array.isArray(this.save.cadeaux)) this.save.cadeaux = [];
     this.setReach(this.save.reach);
     this.diffKey = DIFFS[this.save.difficulty] ? this.save.difficulty : 'gentil';
     this.diff = DIFFS[this.diffKey];
@@ -496,6 +518,7 @@ const Game = {
         this.save.rescued = false;
         this.save.badges = [];
         this.save.nids = [];
+        this.save.cadeaux = [];
         this.setReach(LEVELS[ORDER[0]].key);
         this.showMap();
         break;
@@ -503,7 +526,7 @@ const Game = {
       case 'wipe-yes':
         // depuis l'écran titre, on efface tout, même la difficulté et le son : comme au tout premier jour
         Save.clear();
-        this.save = Object.assign(Save.load(), { v: 3, rescued: false, badges: [], nids: [] });
+        this.save = Object.assign(Save.load(), { v: 3, rescued: false, badges: [], nids: [], cadeaux: [] });
         this.diffKey = this.save.difficulty;
         this.diff = DIFFS[this.diffKey];
         Sound.setMuted(this.save.muted);
@@ -524,7 +547,7 @@ const Game = {
     Input.setCapture(false);
     // il n'y a quelque chose à effacer qu'une fois qu'on a avancé (ou fait un câlin)
     const s = this.save;
-    $('#btn-wipe').classList.toggle('hidden', keyPos(s.reach) <= 0 && !s.badges.length && !(s.nids && s.nids.length));
+    $('#btn-wipe').classList.toggle('hidden', keyPos(s.reach) <= 0 && !s.badges.length && !(s.nids && s.nids.length) && !(s.cadeaux && s.cadeaux.length));
     this.showScreen('scr-title');
     Sound.playMusic('title');
   },
@@ -932,6 +955,8 @@ const Game = {
   levelMusic() {
     const w = this.world;
     if (w && w.boss && w.boss.fighting) return w.boss.song;
+    // (au début de sa fin, un boss peut vouloir le silence : quiet, comme Maman Aigle avant que ses œufs éclosent)
+    if (w && w.boss && w.boss.quiet) return null;
     return levelSong(LEVELS[this.levelIndex]);
   },
 
@@ -1446,6 +1471,19 @@ const Game = {
     if (this.levelIndex === at) return true;
     if (ORDER_POS[this.levelIndex] < ORDER_POS[at] && !BADGE_INFO[b].partout) return false;
     return this.save.badges.includes(b) || this.lent.includes(b);
+  },
+
+  // Les cadeaux des boss (la plume dorée de Maman Aigle : 'plume'), gardés dans la sauvegarde (« cadeaux », et aussi à
+  // part, comme les badges) et dessinés sur la grande carte. N'importe quel personnage peut les recevoir.
+  giveGift(g) {
+    if (!Array.isArray(this.save.cadeaux)) this.save.cadeaux = [];
+    if (this.save.cadeaux.includes(g)) return;
+    this.save.cadeaux.push(g);
+    Save.save(this.save);
+  },
+
+  hasGift(g) {
+    return Array.isArray(this.save.cadeaux) && this.save.cadeaux.includes(g);
   },
 
   // Le niveau qui vient après i sur le chemin de la carte (-1 : c'était le dernier).

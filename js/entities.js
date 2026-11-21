@@ -295,6 +295,11 @@ class Player {
       return;
     }
     if (this.won) {
+      // (emportée sur le dos de Maman Aigle jusqu'à la fin du niveau : elle reste sur son dos)
+      if (this.carry) {
+        this.carry.move(this, dt);
+        return;
+      }
       this.dropPuff();
       if (this.ball && this.roomToStand()) this.standUp();
       this.vx = approach(this.vx, 0, PHYS.decGround * dt);

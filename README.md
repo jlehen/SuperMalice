@@ -11,7 +11,7 @@ puis le ramener chez sa famille, au pays des bonbons !
 ## Les 8 mondes, la grande carte et les stages d'entraînement
 
 Le jeu est fait de **8 mondes**. Chaque monde aura bientôt 4 niveaux (1-1, 1-2, 1-3, 1-4), un boss au bout
-du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux, son boss (Pépé Chêne et Ronchon) et son stage d'entraînement (le Super Saut, refait dans le sous-bois), la Vallée des Orages ses quatre niveaux, son boss (Bourrasque, le nuage enrhumé) et son stage d'entraînement (le Bocal à éclairs), et chaque autre monde son premier niveau :
+du dernier niveau, et un stage d'entraînement. Pour l'instant, la Prairie a ses quatre niveaux, son boss (l'Épouvantail) et son stage d'entraînement, la Forêt ses quatre niveaux, son boss (Pépé Chêne et Ronchon) et son stage d'entraînement (le Super Saut, refait dans le sous-bois), la Vallée des Orages ses quatre niveaux, son boss (Bourrasque, le nuage enrhumé) et son stage d'entraînement (le Bocal à éclairs), les Pentes du Volcan leurs quatre niveaux et leur boss (Maman Aigle), et chaque autre monde son premier niveau :
 
 **Des niveaux trois fois plus longs.** Alice trouvait les niveaux trop courts : depuis novembre 2026, les douze
 niveaux des mondes 1 à 3 sont **trois fois plus longs** (environ 600 à 700 colonnes au lieu de 200 à 235 ; trois fois
@@ -478,8 +478,89 @@ Les gros yeux, comme les grenouilles et les petits nuages, restent sur place pen
      **île de glace** sous deux glaçons, où un pingouin attend, et il faut freiner avant le trou), la dernière pente
      (deux crevasses de 4 cases, un hérisson de roche et un rocher), et la grotte de glace (quatre glaçons, un
      pingouin) avant la dernière montée sous les pierres. Tout en haut, au bord du cratère, un grand espace plat : le
-     grand **nid de Maman Aigle**, sur son pic de roche, vide pour l'instant (une fleur dit qu'on entend un grand
-     oiseau crier là-haut). Un drapeau toutes les 70 cases environ, et des fleurs pour rire.
+     grand **nid de Maman Aigle**, sur son pic de roche, où elle couve ses trois œufs (la dernière fleur dit qu'elle
+     dort, et qu'elle a très peur pour ses petits). Un drapeau toutes les 70 cases environ, et des fleurs pour rire.
+     `?niveau=4-4` lance le niveau (Maman Aigle est tout au bout).
+   - 🦅 **Le boss des Pentes du Volcan : Maman Aigle** (au bord du cratère, au bout du 4-4). Une grande maman aigle
+     toute brune, la tête blanche, un foulard rose à pois autour du cou, qui couve ses trois œufs dans son grand nid,
+     en haut d'un pic de roche (« Zzz… »). L'idée d'Alice : elle croit que Malice veut **voler ses œufs**. Rien de
+     violent : elle ne fait que piquer sur Malice pour la chasser, et à la fin, elle comprend, et devient son amie.
+     Quand Malice arrive, le volcan gronde (« GRRROOOOM… »), le nid tremble, et des œufs roulent hors du nid… Maman
+     Aigle se réveille : « Hein ? Mes œufs ! Une voleuse d'œufs ! Ne touche pas à mes petits ! ». Un mur de fumée se
+     lève derrière Malice : on ne peut plus repartir tant que ce n'est pas fini. Elle a **cinq vies** (en haut de
+     l'écran, une icône par manche, de gauche à droite : un dessin, une note de musique, une brindille, une plume et un
+     œuf ; à chaque manche gagnée, c'est son icône qui s'envole, en commençant par l'œuf, tout à droite), et chaque
+     manche se gagne d'une façon différente, dans cet ordre :
+     1. **Les œufs** : ils ont roulé hors du nid (2 en Bébé et en Gentil, 3 en Classique et en Difficile ; ils ne se
+        cassent jamais). On en ramasse un en le touchant, et on le **rapporte dans le nid**, en haut du pic (on y
+        monte, ou on saute tout contre) : « Dans le nid ! Encore 1 ! ». Un seul à la fois ; si Maman Aigle touche
+        Malice, elle lâche l'œuf (« Ouf, il n'est pas cassé ! ») et on le reprend (en Classique et en Difficile, il
+        roule plus loin). Sauf en Bébé, dès qu'on ramasse un œuf, elle le voit : « Kiiii ! Mon œuf ! », et elle pique
+        aussitôt (annoncé comme d'habitude).
+     2. **Sur son dos** : essoufflée d'avoir cherché ses œufs, elle se pose tout de suite par terre, loin de Malice,
+        pour reprendre son souffle (« Pff… pff… », la langue qui pend). On lui **saute sur le dos** : « Hiii ! », elle
+        est toute surprise et repart. Il faut le faire 1 fois en Bébé, 2 en Gentil et en Classique, 3 en Difficile
+        (« Hiii ! Encore 1 ! »). Entre deux pauses, une seule attaque (un piqué ; un rase-mottes en Difficile). En Bébé,
+        elle reste par terre tant qu'on ne lui a pas sauté dessus ; sinon, elle repart au bout d'un moment (plus vite en
+        Classique et en Difficile : il faut y aller franchement ; en Difficile, elle se pose plus loin).
+     3. **Les brindilles** : un grand coup de vent abîme le nid et emporte des brindilles (3 en Bébé, 4 en Gentil, 5 en
+        Classique, 6 en Difficile), par terre ou qui flottent dans le vent (on saute pour les attraper). On en porte
+        autant qu'on veut, et on les **rapporte au nid** (« Le nid : 3/5 »), pendant que Maman Aigle tourne au-dessus
+        de l'arène et passe en rase-mottes (en Classique et en Difficile, elle pique aussi, et si elle touche Malice, la
+        botte de brindilles s'éparpille tout autour : « Oh non, les brindilles ! »).
+     4. **La berceuse** : trois **notes de musique** (do, ré, mi) arrivent avec le vent et s'en vont tout doucement,
+        de gauche à droite (il faut sauter pour les attraper). Avec les trois, Malice chante « **Au clair de la
+        lune** » : la musique du combat s'arrête, des notes s'envolent jusqu'à Maman Aigle, qui retourne sur son nid,
+        bâille (« Ooouaaah… Quelle jolie chanson… »)… et s'endort un moment.
+     5. **Le dessin** : à son réveil, un coup de vent arrache de la poche de Malice son **dessin du bébé oiseau**, en
+        morceaux (2 en Bébé, 3 en Gentil, 4 en Classique, 6 en Difficile ; un sur le pic, à côté du nid, en Classique
+        et en Difficile), par terre ou dans le vent. On les rassemble (le dessin se reconstruit dans les mains de
+        Malice) ; quand il est entier, Maman Aigle se pose (« Qu'est-ce que tu tiens là ? ») : on va **tout près
+        d'elle** pour lui montrer. En Classique et en Difficile, si elle touche Malice, le dernier morceau ramassé
+        s'envole un peu plus loin (« Oh non, un morceau s'envole ! »).
+     - Ses attaques sont **toujours annoncées**, une seule à la fois, et seulement quand Malice est par terre (ou
+       presque). **Le piqué** (manches 1, 2, 4 et 5) : elle crie « Kiiii ! », lève les ailes au-dessus de Malice, et
+       l'endroit est marqué par terre (une ombre et un gros « ! » qui clignote vite juste avant)… puis elle pique tout
+       droit dessus (« Pouf ! Raté ! »). **Le rase-mottes** (manches 3 et 5) : elle va se mettre d'un côté, tout près du
+       sol, crie « Kiiii ! », et des flèches par terre montrent par où elle va passer… puis elle traverse toute l'arène
+       en rasant le sol (et au-dessus du pic) : on saute par-dessus. Son cri la suit (au-dessus d'elle, ou dessous quand
+       elle vole tout en haut). Si elle touche Malice, elle la projette en l'air comme un sanglier (« Wouaaah ! »). Plus
+       la difficulté est grande, moins l'annonce est longue et plus elle attaque souvent ; elle passe toujours à la même
+       vitesse en rase-mottes (plus lente, elle resterait plus longtemps sous Malice, et ce serait plus dur de sauter
+       par-dessus).
+     - **En Classique et en Difficile**, elle est plus coriace (et c'est toujours annoncé) : **le double piqué**
+       (manches 1, 4 et 5 : en touchant le sol, elle rebondit en un 2e piqué, « Kiii-kiii ! », avec une nouvelle ombre
+       là où est Malice), **le rase-mottes aller-retour** (au bout de l'arène, elle fait demi-tour, « Kiiii ! Et
+       retour ! », les flèches reviennent, et elle repasse dans l'autre sens), et **un coup fait tout lâcher** (l'œuf,
+       les brindilles, le dernier morceau du dessin ; le conseil de la manche le dit). En Gentil, seulement le piqué dès
+       qu'on ramasse un œuf. En Bébé, rien de tout ça. (Réglages : `aigle…` dans `DIFFS`, voir `js/game.js`.)
+     - Les chips et le caramel passent à travers elle (on ne colle pas les ailes d'une maman : Alice n'en voulait pas,
+       ni du grappin dans ses plumes). Les pouvoirs qui renversent, les tirs des pouvoirs (ballon, bulles de feu,
+       vague, Kaméhaméha…), le BOUM du Dinosaure et l'étoile comptent comme un saut sur son dos quand elle est posée,
+       essoufflée ; quand elle pique, ils protègent Malice (comme d'habitude), sans rien lui faire. On ne sort pas de
+       l'arène (ni en volant, ni par le haut de l'écran).
+     - S'il ne se passe rien depuis un moment, un petit conseil dit quoi faire (ramasser les œufs, les rapporter au
+       nid, lui sauter sur le dos, ramasser les brindilles, attraper les notes, les morceaux du dessin, aller lui
+       montrer). Quand elle n'a rien d'autre à dire, elle parle toute seule : « Personne ne touche à mes petits ! ».
+     - **La fin** : elle regarde le dessin… « Mais… c'est le petit oiseau ! Il est coincé tout au fond du volcan… Tu
+       vas le sauver ? » ; des cœurs dans les yeux, une larme : « Alors tu n'es pas une voleuse d'œufs… Pardon,
+       Malice ! ». Crac, crac : les **trois œufs éclosent**, et trois aiglons tout duveteux (« Piou ! ») volettent
+       jusqu'à Malice et lui font chacun un **bisou** (« Smack ! »). Maman Aigle lui donne sa **plume dorée** (« elle
+       porte bonheur ! ») : elle descend en se balançant jusqu'à Malice, et elle est gardée dans la sauvegarde
+       (`cadeaux`) ; sur la grande carte, elle est plantée à côté du château des Pentes du Volcan. Puis : « Monte sur
+       mon dos : je t'emmène au Cœur du Volcan ! » : Malice saute sur son dos, et elles s'envolent ensemble. L'écran
+       passe dans un nuage, et c'est **le petit vol** : Maman Aigle traverse l'écran avec Malice sur son dos, au-dessus
+       d'une mer de nuages roses, jusqu'à une grande porte dans la roche du volcan, toute brillante de lave : **le Cœur
+       du Volcan** ! Elles y entrent… et le niveau est fini (il n'y a pas d'arrivée à toucher). Dès le début de la fin,
+       Malice recule d'un petit bond pour qu'on voie tout (le dessin, l'éclosion, les bisous, la plume), et on ne la
+       dirige plus ; rien ne sort de l'écran ni ne passe sous les boutons d'une tablette pendant le vol. Sur la carte,
+       Malice va vers la suite du chemin (le stage de la Moustache-Grappin, puis le monde 5 ; avec les autres
+       personnages, directement le monde 5).
+     - Si on perd une vie pendant le combat, on repart du drapeau juste avant l'arène, et tout recommence (les œufs
+       sont de nouveau dans le nid ; elle se réveille bien plus vite : « Encore toi ? Ne touche pas à mes œufs ! »).
+       En Bébé, tout est plus lent : ses attaques s'annoncent plus longtemps, elle attend plus longtemps entre deux,
+       elle reste posée tant qu'on ne lui a pas sauté sur le dos, les brindilles, les notes et les morceaux du dessin
+       flottent plus bas, et il y en a moins ; en Difficile, tout va plus vite.
    - ⭐ **Stage d'entraînement : le Défi de la Moustache-Grappin** → on gagne le badge *Moustache-Grappin*
 5. **Le Cœur du Volcan** — 5-1 **Le Cœur du Volcan** : la lave partout… et le bébé oiseau à sauver ! (avec Malice, il faut utiliser les deux badges)
 
@@ -633,6 +714,7 @@ Chaque danger lui fait quelque chose de différent quand elle perd de l'énergie
 | Petit nuage grognon | « Splash ! » toute trempée par sa pluie, les mains sur la tête, puis elle **s'ébroue comme un chien** : tout son corps se tortille, et les gouttes volent tout autour d'elle ! Encore mouillée, elle avance moins vite un moment (des gouttes tombent d'elle, et ses pas font « flic, floc ») |
 | Pingouin grincheux qui glisse | « Wiiii ! » elle part en **toboggan sur le ventre**, les bras tendus devant elle, toute blanche de neige, jusqu'à s'arrêter (sur la glace, elle va bien plus loin ; au bord d'un trou, elle s'arrête toujours) ; elle se relève, et son **nez devient tout rouge**, qui brille un peu… « Ah… ah… **Atchoum !** » : elle **éternue des flocons de neige**, deux fois (elle peut rebouger dès qu'elle est relevée) |
 | Stalactite de glace | une grosse bosse soulève sa casquette, comme les ronces qui pendent |
+| Maman Aigle qui pique (ou qui passe en rase-mottes) | comme le sanglier : « Wouaaah ! », projetée en l'air, elle tourne comme une toupie et retombe la tête en bas ; si elle portait un œuf, elle le lâche (il ne se casse jamais) ; en Classique et en Difficile, ses brindilles s'éparpillent, ou le dernier morceau du dessin s'envole |
 | Pierre de lave (le Bord du Cratère) | toute noire de suie, cheveux en pétard, elle tousse des petits nuages : « Kof kof ! » (comme les morceaux du cube) |
 | Hérisson de roche qui roule | « Badaboum ! » roulée dans une **boule de cailloux** (on la voit toute petite qui tourne dedans), elle en ressort **aplatie comme une crêpe**, les bras et les jambes écartés comme une étoile de mer, toute grise de poussière ; puis elle se regonfle d'un coup : « **Pop !** » (elle peut rebouger dès qu'elle est sortie de la boule, toute plate) |
 | Sanglier qui fonce | projetée en l'air par-dessus son dos, elle tourne comme une toupie et retombe la tête en bas, les jambes en l'air ; une taupe sort de terre à côté d'elle, toute interloquée (« ? »), et replonge aussitôt. Dans la boue, plof : elle s'y enfonce tout de suite (vite, il faut sauter !) ; sur un pont ou une cabane, pas de taupe (il n'y a pas de terre) |
@@ -700,7 +782,9 @@ d'avant le Bocal à éclairs). Quand un stage est ajouté sur le chemin (comme l
 Super Malice qui l'avait déjà dépassé (sa case la plus loin est après lui, et elle n'était pas arrêtée avant par un
 stage dont elle n'avait pas le badge) reçoit son badge, une seule fois : elle n'est ni bloquée ni renvoyée en arrière,
 et le stage reste ouvert sur la carte pour le jouer quand on veut. Une sauvegarde qui n'est pas encore arrivée au
-nouveau stage le fera, comme tout le monde. Pour tout
+nouveau stage le fera, comme tout le monde. Les **cadeaux des boss** (la plume dorée de Maman Aigle) sont gardés
+eux aussi (`cadeaux`, et à part, comme les badges) : n'importe quel personnage peut les recevoir. Une sauvegarde qui
+avait déjà dépassé le 4-4 avant l'arrivée de Maman Aigle n'a pas la plume : il faut rejouer le combat. Pour tout
 effacer (badges compris) :
 sur la carte, **Recommencer depuis le début** (une confirmation est demandée).
 
@@ -743,7 +827,8 @@ au bout du monde (sur un autre niveau, sa case reste une case normale).
 [`js/boss.js`](js/boss.js) (le réveil quand on entre dans l'arène, la caméra et les murs de l'arène, les vies en
 haut de l'écran, les coups, la victoire, l'arrivée qui apparaît, la reprise au drapeau), et chaque boss a son
 propre fichier dans [`js/boss/`](js/boss/) (l'Épouvantail : [`js/boss/epouvantail.js`](js/boss/epouvantail.js) ;
-Pépé Chêne et Ronchon : [`js/boss/chene.js`](js/boss/chene.js) ; Bourrasque : [`js/boss/bourrasque.js`](js/boss/bourrasque.js)), avec ses attaques, ses aides et ses dessins. Dans le niveau (`levels.js`) :
+Pépé Chêne et Ronchon : [`js/boss/chene.js`](js/boss/chene.js) ; Bourrasque : [`js/boss/bourrasque.js`](js/boss/bourrasque.js) ;
+Maman Aigle : [`js/boss/aigle.js`](js/boss/aigle.js)), avec ses attaques, ses aides et ses dessins. Dans le niveau (`levels.js`) :
 - `boss: "epouvantail"` : le nom du boss (celui de `BOSSES.epouvantail = …` à la fin de son fichier) ;
 - `arene: [192, 211]` : la première et la dernière colonne de son arène (20 colonnes : la largeur de l'écran) ;
 - la lettre `&` dans la carte : là où il attend (sur le sol de la case du dessous) ;
@@ -769,16 +854,24 @@ plein combat. Dans un niveau où l'on grimpe, l'écran reste sur le haut de l'ar
 ciel (`arena.camY` au-dessus de 0). Le petit conseil sort de `tipAt()` (par défaut, au-dessus de la tête de Malice) :
 un boss le met ailleurs pour qu'il ne cache pas ce qu'il montre. Un boss (ou une aide) peut
 **emporter Malice** : `player.carry = { move(p, dt) }` la déplace à sa place (rien ne la touche) jusqu'à ce qu'il la
-lâche (`player.carry = null`), comme la toupie de Bourrasque. Il peut aussi faire apparaître une **plateforme**
+lâche (`player.carry = null`), comme la toupie de Bourrasque (et même après la fin du niveau : Maman Aigle emporte
+Malice sur son dos pendant le « Bravo ! » ; elle appelle elle-même `game.levelComplete()`, sans arrivée à toucher).
+Chaque vie peut avoir son icône (`drawLife(ctx, x, y, full, t, i)`, i : laquelle, de gauche à droite ; c'est la plus
+à droite qui s'en va la première), comme les cinq manches de Maman Aigle. Une fin peut se jouer par-dessus tout
+l'écran (`drawScreen(ctx)`, en pixels de l'écran, sous le HUD : le vol de Maman Aigle jusqu'au Cœur du Volcan), et
+demander le silence (`quiet`, même après une pause). Un boss peut faire un **cadeau** gardé dans la sauvegarde (`game.giveGift('plume')`, dessiné sur la carte à
+côté de son château : `GIFTS` dans `js/carte.js`). Il peut aussi faire apparaître une **plateforme**
 (dans `world.platforms`, comme l'arc-en-ciel) et dessiner le **ciel** de son arène, derrière tout le décor
 (`drawSky`, comme le beau soleil de la fin). Sa vitesse suit la difficulté (`bossK` dans `DIFFS`, en haut de
 `js/game.js`), et chaque boss peut y avoir ses réglages (`acornHits` pour Pépé Chêne ; `gustHops`, `gustTickles`
-et `gustBells` pour Bourrasque). Ajouter son fichier dans
+et `gustBells` pour Bourrasque ; `aigleEggs`, `aigleHops`, `aigleTwigs`, `aigleBits` et ses renforts `aigleEggDive`, `aigleDouble`, `aigleReturn`,
+`aigleDrop`, `aigleTire`, `aigleLand`, `aigleRest`, `aigleGap` pour Maman Aigle). Ajouter son fichier dans
 `index.html`, après `js/boss.js`.
 Un **nouveau monde** s'ajoute **à la fin** de `WORLDS` (sinon les numéros des mondes d'après changeraient).
 Si un niveau a un `world` qui n'est pas dans `WORLDS`, il n'apparaît pas et la console du navigateur le dit.
 
-Pour tester directement un niveau : `index.html?niveau=1-2` (monde 1, niveau 2), ou `index.html?niveau=3`
+Pour tester directement un niveau : `index.html?niveau=1-2` (monde 1, niveau 2 ; `?niveau=4-4` : le Bord du
+Cratère, avec Maman Aigle tout au bout), ou `index.html?niveau=3`
 (le premier niveau du monde 3 : c'est aussi l'ancien « niveau 3 »), ou un stage d'entraînement : `index.html?stage=N`,
 le N-ième stage sur le chemin de la carte (maintenant : `?stage=1` la Roulade, `?stage=2` le Super Saut, `?stage=3`
 le Bocal à éclairs, `?stage=4` la Moustache-Grappin ; attention, un stage ajouté plus tôt sur le chemin décale les
@@ -813,6 +906,7 @@ On peut ajouter `&difficulte=bebe`, `&difficulte=classique` ou `&difficulte=diff
   | Les Pentes du Volcan (les Pentes du Volcan, la Grande Glissade) | valse à 3/4 en mode lydien, accordéon et tuba |
   | Le Glacier Fumant | la même valse, un peu plus lente et toute givrée : la mélodie au célesta, le glockenspiel en écho une octave plus haut (des glaçons qui tintent), la contrebasse en pizzicati, la harpe sur les « pah-pah » ; au refrain, l'accordéon revient tout doucement en dessous |
   | Le Bord du Cratère | la même valse, plus vite, et qui gronde comme le volcan : la mélodie aux cuivres, le tuba doublé par la basse électrique, l'orgue sur les « pah-pah », les timbales qui roulent à chaque fin de phrase, des cordes en tenue comme la fumée ; au refrain, l'accordéon, avec le glockenspiel en écho (les braises qui crépitent) |
+  | Le combat contre Maman Aigle | une grande chevauchée dans le ciel, comme un galop de chevaux ailés : en ré mineur et en 4/4, le rythme pointé qui galope, la mélodie au cor (les cuivres) qui sonne la charge, les cordes qui galopent dessous (« ta-ta-tam »), les timbales, et la harpe qui monte en glissando à chaque fin de mesure, comme un coup d'ailes ; au refrain, la flûte s'envole une octave plus haut ; à la fin, le glockenspiel en écho, comme une boîte à musique. Quand Malice chante sa berceuse, la musique s'arrête : « Au clair de la lune », tout doucement, au célesta et à la harpe |
   | Stage de la Moustache-Grappin | jazz swing, walking bass, substitution de triton |
   | Le Cœur du Volcan | marche épique en mineur, pédale d'orgue, timbales |
   | La Grotte aux Cristaux | do mineur, lent et mystérieux : la mélodie au célesta revient en écho, bourdon d'orgue, gouttes d'eau |
