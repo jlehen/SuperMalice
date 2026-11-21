@@ -122,6 +122,16 @@ const Scenery = (() => {
       plat: '#a5764a', platDark: '#6a4a2a', platLight: '#d4a26c',
       bramble: '#5a4a7a', brambleDark: '#22182e', thorn: '#e8f6ff',
     },
+    // le Défi de la Moustache-Grappin, dans les fumerolles du volcan : la roche sombre du Glacier Fumant, chaude en
+    // dessous (glow), avec de la neige dessus ; la cachette est derrière un gros nuage de vapeur (hideout : voir
+    // hideoutSprite), et des braises sautent de la lave (embers : voir World.updateEmbers)
+    fumerolles: {
+      dirt: '#5a4a64', dirtDark: '#3a2e44', dirtLight: '#786684', stripe: 'rgba(30,10,30,0.22)',
+      top: '#f4f9ff', topDark: '#bccfe8', topLight: '#ffffff', blades: false, snow: true, glow: true,
+      brick: '#8fb6dc', brickDark: '#5a7fab', brickLight: '#d2e8ff',
+      plat: '#a5764a', platDark: '#6a4a2a', platLight: '#d4a26c', hideout: 'vapeur', embers: true,
+      bramble: '#5a4a7a', brambleDark: '#22182e', thorn: '#e8f6ff',
+    },
     badge: {
       dirt: '#5b4bb8', dirtDark: '#3e318a', dirtLight: '#7a6ad8', stripe: 'rgba(255,255,255,0.08)',
       top: '#7ff0ff', topDark: '#33b4d6', topLight: '#e8fdff', blades: false,
@@ -3470,11 +3480,16 @@ const Scenery = (() => {
   // de feuilles serrées sur w × h pixels, avec des petites fleurs. Dessiné une fois. (Les touffes du bord débordent :
   // la marge HIDEOUT_M tout autour est assez grande pour qu'aucune ne soit coupée, sinon on verrait un bord droit.)
   // (Aussi les feuillages du décor, "feuillage" dans levels.js.)
+  // style 'vapeur' (le thème le dit : "hideout" dans THEMES) : un gros nuage de vapeur tout blanc, au lieu des feuilles.
   const HIDEOUT_M = 60;
-  function hideoutSprite(w, h) {
+  function hideoutSprite(w, h, style) {
     const M = HIDEOUT_M;
-    return sprite(`hideout:${w}:${h}`, w + M * 2, h + M * 2, (g) => {
+    return sprite(`hideout:${style || ''}:${w}:${h}`, w + M * 2, h + M * 2, (g) => {
       g.translate(M, M);
+      if (style === 'vapeur') {
+        steamCloud(g, w, h);
+        return;
+      }
       const puffs = [];
       const n = Math.max(3, Math.round(w / 44));
       const m = Math.max(2, Math.round(h / 44));
@@ -3517,14 +3532,50 @@ const Scenery = (() => {
 
   // Le feuillage de la cachette, sur le rectangle (x0, y0) - (x1, y1) du monde (k : de 1, tout fermé, à 0, ouvert) :
   // il frémit un peu, et s'écarte quand Malice entre.
-  function hideout(ctx, x0, y0, x1, y1, k, t) {
+  function hideout(ctx, x0, y0, x1, y1, k, t, style) {
     if (k <= 0.01) return;
-    const img = hideoutSprite(x1 - x0, y1 - y0);
+    const img = hideoutSprite(x1 - x0, y1 - y0, style);
     const M = HIDEOUT_M;
+    // (la vapeur ondule plus lentement et plus loin que les feuilles, qui frémissent comme avant)
+    const [fx, fy, ax, ay] = style === 'vapeur' ? [0.9, 1.3, 4, 2.4] : [1.3, 1.7, 1.5, 1];
     ctx.save();
     ctx.globalAlpha = k;
-    ctx.drawImage(img, x0 - M + Math.sin(t * 1.3) * 1.5, y0 - M + Math.sin(t * 1.7 + 1) * 1, x1 - x0 + M * 2, y1 - y0 + M * 2);
+    ctx.drawImage(img, x0 - M + Math.sin(t * fx) * ax, y0 - M + Math.sin(t * fy + 1) * ay, x1 - x0 + M * 2, y1 - y0 + M * 2);
     ctx.restore();
+  }
+
+  // Le gros nuage de vapeur de la cachette des fumerolles (w × h, dessiné une fois) : des boules toutes blanches, un peu
+  // bleutées en dessous, et rosées par la chaleur du volcan tout en bas, avec quelques paillettes de givre.
+  function steamCloud(g, w, h) {
+    const puffs = [];
+    const n = Math.max(3, Math.round(w / 40));
+    const m = Math.max(2, Math.round(h / 40));
+    for (let j = 0; j <= m; j++) {
+      for (let i = 0; i <= n; i++) {
+        const v = hash2(i * 2.3, j * 5.9);
+        const u = (i / n) * 2 - 1;
+        const e = (j / m) * 2 - 1;
+        if (u * u + e * e > 1.6) continue;
+        const edge = i === 0 || j === 0 || i === n || j === m;
+        puffs.push([(i / n) * w + (v - 0.5) * 18, (j / m) * h + (hash(v * 11) - 0.5) * 16, (edge ? 28 : 36) + v * 12]);
+      }
+    }
+    g.fillStyle = '#ffc6b4';
+    puffs.forEach(([x, y, r]) => { circlePath(g, x, y + 10, r); g.fill(); });
+    g.fillStyle = '#c4d2ea';
+    puffs.forEach(([x, y, r]) => { circlePath(g, x, y + 5, r); g.fill(); });
+    g.fillStyle = '#eef3fb';
+    puffs.forEach(([x, y, r]) => { circlePath(g, x, y, r); g.fill(); });
+    g.fillStyle = '#ffffff';
+    puffs.forEach(([x, y, r]) => { circlePath(g, x - r * 0.25, y - r * 0.3, r * 0.55); g.fill(); });
+    g.fillStyle = 'rgba(150,200,255,0.9)';
+    for (let i = 0; i < (w * h) / 2500; i++) {
+      g.save();
+      g.translate(hash(i * 1.7 + 3) * w, hash(i * 2.9 + 1) * h);
+      g.rotate(0.785);
+      g.fillRect(-1.5, -1.5, 3, 3);
+      g.restore();
+    }
   }
 
   // Le ciel de la prairie : soleil, nuages et montagnes au loin (aussi derrière la rivière).
@@ -4419,6 +4470,108 @@ const Scenery = (() => {
       // des flocons qui tombent tout doucement
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       for (let i = 0; i < 26; i++) {
+        const x = ((hash(i * 1.7) * 1100 - cx * 0.3 + Math.sin(t * 0.8 + i) * 20) % 1000 + 1000) % 1000 - 20;
+        const y = ((hash(i * 3.1) * 600 + t * (24 + hash(i) * 20)) % 600) - 30;
+        circlePath(ctx, x, y, 1.4 + hash(i * 5.3) * 1.6);
+        ctx.fill();
+      }
+    },
+
+    // Les fumerolles du Défi de la Moustache-Grappin : le volcan au soleil couchant, entre la glace et le feu. Un ciel
+    // violet et orange ; au fond, le sommet tout blanc de neige (son cratère rougeoie et fume) ; des montagnes de glace
+    // bleues, de grandes colonnes de vapeur ; devant, une crête de roche sombre, avec des taches de neige et des coulées
+    // de lave ; des braises qui montent, et des flocons qui tombent. (cy : la caméra ; quand Malice monte tout en haut, le
+    // fond descend un peu, on voit plus de ciel.)
+    fumerolles(ctx, cx, cy, t) {
+      sky(ctx, [[0, '#4a3a7a'], [0.4, '#a8608a'], [0.72, '#ff9a72'], [1, '#ffd2a8']]);
+      // le sommet du volcan, tout blanc, et son cratère qui rougeoie
+      const vx = 700 - (cx * 0.04) % 2000;
+      const vy = 450 - cy * 0.05;
+      ctx.fillStyle = '#5e4a78';
+      ctx.beginPath();
+      ctx.moveTo(vx - 420, vy);
+      ctx.lineTo(vx - 70, vy - 300);
+      ctx.quadraticCurveTo(vx, vy - 310, vx + 70, vy - 300);
+      ctx.lineTo(vx + 420, vy);
+      ctx.closePath();
+      ctx.fill();
+      // (une coulée de lave qui sort de sous la neige et descend le flanc)
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(255,110,40,0.85)';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(vx + 40, vy - 260);
+      ctx.bezierCurveTo(vx + 90, vy - 190, vx + 60, vy - 120, vx + 130, vy - 30);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(255,${200 + Math.floor(40 * Math.sin(t * 2))},110,0.85)`;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.fillStyle = '#f2eefa';
+      ctx.beginPath();
+      ctx.moveTo(vx - 70, vy - 300);
+      ctx.quadraticCurveTo(vx, vy - 310, vx + 70, vy - 300);
+      ctx.lineTo(vx + 160, vy - 210);
+      for (let i = 0; i <= 8; i++) {
+        const xx = vx + 160 - i * 40;
+        ctx.lineTo(xx, vy - 210 + (i % 2 ? 36 + hash(i + 4) * 30 : 0) - Math.abs(i - 4) * 4);
+      }
+      ctx.closePath();
+      ctx.fill();
+      Art.glow(ctx, vx, vy - 300, 120, '255,140,60', 0.65);
+      for (let i = 0; i < 6; i++) {
+        const ph = (t * 0.12 + i / 6) % 1;
+        ctx.fillStyle = `rgba(230,220,235,${0.55 * (1 - ph)})`;
+        circlePath(ctx, vx + Math.sin(i * 2 + t * 0.3) * 30 + ph * 70, vy - 315 - ph * 210, 28 + ph * 46);
+        ctx.fill();
+      }
+      // les montagnes de glace
+      const off2 = cx * 0.25;
+      hillPath(ctx, off2, 405 - cy * 0.2, 80, 0.006, 4.2, 30);
+      stripedFill(ctx, '#9fb6e4', 'rgba(255,255,255,0.22)', off2, 30);
+      // les grandes colonnes de vapeur, au loin
+      forEachItem(cx * 0.32, 400, 7, (x, i) => {
+        const by = 440 - cy * 0.25;
+        for (let k = 0; k < 4; k++) {
+          const ph = (t * 0.16 + k / 4 + i * 0.37) % 1;
+          ctx.fillStyle = `rgba(255,248,250,${0.42 * (1 - ph)})`;
+          circlePath(ctx, x + Math.sin(t * 0.7 + k + i) * 10, by - ph * 180, 14 + ph * 32);
+          ctx.fill();
+        }
+      });
+      // la crête de roche sombre, devant : des taches de neige, et des coulées de lave qui descendent
+      const off3 = cx * 0.5;
+      const base = 480 - cy * 0.4;
+      hillPath(ctx, off3, base, 46, 0.011, 1.3);
+      ctx.fillStyle = '#5a4466';
+      ctx.fill();
+      forEachItem(off3, 150, 23, (x, i, h) => {
+        const top = hillY(off3, x, base, 46, 0.011, 1.3);
+        if (h < 0.45) {
+          ctx.fillStyle = 'rgba(244,246,255,0.85)';
+          ellipsePath(ctx, x, top + 5, 24 + h * 18, 6 + h * 3);
+          ctx.fill();
+          return;
+        }
+        ctx.strokeStyle = 'rgba(255,110,40,0.8)';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(x, top + 4);
+        ctx.quadraticCurveTo(x + 14, top + 50, x - 4 + h * 10, VIEW_H + 10);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,220,120,0.75)';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+      });
+      // des braises qui montent, et des flocons qui tombent tout doucement
+      for (let i = 0; i < 14; i++) {
+        const x = ((hash(i * 1.9) * 1300 - cx * 0.6 + Math.sin(t * 1.3 + i) * 24) % 1000 + 1000) % 1000 - 20;
+        const y = VIEW_H + 20 - ((hash(i * 4.3) * 600 + t * (35 + hash(i) * 40)) % 620);
+        ctx.fillStyle = i % 3 ? 'rgba(255,160,60,0.85)' : 'rgba(255,230,140,0.9)';
+        circlePath(ctx, x, y, 1.5 + hash(i * 2.2) * 1.5);
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (let i = 0; i < 18; i++) {
         const x = ((hash(i * 1.7) * 1100 - cx * 0.3 + Math.sin(t * 0.8 + i) * 20) % 1000 + 1000) % 1000 - 20;
         const y = ((hash(i * 3.1) * 600 + t * (24 + hash(i) * 20)) % 600) - 30;
         circlePath(ctx, x, y, 1.4 + hash(i * 5.3) * 1.6);
@@ -5335,6 +5488,53 @@ const Scenery = (() => {
         ctx.stroke();
         ctx.translate(0, -15);
         Art.snowflake(ctx, 5);
+      }
+    } else if (theme === 'fumerolles') {
+      if (v < 0.3) {
+        // de petits cristaux de glace
+        ctx.fillStyle = '#cdeeff';
+        ctx.strokeStyle = '#4a86c0';
+        ctx.lineWidth = 1;
+        for (let k = -1; k <= 1; k++) {
+          const h = k === 0 ? 13 : 8;
+          ctx.beginPath();
+          ctx.moveTo(k * 5 - 3, 0);
+          ctx.lineTo(k * 6, -h);
+          ctx.lineTo(k * 5 + 3, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+      } else if (v < 0.55) {
+        // un petit caillou de lave encore chaud, à moitié dans la neige
+        Art.lavaRock(ctx, 0, -5, 7, v * 20, 0.35 + 0.25 * Math.sin(t * 2 + v * 30), v * 50);
+        ctx.fillStyle = '#ffffff';
+        ellipsePath(ctx, 0, -1, 11, 3.5);
+        ctx.fill();
+      } else if (v < 0.75) {
+        // une petite fente qui fume
+        ctx.strokeStyle = '#ff7a1f';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-7, -1);
+        ctx.lineTo(-2, -2);
+        ctx.lineTo(3, -1);
+        ctx.lineTo(7, -2);
+        ctx.stroke();
+        for (let k = 0; k < 3; k++) {
+          const ph = (t * 0.5 + k / 3 + v * 7) % 1;
+          ctx.fillStyle = `rgba(255,255,255,${0.55 * (1 - ph)})`;
+          circlePath(ctx, Math.sin(t * 2 + k) * 3, -4 - ph * 26, 3 + ph * 6);
+          ctx.fill();
+        }
+      } else {
+        // un petit tas de neige
+        ctx.fillStyle = '#ffffff';
+        ellipsePath(ctx, 0, -2, 12, 6);
+        ctx.fill();
+        ctx.fillStyle = '#d6e6f8';
+        ellipsePath(ctx, 3, 0, 8, 2.4);
+        ctx.fill();
       }
     } else if (theme === 'badge') {
       // petit cristal lumineux

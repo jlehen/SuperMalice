@@ -110,6 +110,8 @@
 //             du haut du niveau, après un très grand saut).
 //  "cachette" : [première colonne, première rangée, dernière colonne, dernière rangée] : un coin secret caché derrière
 //             un gros feuillage (tout en haut d'un arbre) ; les feuilles s'écartent quand Malice entre dedans.
+//             (dans les fumerolles du Défi de la Moustache-Grappin, "theme: fumerolles", c'est un gros nuage de vapeur
+//             tout en haut, qui s'effiloche quand elle entre ; des braises sautent aussi de la lave)
 //  "feuillage" : [[première colonne, première rangée, dernière colonne, dernière rangée], …] : de gros feuillages dans
 //             le décor (on passe à travers), par exemple pour accrocher des lianes J sans branche où marcher.
 //  "galeries" : les passages bas sous un plafond (une ou deux cases de haut, entre deux cases solides)
@@ -1663,31 +1665,67 @@ const LEVELS = [
   {
     world: 4,
     name: "Le Défi de la Moustache-Grappin",
-    theme: "badge",
+    theme: "fumerolles",
     badge: "grappin",
     intro: "",
     storms: [],
+    // le bas du niveau reste à l'écran (la lave sous les anneaux) ; la caméra ne monte que quand Malice grimpe tout
+    // en haut (la falaise, et le passage secret)
+    basVisible: true,
+    // tout en haut, au-dessus du trou après la falaise, un gros nuage de vapeur cache une petite île : des bonbons, des
+    // sucettes, et un nid (p)
+    cachette: [228, 0, 237, 4],
     talk: [
-      "Bienvenue ! Termine ce stage pour gagner le badge Moustache-Grappin.",
-      "Près d'un anneau doré, appuie sur {GRAPPIN} : ta grosse moustache va s'y accrocher !",
-      "Balance-toi avec {FLECHES} pour prendre de l'élan, puis saute avec {SAUT} pour te lancer !",
-      "Accrochée à un anneau, appuie encore sur {GRAPPIN} pour attraper le suivant. Et ça marche aussi pour grimper !",
-      "Super ! Va chercher ton badge !",
+      "Bienvenue au stage d'entraînement\u00a0! Termine-le pour gagner le badge Moustache-Grappin.",
+      "Ce rocher est trop haut\u00a0! Approche-toi de l'anneau doré et appuie sur {GRAPPIN} (L1 ou R1 à la manette)\u00a0: ta grosse moustache s'y accroche\u00a0! Puis saute avec {SAUT}.",
+      "Accrochée à l'anneau, balance-toi avec {FLECHES}\u00a0: pousse du côté où tu vas, encore et encore\u00a0! Quand tu files vers l'avant, l'anneau dit «\u00a0Hop\u00a0!\u00a0»\u00a0: saute avec {SAUT}, tu iras bien plus loin\u00a0!",
+      "Deux anneaux\u00a0! Accrochée au premier, appuie encore sur {GRAPPIN}\u00a0: ta moustache attrape le suivant.",
+      "Et maintenant trois anneaux, pour grimper tout là-haut\u00a0! {GRAPPIN}, encore {GRAPPIN}, et encore une fois\u00a0!",
+      "De la lave\u00a0! Accroche l'anneau, balance-toi bien, et saute quand il dit «\u00a0Hop\u00a0!\u00a0». Ensuite, deux anneaux à la suite\u00a0!",
+      "De la glace\u00a0! Cet anneau-là est trop loin. Glisse pour prendre de l'élan, saute tout au bout… et quand l'anneau s'entoure de pointillés, appuie sur {GRAPPIN}\u00a0!",
+      "Une plateforme qui bouge\u00a0! Monte dessus, et quand elle t'emmène vers l'anneau, saute, et en l'air, appuie sur {GRAPPIN}\u00a0!",
+      "Chut… Avance jusqu'au bord\u00a0: tu entends piailler, là-haut, dans le gros nuage de vapeur\u00a0? Accroche l'anneau, et balance-toi pour monter\u00a0!",
+      "Le petit final\u00a0: trois anneaux au-dessus de la lave. Sur le dernier, balance-toi bien, saute au «\u00a0Hop\u00a0!\u00a0»… et le badge est à toi\u00a0!",
+      "Bravo\u00a0! Va chercher ton badge\u00a0!",
     ],
+    // les autres personnages n'ont pas de moustache-grappin (les anneaux disparaissent) : des plateformes en plus,
+    // au-dessus des fosses et de la lave, et pour monter sur le rocher et la falaise ; le passage secret n'est que pour
+    // Malice (ce stage n'est pas sur leur chemin, seulement pour l'essai : ?stage=grappin&perso=licorne)
+    sansBadges: {
+      add: [[8, 15, "--"], [10, 40, "---"], [10, 68, "--"], [10, 72, "--"], [9, 87, "--"], [7, 91, "--"],
+        [7, 95, "--"], [10, 129, "--"], [10, 132, "--"], [9, 145, "--"], [9, 149, "--"], [10, 174, "--"],
+        [10, 178, "--"], [10, 200, "--"], [8, 203, "--"], [7, 207, "-----"], [10, 249, "--"], [9, 253, "--"],
+        [9, 257, "--"], [8, 261, "--"]],
+      talk: {
+        0: "Bienvenue au stage d'entraînement\u00a0! Ici, pas d'anneaux pour toi\u00a0: saute de plateforme en plateforme jusqu'au bout.",
+        1: "Ce rocher est trop haut\u00a0! Monte d'abord sur la petite plateforme.",
+        2: "Une fosse de neige\u00a0! Saute sur la plateforme, puis sur le rebord, de l'autre côté.",
+        3: "Encore une fosse\u00a0: de plateforme en plateforme\u00a0!",
+        4: "Pour monter tout là-haut, saute de plateforme en plateforme.",
+        5: "De la lave\u00a0! Saute bien d'une plateforme à l'autre.",
+        6: "De la glace\u00a0: ça glisse\u00a0! Saute tout au bout, sur la plateforme.",
+        7: "Une plateforme qui bouge\u00a0! Monte dessus, et quand elle arrive au bout, saute sur les petites plateformes, jusqu'en haut de la falaise.",
+        8: "Tout là-haut, dans le gros nuage de vapeur, on entend piailler… Pour y monter, cours bien vite jusqu'au bord de la falaise, et saute de toutes tes forces\u00a0!",
+        9: "Le dernier défi\u00a0: de plateforme en plateforme au-dessus de la lave\u00a0!",
+        10: "Bravo\u00a0! Tu as fini tout le stage\u00a0!",
+      },
+    },
     map: [
-      '................................................................................................................',
-      '................................................................................................................',
-      '................................................................................................................',
-      '.....................ooo......................ooo.....................................o.o.o.o...................',
-      '................................................................@.yyy...........................................',
-      '.................................................@................####...................@......................',
-      '..............@.......@.....................@.....................####..............@.........@.................',
-      '..................................................................####..........................................',
-      '..................................................................####..........................................',
-      '..................................................................####...................................Z......',
-      '..P.T....T...................T..........................T.........####.............................T...#####....',
-      '##################........##############..............##########################.................###############',
-      '##################~~~~~~~~##############~~~~~~~~~~~~~~##########################~~~~~~~~~~~~~~~~~###############',
+      '.....................................................................................................................................................................................................................................................................................',
+      '.....................................................................................................................................................................................................................................................................................',
+      '......................................................................................................................................................................................................................................y.y.y..........................................',
+      '.....................................................................................................................................................................................................................................ooooo.p.........................................',
+      '..................................................................................................................................................................................................................................@.#########........................................',
+      '.................@..oooooo.................oo.y...................................................@....oooooo........................y............@....@.......................................................@....@.....T....................................@....@................',
+      '..................##########.............@..........................@....@...................@......####+++#####...................@................oo..........................ooo@.............................oo...#########...........................@......oo..................',
+      '..................##########..........................................oo................@...........############......................................................................................................#########.............................y..............T....Z....',
+      '..................##########..................................................!.....................##############....................................................................................................###########........................................############',
+      '........ooo.......##########..................##########....................####....................##############......................#######.......................................................................###########........................................############',
+      '..P..T......T.....##########..!..T............############..T...............#####.T.................################....!..T............#######.............!.T..........................!..T.........................#############.............!..T.....................############',
+      '#######++++###########################........###################...........#########...............############################........#######...........######+++++++++++#..........###########H....................#################################..................############',
+      '######################################........###################...........#########...............############################~~~~~~~~#######~~~~~~~~~~~##################~~~~~~~~~~###########~~~~~~~~~~~~~~~~~~~~~#################################~~~~~~~~~~~~~~~~~~############',
+      '######################################........###################...........#########...............############################~~~~~~~~#######~~~~~~~~~~~##################~~~~~~~~~~###########~~~~~~~~~~~~~~~~~~~~~#################################~~~~~~~~~~~~~~~~~~############',
+      '################################################################################################################################~~~~~~~~#######~~~~~~~~~~~##################~~~~~~~~~~###########~~~~~~~~~~~~~~~~~~~~~#################################~~~~~~~~~~~~~~~~~~############',
     ],
   },
   {

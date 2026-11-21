@@ -184,6 +184,8 @@ class World {
     // "cachette" : le coin secret tout en haut d'un arbre, caché derrière un gros feuillage (k : de 1, fermé, à 0)
     const hd = def.cachette;
     this.hideout = hd ? { x0: hd[0] * TILE, y0: hd[1] * TILE, x1: (hd[2] + 1) * TILE, y1: (hd[3] + 1) * TILE, k: 1, found: false } : null;
+    // (dans les fumerolles du Défi de la Moustache-Grappin, c'est un gros nuage de vapeur : voir "hideout" dans THEMES)
+    this.hideStyle = Scenery.THEMES[this.theme].hideout || null;
     // "feuillage" : de gros feuillages dans le décor (les lianes y sont accrochées ; on passe à travers)
     this.foliage = (def.feuillage || []).map((f) => ({ x0: f[0] * TILE, y0: f[1] * TILE, x1: (f[2] + 1) * TILE, y1: (f[3] + 1) * TILE }));
     // les branches (=) sur les grands arbres du sous-bois (voir "branches" dans Scenery.THEMES)
@@ -373,6 +375,9 @@ class World {
     this.bridges = this.cabins ? this.findBridges() : [];
     // (et la brume au ras de la boue : les suites de cases de boue à la surface, voir drawMist)
     this.mists = this.mud ? this.runsOf((c, r) => this.tiles[r][c] === '~' && (r === 0 || this.tiles[r - 1][c] !== '~')) : [];
+    // (dans les fumerolles du Défi de la Moustache-Grappin, des braises sautent de la lave : "embers" dans THEMES)
+    this.lavaTops = Scenery.THEMES[this.theme].embers ? this.runsOf((c, r) => this.tiles[r][c] === '~' && r > 0 && this.tiles[r - 1][c] === '.') : [];
+    this.emberT = 0;
     // le Vieux Chêne : sa porte (les cases vides tout en bas de son mur de gauche), et ce que le fond doit savoir
     // (la hauteur du niveau ; "couronne" : la rangée où le tronc s'ouvre en haut, sous les feuilles)
     if (this.trunk) {
@@ -1324,6 +1329,7 @@ class World {
     for (const v of this.vines) v.update(dt);
     for (const d of this.decos) d.update(dt);
     if (this.hideout) this.updateHideout(dt);
+    if (this.lavaTops.length) this.updateEmbers(dt);
     if (this.trunk) this.facadeK = this.facadeAt(p);
     for (const a of this.anchors) a.update(dt);
     for (const d of this.puffs) d.update(dt);
@@ -1758,6 +1764,20 @@ class World {
     }
   }
 
+  // Des braises qui sautent de la lave, de temps en temps (seulement là où on les voit).
+  updateEmbers(dt) {
+    this.emberT -= dt;
+    if (this.emberT > 0) return;
+    this.emberT = rand(0.06, 0.16);
+    const x0 = this.cam.x - 20;
+    const x1 = this.cam.x + VIEW_W + 20;
+    const seen = this.lavaTops.filter((l) => (l.c1 + 1) * TILE > x0 && l.c0 * TILE < x1 && l.r * TILE < this.cam.y + VIEW_H + 10);
+    if (!seen.length) return;
+    const l = choose(seen);
+    const x = clamp(rand(l.c0 * TILE, (l.c1 + 1) * TILE), x0, x1);
+    this.spawn({ type: 'dot', x, y: l.r * TILE + 4, vx: rand(-30, 30), vy: rand(-260, -120), g: 380, life: rand(0.6, 1.1), size: rand(1.6, 2.8), color: choose(['#ffb040', '#ff7a1f', '#ffe08a']) });
+  }
+
   updateParticles(dt) {
     for (const q of this.particles) {
       q.life -= dt;
@@ -1790,9 +1810,17 @@ class World {
     const inside = !p.dead && p.x + p.w > h.x0 && p.x < h.x1 && p.y + p.h > h.y0 && p.y < h.y1;
     if (inside !== !!h.inside) {
       h.inside = inside;
-      Sound.sfx.leaves();
-      for (let i = 0; i < 10; i++) {
-        this.spawn({ type: 'leaf', x: p.cx + rand(-30, 30), y: p.y + rand(-10, 40), vx: rand(-120, 120), vy: rand(-160, -20), g: 160, drag: 1.5, life: 1.3, size: rand(0.7, 1), vr: rand(-6, 6), wob: rand(0, 6), color: choose(['#4fb84a', '#6fd25a', '#3a9e3e']) });
+      // (le nuage de vapeur des fumerolles fait pschhh, et s'effiloche en petites bouffées ; le feuillage bruisse)
+      if (this.hideStyle === 'vapeur') {
+        Sound.sfx.steam();
+        for (let i = 0; i < 12; i++) {
+          this.spawn({ type: 'smoke', x: p.cx + rand(-40, 40), y: p.y + rand(-10, 50), vx: rand(-90, 90), vy: rand(-90, -20), life: rand(0.8, 1.3), size: rand(9, 15), color: '#ffffff' });
+        }
+      } else {
+        Sound.sfx.leaves();
+        for (let i = 0; i < 10; i++) {
+          this.spawn({ type: 'leaf', x: p.cx + rand(-30, 30), y: p.y + rand(-10, 40), vx: rand(-120, 120), vy: rand(-160, -20), g: 160, drag: 1.5, life: 1.3, size: rand(0.7, 1), vr: rand(-6, 6), wob: rand(0, 6), color: choose(['#4fb84a', '#6fd25a', '#3a9e3e']) });
+        }
       }
       if (inside && !h.found) {
         h.found = true;
@@ -1998,7 +2026,7 @@ class World {
     }
     // (les gros feuillages du décor, devant le haut des lianes qui y sont accrochées)
     for (const f of this.foliage) {
-      if (f.x1 + 60 > camX && f.x0 - 60 < camX + VIEW_W) Scenery.hideout(ctx, f.x0, f.y0, f.x1, f.y1, 1, this.t);
+      if (f.x1 + 60 > camX && f.x0 - 60 < camX + VIEW_W) Scenery.hideout(ctx, f.x0, f.y0, f.x1, f.y1, 1, this.t, this.hideStyle);
     }
     // (les fleurs-lanternes qu'on voit : cherchées une fois par image)
     this.glowsSeen = this.glows.filter((gl) => gl.x > camX - 150 && gl.x < camX + VIEW_W + 150);
@@ -2073,7 +2101,7 @@ class World {
     if (this.trunk && this.facadeK > 0.01) this.drawFacade(ctx, camX, camY);
     // le feuillage qui cache le coin secret (il s'écarte quand Malice entre)
     const hd = this.hideout;
-    if (hd && hd.x1 + 40 > camX && hd.x0 - 40 < camX + VIEW_W) Scenery.hideout(ctx, hd.x0, hd.y0, hd.x1, hd.y1, hd.k, this.t);
+    if (hd && hd.x1 + 64 > camX && hd.x0 - 64 < camX + VIEW_W) Scenery.hideout(ctx, hd.x0, hd.y0, hd.x1, hd.y1, hd.k, this.t, this.hideStyle);
     this.player.draw(ctx);
     if (this.goal && this.goal.drawFront) this.goal.drawFront(ctx);
     for (const ec of this.eclairs) ec.drawWarning(ctx);

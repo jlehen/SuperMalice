@@ -76,7 +76,13 @@ const SLIDE = { speed: 370, grade: 0.7, fast: 1.4, slow: 0.62, acc: 900, air: 32
 const ICE_PHYS = { acc: 650, dec: 300, turn: 760, top: 1.1, over: 1100, airAcc: 1100, airDec: 150, skid: 0.3 };
 
 // Moustache-grappin : portée, vitesse de la moustache, vitesse de traction, longueur de la corde.
-const GRAPPLE = { range: 340, shoot: 2600, pull: 820, len: 58 };
+// Pendue à un anneau, le saut est gardé en mémoire : appuyé pendant qu'elle file déjà vers l'avant (vitesse du
+// balancement plus grande que bufV, en radians par seconde) mais qu'elle est encore derrière l'anneau (angle plus
+// petit que bufAng), elle lâche dès qu'elle passe devant. Le repère « Hop ! » s'allume sur l'anneau quand elle file
+// vers l'avant plus vite que hopV (c'est le bon moment pour sauter), s'il n'y a pas d'autre anneau à attraper devant.
+// En l'air, une moustache lancée dans le vide est gardée en mémoire buffer secondes : si un anneau devient visé
+// pendant ce temps, elle part vers lui.
+const GRAPPLE = { range: 340, shoot: 2600, pull: 820, len: 58, bufAng: 0.25, bufV: 0.5, hopV: 1.5, buffer: 0.4 };
 // Les lianes du Vieux Chêne (J) : on s'y balance comme à la moustache-grappin (voir Player.updateHanging), avec
 // tous les personnages. min : on ne l'attrape pas tout près du plafond (pixels) ; push : la force des flèches
 // (en pixels par seconde par seconde, le long de l'arc : elles poussent seulement dans le sens où l'on va ; en
@@ -219,6 +225,11 @@ class Player {
     this.rollBufDir = 1;
     this.grap = null;
     this.target = null;
+    // la moustache gardée en mémoire en l'air (voir GRAPPLE.buffer), sans reprendre l'anneau qu'elle vient de lâcher ;
+    // et le repère « Hop ! » sur l'anneau où elle pend
+    this.grapBuf = 0;
+    this.grapBufEx = null;
+    this.hopCue = false;
     this.boostT = 0;
     // la liane qu'elle vient de lâcher (elle ne la reprend pas avant vineWait secondes : voir VINE)
     this.vineLast = null;
@@ -361,7 +372,16 @@ class Player {
       if (w.inLava(this) && !this.lavaProof() && !w.choco) this.die('lava');
       return;
     }
-    if (I.pressed.grapple && badgeGrappin && !this.pound && !this.ball && this.hurtT <= 0) this.startGrapple();
+    const canGrapple = badgeGrappin && !this.pound && !this.ball && this.hurtT <= 0;
+    if (I.pressed.grapple && canGrapple) this.startGrapple();
+    else if (this.grapBuf > 0) {
+      // (la moustache gardée en mémoire : appuyée un peu trop tôt en l'air, elle repart dès qu'un anneau est visé)
+      this.grapBuf -= dt;
+      if (this.onGround || !canGrapple || this.swim) this.grapBuf = 0;
+      else if ((!this.grap || this.grap.phase === 'miss') && this.findAnchor(this.grapBufEx)) {
+        this.startGrapple(this.grapBufEx);
+      }
+    }
     // la bave d'escargot sous les pieds : ça glisse ! (pas sur un nénuphar)
     this.slick = this.onGround && !this.platform && !this.swim && w.slimeUnder(this);
     // une plaque de glace sous les pieds : ça glisse aussi ! (en l'air après avoir sauté de la glace, elle garde son
@@ -1372,16 +1392,24 @@ class Player {
     return best;
   }
 
-  startGrapple() {
-    const prev = this.grap && this.grap.anchor;
+  // (prev : l'anneau qu'on ne vise pas, celui où elle pend, ou celui qu'elle vient de lâcher)
+  startGrapple(prev = this.grap && this.grap.anchor) {
     const a = this.findAnchor(prev);
     const m = this.mustachePoint();
     Sound.sfx.grapple();
+    this.grapBuf = 0;
     if (!a) {
       this.grap = { phase: 'miss', t: 0, tipX: m.x, tipY: m.y };
+      // (gardée en mémoire un petit moment : voir GRAPPLE.buffer ; au sol, elle s'efface dès l'image suivante si
+      // Malice n'a pas sauté)
+      this.grapBuf = GRAPPLE.buffer;
+      this.grapBufEx = prev;
       return;
     }
-    this.grap = { phase: 'shoot', anchor: a, t: 0, tipX: m.x, tipY: m.y, ang: 0, angV: 0, len: GRAPPLE.len, hy: 14, stuckT: 0 };
+    // (dir : le côté où elle va, celui de l'anneau, ou bien celui où elle regarde s'il est juste au-dessus d'elle :
+    // c'est le côté du repère « Hop ! »)
+    const dir = Math.abs(a.x - this.cx) > 12 ? Math.sign(a.x - this.cx) : this.facing;
+    this.grap = { phase: 'shoot', anchor: a, t: 0, tipX: m.x, tipY: m.y, ang: 0, angV: 0, len: GRAPPLE.len, hy: 14, stuckT: 0, dir };
     this.pound = 0;
     this.dropPuff();
     this.stopPower();
@@ -1496,7 +1524,14 @@ class Player {
       else if (I.pressed.grapple && w.game.hasBadge('grappin') && this.findAnchor(null)) this.startGrapple();
       return;
     }
-    if (I.pressed.jump) this.releaseGrapple(true);
+    // (à un anneau : le saut gardé en mémoire, vers la flèche tenue, et le repère « Hop ! », vers le côté où elle
+    // allait : voir GRAPPLE)
+    const fwd = dir || g.dir;
+    const behind = g.ang * fwd < GRAPPLE.bufAng && g.angV * fwd > GRAPPLE.bufV;
+    const t = this.target;
+    this.hopCue = g.angV * g.dir > GRAPPLE.hopV && !(t && Math.sign(t.x - a.x) === g.dir);
+    if (I.pressed.jump && behind) g.jumpAsked = true;
+    else if (I.pressed.jump || (g.jumpAsked && !behind)) this.releaseGrapple(true);
     else if (I.pressed.down) this.releaseGrapple(false);
     else if (I.pressed.grapple) this.startGrapple();
   }
@@ -7103,11 +7138,17 @@ class Anchor {
     this.y = y;
     this.t = Math.random() * 6;
     this.flash = 0;
+    // le repère « Hop ! » (de 0, éteint, à 1, allumé) : Malice y pend et c'est le bon moment pour sauter
+    this.hop = 0;
   }
 
   update(dt) {
     this.t += dt;
     if (this.flash > 0) this.flash -= dt;
+    const p = this.world.player;
+    const g = p.grap;
+    const on = !!g && g.anchor === this && g.phase === 'swing' && !g.vine && p.hopCue && !p.dead;
+    this.hop = approach(this.hop, on ? 1 : 0, dt * (on ? 12 : 6));
   }
 
   draw(ctx) {
@@ -7117,6 +7158,18 @@ class Anchor {
       targeted: w.player.target === this && !w.player.dead,
       flash: Math.max(0, this.flash),
     });
+    if (this.hop > 0.02) {
+      // un cercle vert autour de l'anneau, et « Hop ! » au-dessus
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, this.hop * 1.5);
+      ctx.strokeStyle = '#6dff6a';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 20 + this.hop * 5, 0, Math.PI * 2);
+      ctx.stroke();
+      drawOutlinedText(ctx, 'Hop\u00a0!', this.x, this.y - 36 - this.hop * 4, Math.round(18 + this.hop * 6), '#b8ff9a');
+      ctx.restore();
+    }
   }
 }
 
@@ -7320,7 +7373,10 @@ class Nest {
 // niveau, même si elle perd une vie et revient (comme l'œil bonbon : voir Game.caughtEyes). Et la vie, une seule fois
 // en tout (gardé dans la sauvegarde, "nids") : quand on rejoue le stage, il fait encore un câlin (les cœurs à fond, des
 // points), mais sans vie en plus.
+// (dans les fumerolles du Défi de la Moustache-Grappin, c'est un petit oisillon des neiges, tout blanc et bleu,
+// caché dans le gros nuage de vapeur : SNOW_NEST_COLORS)
 const NEST_COLORS = { light: '#c8f5a0', mid: '#6fcf4a', dark: '#2f9a3a', wing: '#3fae4a', tuft: '#2f8a3a' };
+const SNOW_NEST_COLORS = { light: '#ffffff', mid: '#cfe4fb', dark: '#6f9cd0', wing: '#a8c8ef', tuft: '#5f8cc4' };
 
 class SecretNest {
   constructor(world, x, y, key) {
@@ -7330,6 +7386,7 @@ class SecretNest {
     this.key = 'nid:' + key;
     this.given = world.game.caughtEyes.has(this.key);
     this.saveKey = world.def.key + ':' + key;
+    this.colors = world.theme === 'fumerolles' ? SNOW_NEST_COLORS : NEST_COLORS;
     this.up = 0;
     this.t = rand(0, 6);
     this.chirpT = 0;
@@ -7347,8 +7404,9 @@ class SecretNest {
     const dy = p.y + p.h - this.y;
     const near = !p.dead && Math.abs(dx) < 160 && Math.abs(dy) < 130;
     // (de plus loin, tant qu'il n'a pas eu de visite : sur les branches en dessous, on l'entend piailler de temps en
-    // temps, pour donner envie de monter voir)
-    const hear = !p.dead && !this.given && Math.abs(dx) < 330 && dy > -60 && dy < 430;
+    // temps, pour donner envie de monter voir ; dans la vapeur, de bien plus loin : dès le bord de la falaise)
+    const far = w.hideStyle === 'vapeur' ? 700 : 330;
+    const hear = !p.dead && !this.given && Math.abs(dx) < far && dy > -60 && dy < 430;
     this.up = approach(this.up, near ? 1 : 0, dt * (near ? 4 : 1.2));
     this.chirpT -= dt;
     if ((near || hear) && this.chirpT <= 0 && this.hug < 0 && (this.up > 0.6 || !near)) {
@@ -7404,7 +7462,7 @@ class SecretNest {
   draw(ctx) {
     const flying = this.hug >= 0 && this.hug < 4;
     if (!flying) {
-      Art.babyBird(ctx, this.x, this.y, this.t, { colors: NEST_COLORS, happy: this.up > 0.6, chirp: this.up > 0.6 && Math.sin(this.t * 9) > 0 });
+      Art.babyBird(ctx, this.x, this.y, this.t, { colors: this.colors, happy: this.up > 0.6, chirp: this.up > 0.6 && Math.sin(this.t * 9) > 0 });
       if (this.up < 0.2) {
         // zzz…
         const k = (this.t * 0.6) % 1;
@@ -7418,8 +7476,8 @@ class SecretNest {
       return;
     }
     // le nid tout vide, et l'oisillon qui vole autour de Malice
-    Art.babyBird(ctx, this.x, this.y, this.t, { colors: NEST_COLORS, onlyNest: true });
-    Art.babyBird(ctx, this.bx, this.by + 18, this.t, { colors: NEST_COLORS, noNest: true, happy: true, chirp: Math.sin(this.t * 12) > 0 });
+    Art.babyBird(ctx, this.x, this.y, this.t, { colors: this.colors, onlyNest: true });
+    Art.babyBird(ctx, this.bx, this.by + 18, this.t, { colors: this.colors, noNest: true, happy: true, chirp: Math.sin(this.t * 12) > 0 });
   }
 }
 
